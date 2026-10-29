@@ -43,6 +43,14 @@ screenshot CoinGlass, seperti model v6 dicocokkan ke Model 1.
    3x 9%, 4x 14%, 5x 20%, 7x 6%, 10x 2%, 15x 4%, 20x 5%, 25x 8%, 33x 6%, 50x 5%, 75x 7%, 100x 6%, 125x 9%
    (rendah 3–5x ≈ 43%, menengah 7–20x ≈ 17%, tinggi 25–125x ≈ 40%). Disimpan di `final_fit.json`.
 
+10. **Ukuran yang sama dengan v6** (`improve.py`): v6 dinilai "ketat" dan "toleransi 1 kotak" (kedua gambar dihaluskan arah
+    harga σ = 1 kotak, seperti `accuracy_report` di `research/compare.py`). Model 2 versi ini (tanpa perubahan):
+    ketat 0,74 / 0,92 / 0,81; **toleransi 1 kotak 0,89 / 0,97 / 0,87** (24 jam / 1 minggu / 1 bulan).
+    Pembanding v6 vs Model 1: ketat 0,83–0,86, toleransi 1 kotak 0,90–0,92; batas atas (dua screenshot CoinGlass
+    jendela hampir sama) 0,98. Variasi kecil yang diuji: margin pemeliharaan 0,4% + grid kotak digeser ¼ kotak
+    → toleransi 1 kotak **0,90 / 0,97 / 0,89** (rata-rata 0,919 vs 0,912 tanpa perubahan). Selisih ini kecil, belum tentu
+    nyata; pilihan akhir ditentukan uji di luar sampel.
+
 ## Hal yang belum diketahui
 - Kenapa skala tampilan berbeda per rentang (1 bulan ≈ 0,155 dari 24 jam). Bukan karena candle kasar, bukan karena
   peluruhan umur posisi. Untuk sekarang diperlakukan sebagai konstanta per rentang yang diukur.
