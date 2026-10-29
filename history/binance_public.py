@@ -24,6 +24,7 @@ BASE = "https://data.binance.vision/data/futures/um"
 PAIRS = ["BTCUSDT", "ETHUSDT"]
 KLINES_FROM = dt.date(2020, 1, 1)
 METRICS_FROM = dt.date(2020, 9, 1)
+OI_GLITCH = 0.10
 
 
 def _get(url, path):
@@ -137,6 +138,15 @@ def load(sym):
                 mf.append(pd.DataFrame({"t": ts, "oi": pd.to_numeric(m["sum_open_interest"], errors="coerce")}))
     oi = pd.concat(mf, ignore_index=True).drop_duplicates("t", keep="last") if mf else pd.DataFrame(columns=["t", "oi"])
     df = px.merge(oi, on="t", how="left")
+    df = df.sort_values("t").reset_index(drop=True)
+    # Bersihkan nilai OI rusak di arsip publik: 0, atau menyimpang > OI_GLITCH dari median 1 jam di sekitarnya
+    # (25 titik 5 menit). Ditemukan 29 Okt 2026: OI = 0 di beberapa titik (mis. BTC 2022-03-07, 2024-07-10), yang
+    # membuat model mengira miliaran USD posisi baru. Perubahan nyata yang menetap tidak terhapus karena median ikut bergeser.
+    med = df.oi.rolling(25, center=True, min_periods=5).median()
+    bad = df.oi.notna() & ((df.oi <= 0) | ((df.oi / med - 1).abs() > OI_GLITCH))
+    load.glitches = {"removed": int(bad.sum()),
+                     "examples": [str(pd.to_datetime(x, unit="s")) for x in df.t[bad].head(10)]}
+    df.loc[bad, "oi"] = np.nan
     for col in ("open", "high", "low", "close", "vol"):
         df[col] = pd.to_numeric(df[col], errors="coerce")
     return df.dropna(subset=["open", "high", "low", "close"]).reset_index(drop=True)

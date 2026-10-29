@@ -110,7 +110,7 @@ const chart = LC.createChart(document.getElementById("chart"), {
   grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
   crosshair: { mode: LC.CrosshairMode.Normal, vertLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" }, horzLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" } },
   rightPriceScale: { borderColor: css("--line") },
-  timeScale: { borderColor: css("--line"), timeVisible: true, secondsVisible: false, rightOffset: 6 },
+  timeScale: { borderColor: css("--line"), timeVisible: true, secondsVisible: false, rightOffset: 6, minBarSpacing: 0.05 },
   localization: { timeFormatter: t => fmtT(t) + " WIB" },
 });
 const candles = chart.addSeries(LC.CandlestickSeries, { upColor: css("--up"), downColor: css("--down"), borderUpColor: css("--up"), borderDownColor: css("--down"), wickUpColor: css("--up"), wickDownColor: css("--down"), priceLineColor: "#9aa3b5", priceLineStyle: 2 }, 0);

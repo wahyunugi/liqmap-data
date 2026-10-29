@@ -49,6 +49,7 @@ def series(sym, report):
         r["history_from"] = str(pd.to_datetime(hist.t.min(), unit="s"))
         r["history_rows"] = int(len(hist))
         r["history_oi_coverage_pct"] = round(float(hist.oi.notna().mean() * 100), 2)
+        r["history_oi_glitches_removed"] = getattr(binance_public.load, "glitches", None)
         # cek tumpang tindih dengan arsip Binance di repo (dari laptop, 28 Sep - 29 Okt 2026)
         arch = inputs.binance_5m(sym)
         m = hist.merge(arch, on="t", suffixes=("_h", "_r"))
