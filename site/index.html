@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Liqmap Chart</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+/* Layout: a single dark trading terminal — control strip on top, one tall multi-pane chart, compact notes underneath.
+   Deliberately single-theme (dark): the heatmap colour scale is built for a dark field, like the CoinGlass screen it replicates. */
+:root{
+  --bg:#0b0d11; --panel:#11141a; --raise:#181c24; --fg:#e6e9ef; --muted:#8a92a2; --line:#1e232c;
+  --long:#3987e5; --short:#d95926; --up:#eef1f5; --down:#f2557c; --oi:#b9c1cf;
+  --font-ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--font-ui);font-size:14px;line-height:1.45}
+.wrap{max-width:1600px;margin:0 auto;padding-block:14px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:10px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
+.asof{font:400 .78rem var(--font-num);color:var(--muted)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.grp{display:flex;align-items:center;gap:2px}
+.grp .lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 6px 0 4px}
+.btn{font:500 .86rem var(--font-ui);color:var(--muted);background:transparent;border:0;border-radius:5px;padding:5px 9px;cursor:pointer}
+.btn:hover{color:var(--fg);background:var(--raise)}
+.btn[aria-pressed="true"]{color:var(--bg);background:var(--fg)}
+.btn:focus-visible,.chk input:focus-visible+span,input[type=range]:focus-visible{outline:2px solid var(--long);outline-offset:1px}
+.sep{width:1px;height:22px;background:var(--line)}
+.chk{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.86rem;color:var(--muted);padding:4px 6px;user-select:none}
+.chk input{position:absolute;opacity:0;pointer-events:none}
+.chk span.box{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--muted);display:inline-grid;place-items:center}
+.chk input:checked+span.box{background:var(--fg);border-color:var(--fg)}
+.chk input:checked+span.box::after{content:"";width:7px;height:4px;border:2px solid var(--bg);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.chk input:checked~.t{color:var(--fg)}
+.thr{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--muted)}
+.thr input{width:110px;accent-color:#fde725}
+.thr output{font:500 .8rem var(--font-num);color:var(--fg);width:2.6em}
+.scale{width:70px;height:8px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
+.chartbox{position:relative;height:min(80vh,860px);min-height:540px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#chart{position:absolute;inset:0}
+.legend{position:absolute;left:10px;top:8px;z-index:5;pointer-events:none;font:400 .78rem var(--font-num);display:grid;gap:3px;max-width:calc(100% - 90px);text-shadow:0 0 3px #000,0 0 6px #000}
+.legend .sym{font:600 .92rem var(--font-ui);letter-spacing:.02em}
+.legend .row{display:flex;flex-wrap:wrap;gap:2px 12px}
+.legend .k{color:var(--muted)}
+.legend .pos{color:var(--up)} .legend .neg{color:var(--down)}
+.legend .lg{color:var(--long)} .legend .sh{color:var(--short)}
+.plabel{position:absolute;left:10px;z-index:5;pointer-events:none;font:400 .74rem var(--font-num);color:var(--muted);text-shadow:0 0 3px #000}
+.plabel b{font-family:var(--font-ui);font-weight:600;color:var(--fg);margin-right:8px}
+.loading[hidden]{display:none}
+.loading{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--panel) 80%,transparent);z-index:9;font-size:.95rem;color:var(--muted)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px 28px;color:var(--muted);font-size:.84rem}
+.notes h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--fg);margin:0 0 4px;font-weight:600}
+.notes p{margin:0 0 6px;max-width:70ch}
+.notes code{font-family:var(--font-num);font-size:.78rem;color:var(--fg)}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+@media (max-width:640px){.chartbox{height:76vh;min-height:520px}.thr input{width:80px}.sep{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><h1>Liqmap Chart</h1><span class="asof" id="asof"></span></div>
+  </div>
+  <div class="bar" role="toolbar" aria-label="Chart controls">
+    <div class="grp" role="group" aria-label="Coin"><button class="btn" id="coin-BTCUSDT">BTC</button><button class="btn" id="coin-ETHUSDT">ETH</button></div>
+    <span class="sep"></span>
+    <div class="grp" role="group" aria-label="Candle interval" id="tfs"><span class="lbl">Interval</span></div>
+    <span class="sep"></span>
+    <div class="grp" role="group" aria-label="Visible range" id="ranges"><span class="lbl">Range</span></div>
+    <span class="sep"></span>
+    <label class="chk"><input type="checkbox" id="optHeat" checked><span class="box"></span><span class="t">Heatmap</span></label>
+    <label class="chk"><input type="checkbox" id="optMap" checked><span class="box"></span><span class="t">Liquidation map</span></label>
+    <label class="thr" for="thr" title="Colour scale: yellow = this share of the brightest cell in view. Lower = brighter. 1.0 matches the CoinGlass reference screenshots.">Threshold <span class="scale"></span><input type="range" id="thr" min="0.1" max="1" step="0.05" value="0.6"><output id="thrv">0.60</output></label>
+  </div>
+
+  <div class="chartbox">
+    <div id="chart"></div>
+    <div class="legend" id="legend"></div>
+    <div class="plabel" id="pl1"></div>
+    <div class="plabel" id="pl2"></div>
+    <div class="plabel" id="pl3"></div>
+    <div class="loading" id="loading">Calculating heatmap…</div>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h2>What you are looking at</h2>
+      <p><b>Heatmap</b> (behind the candles): estimated liquidation levels at each moment, from the repo's model v6, a replica of CoinGlass Model 1 with a 24-hour window. Each 5-minute column shows the levels created in the 24 hours before it that price has not touched yet.</p>
+      <p><b>Liquidation map</b> (bars on the right): the same levels for the candle under your cursor, or the latest candle. <span class="sw" style="background:var(--long)"></span>long levels sit below price, <span class="sw" style="background:var(--short)"></span>short levels above.</p>
+    </div>
+    <div>
+      <h2>Lower panes</h2>
+      <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
+      <p><b>Open interest</b> in coins, and <b>volume</b> in coins.</p>
+    </div>
+    <div>
+      <h2>Data and limits</h2>
+      <p id="cover"></p>
+      <p>The heatmap shows where new money entered, not where liquidations are guaranteed. It assumes 25x/50x/100x leverage and isolated margin. Times are WIB (UTC+7); candle buckets follow Binance (UTC).</p>
+      <p>Source: repo <code>wahyunugi/liqmap-data</code>. The site rebuilds itself after each data collection (every 4 hours) and shows the last <span id="days"></span> days.</p>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.9/dist/lightweight-charts.standalone.production.js"></script>
+<script src="model.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

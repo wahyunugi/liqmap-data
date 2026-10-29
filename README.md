@@ -34,6 +34,23 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 | `data/heatmap_levels/` | level aktif replika heatmap tiap jalan (tiap 4 jam) |
 | `logs/` | `runs.csv` riwayat jalan; `sides_check.txt` cek kolom likuidasi |
 | `research/` | jejak riset reverse-engineering: screenshot CoinGlass, skrip penilaian, uji Hyperliquid |
+| `site/` | website Liqmap Chart: `index.html`, `app.js`, `model.js` (model v6 dalam JavaScript), `build.py` (membangun `_site/`), `check_model.js` (cek JS = Python) |
+
+## Website (Liqmap Chart)
+Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di belakangnya, liquidation map di sisi kanan
+(mengikuti kursor), likuidasi nyata, open interest, dan volume. Interval 1m/5m/15m/1h/4h/1D, rentang 1D–All.
+
+- **Diperbarui otomatis:** workflow `site` jalan setiap kali `collect` selesai (tiap 4 jam): `python site/build.py`
+  menyusun `_site/data.json` dari folder `data/`, lalu terbit ke GitHub Pages.
+- **Heatmap dihitung di browser** oleh `site/model.js`, salinan model v6 (`heatmap/model.py` + pengelompokan kotak
+  `snapshot.py`). Tiap kolom 5 menit = hasil `snapshot.py` bila dijalankan pada waktu itu. Kecocokan diuji 29 Okt 2026
+  pada 6 titik (BTC & ETH; 5 Okt 08:00, 18 Okt 21:35, 29 Okt 10:10 WIB): semua level sama, selisih < $0,01.
+  Uji ini diulang otomatis tiap jalan (`node site/check_model.js`); bila beda, workflow gagal dan website tidak diperbarui.
+- **Isi:** 60 hari terakhir data 5 menit (ubah: `python site/build.py 90`), 7 hari data 1 menit. Data lama di repo tidak disentuh.
+- **Syarat GitHub Pages:** di akun GitHub Free, Pages hanya untuk repo **publik**; repo privat butuh GitHub Pro, dan
+  situsnya tetap bisa dibuka siapa saja yang tahu alamatnya. Aktifkan: Settings → Pages → Source: **GitHub Actions**.
+  Selama Pages belum aktif, workflow tetap membangun dan mengecek, tanpa gagal.
+- **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 
 ## Data likuidasi nyata
 - Kolom `t` = awal interval (detik UTC). File dipecah per bulan.
@@ -101,5 +118,5 @@ Ambil screenshot heatmap CoinGlass (Liquidity Threshold = 1) bersamaan dengan da
 - **Gagal?** GitHub mengirim email; lihat tab **Actions** dan `logs/runs.csv`.
 - **Kunci API:** secret `COINALYZE_API_KEY` (Settings → Secrets and variables → Actions). Batas Coinalyze
   40 panggilan/menit; tiap jalan ±14.
-- **Menit GitHub Actions:** ±1–2 menit per jalan, 6 jalan/hari ≈ 180–360 menit/bulan (gratis 2.000/bulan untuk repo privat).
+- **Menit GitHub Actions:** `collect` ±1–2 menit per jalan dan `site` ±1–2 menit per jalan; 6 jalan/hari ≈ 360–720 menit/bulan (repo privat: gratis 2.000/bulan; repo publik: tanpa batas).
 - **Ukuran repo:** ±0,2–0,3 MB/hari bertambah.

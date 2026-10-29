@@ -1,0 +1,77 @@
+name: site
+
+# Bangun dan terbitkan website Liqmap Chart ke GitHub Pages.
+# Jalan otomatis setiap kali workflow "collect" selesai (tiap 4 jam), saat kode website/model berubah,
+# dan bisa dijalankan manual dari tab Actions -> site -> Run workflow.
+# Selama GitHub Pages belum aktif, website tetap dibangun dan dicek, tetapi tidak diterbitkan (tidak gagal).
+on:
+  workflow_run:
+    workflows: [collect]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ["site/**", "heatmap/**", ".github/workflows/site.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      pages: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bangun data website (_site/)
+        run: |
+          pip install --quiet numpy pandas
+          python site/build.py
+
+      - name: Cek model JavaScript = model Python (snapshot.py)
+        run: |
+          python heatmap/snapshot.py BTCUSDT --no-plot
+          python heatmap/snapshot.py ETHUSDT --no-plot
+          node site/check_model.js
+
+      - name: Apakah GitHub Pages sudah aktif?
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" --silent 2>/dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages belum aktif (Settings -> Pages -> Source: GitHub Actions). Website dibangun tetapi tidak diterbitkan."
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outputs.enabled == 'true'
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.pages == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
