@@ -1,0 +1,16 @@
+{
+ "BTCUSDT": {
+  "symbol": "BTCUSDT_PERP.A",
+  "exchange": "A",
+  "symbol_on_exchange": "BTCUSDT",
+  "margined": "STABLE",
+  "oi_lq_vol_denominated_in": "BASE_ASSET"
+ },
+ "ETHUSDT": {
+  "symbol": "ETHUSDT_PERP.A",
+  "exchange": "A",
+  "symbol_on_exchange": "ETHUSDT",
+  "margined": "STABLE",
+  "oi_lq_vol_denominated_in": "BASE_ASSET"
+ }
+}

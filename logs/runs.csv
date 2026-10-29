@@ -1,0 +1,2 @@
+run_utc,api_calls,rows_added,detail,errors
+2026-10-29 02:58,14,18074,"{""liquidations/1min/BTCUSDT"": 394, ""liquidations/1min/ETHUSDT"": 412, ""liquidations/5min/BTCUSDT"": 1245, ""liquidations/5min/ETHUSDT"": 1335, ""ohlcv/1min/BTCUSDT"": 1644, ""ohlcv/1min/ETHUSDT"": 1642, ""ohlcv/5min/BTCUSDT"": 2029, ""ohlcv/5min/ETHUSDT"": 2028, ""open_interest/1min/BTCUSDT"": 1643, ""open_interest/1min/ETHUSDT"": 1645, ""open_interest/5min/BTCUSDT"": 2028, ""open_interest/5min/ETHUSDT"": 2029}",
