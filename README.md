@@ -20,8 +20,17 @@ diakses dari server mana pun.
 - Kolom `t` = awal interval, detik UTC.
 - File dipecah per bulan: `<SIMBOL>_<YYYY-MM>.csv`.
 - `data/symbols.json` = kode simbol Coinalyze yang dipakai (dicari otomatis, tidak ditebak).
-- **Arti `l` dan `s` belum dijelaskan Coinalyze.** Dugaan: `l` = likuidasi long, `s` = likuidasi short.
-  Dicek otomatis tiap jalan di `logs/sides_check.txt` (likuidasi long seharusnya menumpuk di menit harga turun).
+- **`l` = likuidasi LONG, `s` = likuidasi SHORT.** Coinalyze tidak menjelaskannya; dibuktikan dari data jalan
+  pertama (29 Okt 2026): 89% nilai `l` BTC terjadi di menit harga turun, 82% nilai `s` di menit harga naik
+  (ETH: 86% dan 84%). Dicek ulang otomatis tiap jalan di `logs/sides_check.txt`.
+- **Menit tanpa baris di `liquidations` = tidak ada likuidasi tercatat** (Coinalyze hanya mengirim interval
+  yang ada likuidasinya), bukan data hilang.
+
+## Sudah dicek terhadap data Binance langsung (29 Okt 2026)
+Dibandingkan dengan arsip Binance di laptop (`liqmap-replica`), 2.021 candle 5 menit yang tumpang tindih:
+harga open/high/low/close sama persis (97–100% candle), volume sama (rasio median 1,0000), dan open interest
+Coinalyze `o` cocok dengan open interest Binance (selisih median 0,009%). Jadi data Coinalyze bisa dipakai
+sebagai pengganti data Binance untuk model heatmap.
 
 ## Aturan penyimpanan
 - Hanya menambah: baris lama tidak pernah dihapus/diubah, tidak ada duplikat waktu.
