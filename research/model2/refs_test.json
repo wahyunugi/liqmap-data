@@ -1,0 +1,5 @@
+{
+ "BTC_D_1029_insample": {"img": "ref/coinglass_24h_thr1_20261029.png", "p_top": 88799, "p_bot": 73116, "cbar": 18.52e6, "span_h": 24, "sym": "BTCUSDT", "range": "D"},
+ "BTC_W_1029_insample": {"img": "ref/coinglass_1w_thr1_20261029.png", "p_top": 89417, "p_bot": 72606, "cbar": 87.75e6, "span_h": 168, "sym": "BTCUSDT", "range": "W"},
+ "BTC_M_1029_insample": {"img": "ref/coinglass_1m_thr1_20261029.png", "p_top": 111285, "p_bot": 58265, "cbar": 27.18e6, "span_h": 744, "sym": "BTCUSDT", "range": "M"}
+}

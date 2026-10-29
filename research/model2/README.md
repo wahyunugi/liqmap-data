@@ -31,10 +31,30 @@ screenshot CoinGlass, seperti model v6 dicocokkan ke Model 1.
 5. **Satu campuran untuk ketiganya** (`shared.py`): tidak cocok. Bersama: 0,52 / 0,77 / 0,81; uji silang
    (porsi dari 2 screenshot, dinilai di yang ke-3): 24 jam 0,51, 1 minggu 0,59, 1 bulan 0,34.
 
+6. **Satu campuran + skala per rentang** (`joint.py`): masalah di langkah 5 ternyata karena 24 jam & 1 minggu tidak bisa
+   melihat leverage rendah (level 2x–5x di luar rentang harga gambarnya). Dengan satu faktor skala tampilan per rentang:
+   24 jam 0,74 / 1 minggu 0,92 / 1 bulan 0,73; jumlah porsi 1,13 (tiap sisi ≈ 100% kenaikan OI, sama dengan aturan v6).
+7. **Resolusi candle per rentang** (`joint_res.py`): terbaik 5 menit (24 jam, 1 minggu) dan **1 jam untuk 1 bulan**:
+   0,74 / 0,92 / 0,81 (R² 0,44 / 0,84 / 0,62); skala tampilan 1 / 1,34 / 0,155.
+8. **Posisi sebelum tepi kiri grafik** (`history_test.py`): menambah 1, 3, 7, 14 hari sebelum tepi kiri selalu memperburuk
+   (24 jam: 0,74 → 0,72 → 0,55 → 0,54 → 0,47). Model 2 hanya menghitung posisi yang dibuka di dalam rentang yang dipilih.
+9. **Tangga leverage** (`final_fit.py`): tangga lengkap 14 tingkat jauh lebih cocok daripada tangga sederhana
+   (1 bulan: 0,81 vs 0,65 untuk 6 tingkat), jadi CoinGlass tampaknya memakai banyak tingkat. Porsi (tangga lengkap):
+   3x 9%, 4x 14%, 5x 20%, 7x 6%, 10x 2%, 15x 4%, 20x 5%, 25x 8%, 33x 6%, 50x 5%, 75x 7%, 100x 6%, 125x 9%
+   (rendah 3–5x ≈ 43%, menengah 7–20x ≈ 17%, tinggi 25–125x ≈ 40%). Disimpan di `final_fit.json`.
+
+## Hal yang belum diketahui
+- Kenapa skala tampilan berbeda per rentang (1 bulan ≈ 0,155 dari 24 jam). Bukan karena candle kasar, bukan karena
+  peluruhan umur posisi. Untuk sekarang diperlakukan sebagai konstanta per rentang yang diukur.
+- Apakah porsi dan skala ini tetap berlaku di waktu lain / koin lain (belum diuji).
+
 ## Kesimpulan sementara
 - Leverage rendah (3–5x) wajib untuk rentang 1 bulan: pola naik dari 0,17 (v6) ke 0,82–0,88.
 - CoinGlass tampaknya memperlakukan tiap rentang berbeda (porsi dan skala), dengan cara yang belum bisa dipastikan dari
   3 screenshot. Tiap hasil fit berasal dari SATU screenshot: belum diuji di luar sampel (risiko terlalu pas).
 
-## Langkah berikutnya
-- Screenshot uji: rentang yang sama untuk ETH, dan BTC di waktu lain; nilai porsi per rentang tanpa diubah.
+## Langkah berikutnya: uji di luar sampel
+- Screenshot Model 2, Liquidity Threshold = 1: BTC lagi (30 Okt) dan ETH, rentang 24 jam / 1 minggu / 1 bulan.
+- Daftarkan di `refs_test.json` (label harga teratas/terbawah dan angka skala warna dari gambar), lalu
+  `python research/model2/validate.py`: skor "beku" = porsi DAN skala 29 Okt tanpa diubah; "skala bebas" = porsi beku,
+  hanya skala dicari ulang. Bila skor beku mendekati angka di atas, model dianggap lolos.
