@@ -11,10 +11,12 @@ try {
   return;
 }
 const WIB = 25200;
-const TFS = [["1m",60],["5m",300],["15m",900],["1h",3600],["4h",14400],["1D",86400]];
-const RANGES = [["1D",1],["3D",3],["1W",7],["2W",14],["All",0]];
-// Heatmap window in 5-minute candles. 24h = model v6 as checked against CoinGlass; 3D/7D = same rules, levels kept longer.
-const WINS = [["Auto",0],["24h",288],["3D",864],["7D",2016]];
+const TFS = [["1m",60],["5m",300],["15m",900],["1h",3600],["4h",14400],["1D",86400],["1W",604800],["1M",2592000]];
+const RANGES = [["1D",1],["1W",7],["1M",30],["1Y",365],["All",0]];
+// 1D / 1W / 1M come from hist/<coin>_<tf>.json: Binance public archive since 2020 + this repo, heatmap precomputed by
+// site/build_history.py with a window of one candle: 1D = 24 h (model v6 as checked against CoinGlass), 1W = 7 days, 1M = 30 days.
+const HIST = { 86400: "1D", 604800: "1W", 2592000: "1M" };
+const WIN_TXT = { 86400: "24 hours", 604800: "7 days", 2592000: "30 days" };
 const MIN_ROW_PX = 3;   // merge price boxes until each heatmap row is at least this many pixels tall
 const LUT = (() => { // viridis, 256 steps
   const st = [[0,[68,1,84]],[.25,[59,82,139]],[.5,[33,145,140]],[.75,[94,201,98]],[1,[253,231,37]]], out = [];
@@ -30,34 +32,57 @@ const fmtP = (v, s) => v.toLocaleString("en-US", { minimumFractionDigits: dec(s)
 const fmtT = t => { const d = new Date(t * 1000); const p = n => String(n).padStart(2, "0");
   return `${p(d.getUTCDate())} ${d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; };
 
-const state = { coin: "BTCUSDT", tf: 900, win: 0, heat: true, map: true, thr: 0.6, hover: null, hoverPrice: null };
+const state = { coin: "BTCUSDT", tf: 900, heat: true, map: true, thr: 0.6, hover: null, hoverPrice: null };
 try { const s = JSON.parse(localStorage.getItem("liqmap-ui") || "{}"); Object.assign(state, s); } catch (e) {}
 const COINS = ["BTCUSDT", "ETHUSDT"];
 const stores = {};
 let bars = [], store = null;
 
 // ---------- data per interval ----------
-function effWin(tf) { // long windows only from 1h candles up: on short candles they add little and cost time
-  if (tf < 3600) return 288;
-  if (state.win) return state.win;
-  return tf >= 86400 ? 2016 : tf >= 14400 ? 864 : 288;
-}
-function storeKey(coin, tf) { const w = effWin(tf); return w === 288 ? coin + "|288" : coin + "|" + w + "|" + tf; }
-function getStore(coin, tf, snaps) {
-  const key = storeKey(coin, tf);
-  if (!stores[key]) {
-    const c = DATA[coin].c5, w = effWin(tf);
-    let want = null;
-    if (w !== 288) { want = new Uint8Array(c.t.length); for (const j of snaps) if (j >= 0 && j < want.length) want[j] = 1; }
-    stores[key] = LiqModel.build(c, LiqModel.binsFor(c.c[c.c.length - 1]), w, want);
-  }
+const hist = {};   // coin|tf -> { bars, store }
+function getStore(coin) { // 24-hour model on the 5-minute data of the last weeks, computed in the browser (intervals below 1D)
+  const key = coin + "|288";
+  if (!stores[key]) { const c = DATA[coin].c5; stores[key] = LiqModel.build(c, LiqModel.binsFor(c.c[c.c.length - 1]), 288);
+    stores[key].tAt = s => c.t[s] + 300; }
   return stores[key];
 }
+async function loadHist(coin, tf) {
+  const key = coin + "|" + tf; if (hist[key]) return hist[key];
+  const res = await fetch(`hist/${coin}_${tf}.json`, { cache: "no-cache" });
+  if (!res.ok) throw new Error(`hist/${coin}_${tf}.json: HTTP ${res.status}`);
+  const H = await res.json(), n = H.t.length, sn = H.snap, m = sn.b.length;
+  const start = Int32Array.from(sn.start), bins = new Int32Array(m), lv = new Float32Array(m), sv = new Float32Array(m), colMax = new Float32Array(n);
+  for (let i = 0; i < n; i++) {           // bins are stored as differences inside each snapshot; USD in thousands
+    let b = 0;
+    for (let q = start[i]; q < start[i + 1]; q++) { b = q === start[i] ? sn.b[q] : b + sn.b[q]; bins[q] = b; lv[q] = sn.L[q] * 1000; sv[q] = sn.S[q] * 1000;
+      if (lv[q] + sv[q] > colMax[i]) colMax[i] = lv[q] + sv[q]; }
+  }
+  const st = { B: { w: H.B[0], off: H.B[1], dx: H.B[2] }, first: 0, n, start, bins, lv, sv, colMax, tAt: s => H.tclose[s] };
+  return (hist[key] = { H, store: st });
+}
+function liqBuckets(L, opens) { // sum actual liquidations into bars given by their open times (any interval)
+  const n = opens.length, sumL = new Float64Array(n), sumS = new Float64Array(n);
+  let j = 0;
+  for (let i = 0; i < L.t.length; i++) {
+    const t = L.t[i]; if (t < opens[0]) continue;
+    while (j + 1 < n && opens[j + 1] <= t) j++;
+    sumL[j] += L.l[i]; sumS[j] += L.s[i];
+  }
+  let firstBar = n;
+  if (L.first != null) { firstBar = 0; while (firstBar + 1 < n && opens[firstBar + 1] <= L.first) firstBar++; if (opens[firstBar] > L.first) firstBar = 0; }
+  return { sumL, sumS, firstBar };
+}
 function buildBars(coin, tf) {
-  const D = DATA[coin], c5 = D.c5, src = tf === 60 ? D.c1 : c5, L = tf === 60 ? D.l1 : D.l5;
-  const out = [], liq = new Map();
-  for (let i = 0; i < L.t.length; i++) { const b = Math.floor(L.t[i] / tf) * tf; const a = liq.get(b) || [0, 0]; a[0] += L.l[i]; a[1] += L.s[i]; liq.set(b, a); }
-  const liqFrom = L.first == null ? Infinity : Math.floor(L.first / tf) * tf;
+  const D = DATA[coin];
+  if (HIST[tf]) {
+    const { H, store: st } = hist[coin + "|" + HIST[tf]];
+    store = st;
+    const q = liqBuckets(D.l5, H.t);
+    return H.t.map((t, i) => ({ b: t, o: H.o[i], h: H.h[i], l: H.l[i], c: H.c[i], v: H.v[i], oi: H.oi[i],
+      snap: st.start[i + 1] > st.start[i] ? i : -1, liqL: q.sumL[i], liqS: q.sumS[i], hasLiq: i >= q.firstBar, time: t + WIB }));
+  }
+  const c5 = D.c5, src = tf === 60 ? D.c1 : c5, L = tf === 60 ? D.l1 : D.l5;
+  const out = [];
   let cur = null;
   for (let i = 0; i < src.t.length; i++) {
     const t = src.t[i], b = Math.floor(t / tf) * tf;
@@ -68,12 +93,12 @@ function buildBars(coin, tf) {
     const oiClose = tf === 60 ? src.oi[i] : (i + 1 < src.t.length && src.oi[i + 1] != null ? src.oi[i + 1] : src.oi[i]);
     if (oiClose != null) cur.oi = oiClose;
     // heatmap column = state at the close of the latest 5-minute candle that has closed by this bar's close
-    const j = tf === 60 ? Math.floor((t + 60 - 300 - c5.t[0]) / 300) : i;
-    cur.snap = j;
+    cur.snap = tf === 60 ? Math.floor((t + 60 - 300 - c5.t[0]) / 300) : i;
   }
-  store = getStore(coin, tf, out.map(r => r.snap));
-  for (const r of out) if (!(r.snap >= store.first && r.snap < store.n)) r.snap = -1;
-  for (const r of out) { const a = liq.get(r.b); r.liqL = a ? a[0] : 0; r.liqS = a ? a[1] : 0; r.hasLiq = r.b >= liqFrom; r.time = r.b + WIB; }
+  store = getStore(coin);
+  const q = liqBuckets(L, out.map(r => r.b));
+  out.forEach((r, i) => { if (!(r.snap >= store.first && r.snap < store.n)) r.snap = -1;
+    r.liqL = q.sumL[i]; r.liqS = q.sumS[i]; r.hasLiq = i >= q.firstBar; r.time = r.b + WIB; });
   return out;
 }
 
@@ -193,7 +218,7 @@ function drawMap(target) {
     });
     ctx.fillStyle = css("--muted"); ctx.font = `${Math.round(10 * vrt)}px ${css("--font-num")}`; ctx.textAlign = "right";
     // the map is the state at the moment shown (close of the bar's last 5-minute candle), not a sum over the bar
-    ctx.fillText("Levels at " + fmtT(DATA[state.coin].c5.t[s] + 300 + WIB) + " WIB · max row " + usd(mx), Math.round(right * hr), Math.round((Hm - 6) * vrt));
+    ctx.fillText("Levels at " + fmtT(store.tAt(s) + WIB) + " WIB · max row " + usd(mx), Math.round(right * hr), Math.round((Hm - 6) * vrt));
   });
 }
 
@@ -215,7 +240,7 @@ function renderLegend() {
   legend.innerHTML = `<div class="row"><span class="sym">${c.replace("USDT", "")}/USDT Perp · Binance · ${tfName}</span><span class="k">${fmtT(r.time)} WIB</span></div>
     <div class="row"><span><span class="k">O</span> <span class="${cls}">${fmtP(r.o, c)}</span></span><span><span class="k">H</span> <span class="${cls}">${fmtP(r.h, c)}</span></span><span><span class="k">L</span> <span class="${cls}">${fmtP(r.l, c)}</span></span><span><span class="k">C</span> <span class="${cls}">${fmtP(r.c, c)}</span></span><span class="${cls}">${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%</span></div>${heatTxt}`;
   const lp = document.getElementById("pl1"), op = document.getElementById("pl2"), vp = document.getElementById("pl3");
-  lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span>` : `no data before ${fmtT(Math.floor(DATA[c][state.tf === 60 ? "l1" : "l5"].first / state.tf) * state.tf + WIB)}`);
+  lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span>` : `no data before ${fmtT(DATA[c][state.tf === 60 ? "l1" : "l5"].first + WIB)}`);
   op.innerHTML = `<b>Open interest</b>${r.oi != null ? qty(r.oi) + " " + c.replace("USDT", "") + " ≈ " + usd(r.oi * r.c) : "–"}`;
   vp.innerHTML = `<b>Volume</b>${qty(r.v)} ${c.replace("USDT", "")}`;
 }
@@ -251,47 +276,45 @@ function applyRange(days) {
   const from = Math.max(bars[0].time, last - days * 86400);
   ts.setVisibleRange({ from, to: last });
 }
-function save() { try { localStorage.setItem("liqmap-ui", JSON.stringify({ coin: state.coin, tf: state.tf, win: state.win, heat: state.heat, map: state.map, thr: state.thr })); } catch (e) {} }
+function save() { try { localStorage.setItem("liqmap-ui", JSON.stringify({ coin: state.coin, tf: state.tf, heat: state.heat, map: state.map, thr: state.thr })); } catch (e) {} }
 function pressed() {
   for (const k of COINS) document.getElementById("coin-" + k).setAttribute("aria-pressed", k === state.coin);
   for (const [n, s] of TFS) document.getElementById("tf-" + n).setAttribute("aria-pressed", s === state.tf);
-  const w = effWin(state.tf), short = state.tf < 3600;
-  for (const [n, v] of WINS) { const b = document.getElementById("win-" + n);
-    b.setAttribute("aria-pressed", v === 0 ? (state.win === 0 && !short) : (!short && state.win !== 0 && v === state.win) || (short && v === 288));
-    b.disabled = short && v !== 288;
-    b.title = short && v !== 288 ? "Longer windows are available from the 1h interval up" : ""; }
-  document.getElementById("winnow").textContent = (state.win === 0 && !short) ? "= " + WINS.find(x => x[1] === w)[0] : "";
+  document.getElementById("winlabel").textContent = WIN_TXT[state.tf] || "24 hours";
 }
-const winBox = document.getElementById("wins");
-for (const [n, v] of WINS) { const b = document.createElement("button"); b.className = "btn"; b.id = "win-" + n; b.textContent = n;
-  b.onclick = () => { state.win = v; save(); pressed(); withLoading(() => setData(true)); }; winBox.appendChild(b); }
-{ const sp = document.createElement("span"); sp.id = "winnow"; sp.className = "winnow"; winBox.appendChild(sp); }
 const tfBox = document.getElementById("tfs"), rgBox = document.getElementById("ranges");
 for (const [n, s] of TFS) { const b = document.createElement("button"); b.className = "btn"; b.id = "tf-" + n; b.textContent = n;
   if (s === 60) b.title = "1-minute data covers only the last ~27 hours";
-  b.onclick = () => { state.tf = s; save(); pressed(); withLoading(() => setData(true)); }; tfBox.appendChild(b); }
+  if (HIST[s]) b.title = "History since 2020 (Binance public archive)";
+  b.onclick = () => { state.tf = s; save(); pressed(); refresh(true); }; tfBox.appendChild(b); }
 for (const [n, d] of RANGES) { const b = document.createElement("button"); b.className = "btn"; b.id = "rg-" + n; b.textContent = n;
   b.onclick = () => applyRange(d); rgBox.appendChild(b); }
 for (const k of COINS) document.getElementById("coin-" + k).onclick = () => {
-  if (k === state.coin) return; state.coin = k; save(); pressed(); withLoading(() => setData(true)); };
+  if (k === state.coin) return; state.coin = k; save(); pressed(); refresh(true); };
 const optHeat = document.getElementById("optHeat"), optMap = document.getElementById("optMap"), thr = document.getElementById("thr"), thrv = document.getElementById("thrv");
 optHeat.checked = state.heat; optMap.checked = state.map; thr.value = state.thr; thrv.textContent = (+state.thr).toFixed(2);
 optHeat.onchange = () => { state.heat = optHeat.checked; save(); heat.update(); };
 optMap.onchange = () => { state.map = optMap.checked; save(); heat.update(); };
 thr.oninput = () => { state.thr = +thr.value; thrv.textContent = state.thr.toFixed(2); save(); heat.update(); };
-function withLoading(fn) {
-  const el = document.getElementById("loading");
-  if (stores[storeKey(state.coin, state.tf)]) { fn(); return; }
-  el.hidden = false; setTimeout(() => { fn(); el.hidden = true; }, 30);
+let busy = 0;
+function refresh(keepRange, after) { // load what the interval needs (history file or browser calculation), then draw
+  const el = document.getElementById("loading"), coin = state.coin, tf = state.tf, my = ++busy;
+  const ready = HIST[tf] ? !!hist[coin + "|" + HIST[tf]] : !!stores[coin + "|288"];
+  const go = () => { if (my !== busy) return; setData(keepRange); if (after) after(); el.hidden = true; };
+  if (ready) { go(); return; }
+  el.textContent = HIST[tf] ? "Loading history…" : "Calculating heatmap…"; el.hidden = false;
+  setTimeout(async () => {
+    try { if (HIST[tf]) await loadHist(coin, HIST[tf]); else getStore(coin); go(); }
+    catch (e) { el.textContent = "Could not load this interval (" + e.message + "). Try another interval or reload."; }
+  }, 30);
 }
 const B5 = DATA.BTCUSDT, last5 = Math.max(B5.c5.t[B5.c5.t.length - 1] + 300, B5.c1.t[B5.c1.t.length - 1] + 60);
 document.getElementById("asof").textContent = "Data to " + fmtT(last5 + WIB) + " WIB · built " + fmtT(DATA.built + WIB) + " WIB";
 document.getElementById("days").textContent = Math.round((B5.c5.t[B5.c5.t.length - 1] - B5.c5.t[0]) / 86400);
-document.getElementById("cover").textContent = `Coverage: 5-minute candles and open interest from ${fmtT(DATA.BTCUSDT.c5.t[0] + WIB)} WIB (the heatmap starts once a full window of data exists: 1, 3 or 7 days later); 1-minute candles from ${fmtT(DATA.BTCUSDT.c1.t[0] + WIB)}; actual liquidations from ${fmtT(DATA.BTCUSDT.l5.first + WIB)}.`;
+document.getElementById("cover").textContent = `Coverage: 1D/1W/1M from the Binance public archive (candles since Jan 2020, open interest since Sep 2020) joined with this repo; 5m-4h: the last ${Math.round((B5.c5.t[B5.c5.t.length - 1] - B5.c5.t[0]) / 86400)} days of 5-minute data; 1m: from ${fmtT(DATA.BTCUSDT.c1.t[0] + WIB)}; actual liquidations from ${fmtT(DATA.BTCUSDT.l5.first + WIB)}.`;
 if (!DATA[state.coin]) state.coin = "BTCUSDT";
 if (!TFS.some(x => x[1] === state.tf)) state.tf = 900;
-if (!WINS.some(x => x[1] === state.win)) state.win = 0;
 pressed();
-withLoading(() => { setData(false); applyRange(3); });
+refresh(false, () => applyRange(HIST[state.tf] ? 365 : 3));
 new ResizeObserver(() => requestAnimationFrame(placeLabels)).observe(document.getElementById("chart"));
 })();

@@ -48,6 +48,14 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   pada 6 titik (BTC & ETH; 5 Okt 08:00, 18 Okt 21:35, 29 Okt 10:10 WIB): semua level sama, selisih < $0,01.
   Uji ini diulang otomatis tiap jalan (`node site/check_model.js`); bila beda, workflow gagal dan website tidak diperbarui.
 - **Isi:** 60 hari terakhir data 5 menit (ubah: `python site/build.py 90`), 7 hari data 1 menit. Data lama di repo tidak disentuh.
+- **Interval 1D / 1W / 1M sejak 2020:** `history/binance_public.py` mengunduh arsip publik Binance (data.binance.vision,
+  gratis): candle 5 menit perpetual sejak Jan 2020 dan open interest 5 menit sejak 1 Sep 2020. Disimpan di cache GitHub
+  Actions (`.cache/binance`, tidak masuk repo; arsipnya tetap ada di Binance). `site/build_history.py` menyambungnya dengan
+  data repo, menghitung heatmap dengan `heatmap/fastmodel.py` (aturan model v6, cepat untuk bertahun-tahun data) di penutupan
+  tiap candle, dan menulis `_site/hist/` + `_site/history_report.json` (cakupan, lubang data, cek tumpang tindih dengan
+  arsip Binance di repo). **Jendela = satu candle:** 1D = 24 jam (model yang dicocokkan ke CoinGlass), 1W = 7 hari,
+  1M = 30 hari (aturan sama, belum dicocokkan ke CoinGlass). `heatmap/check_fastmodel.py`: fastmodel = model.py, diuji
+  29 Okt 2026 untuk jendela 24 jam (3 waktu), 7 hari dan 30 hari: selisih $0. Likuidasi nyata hanya ada sejak Okt 2026.
 - **Syarat GitHub Pages:** di akun GitHub Free, Pages hanya untuk repo **publik**; repo privat butuh GitHub Pro, dan
   situsnya tetap bisa dibuka siapa saja yang tahu alamatnya. Aktifkan: Settings → Pages → Source: **GitHub Actions**.
   Selama Pages belum aktif, workflow tetap membangun dan mengecek, tanpa gagal.

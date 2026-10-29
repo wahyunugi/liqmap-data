@@ -10,7 +10,7 @@ on:
     types: [completed]
   push:
     branches: [main]
-    paths: ["site/**", "heatmap/**", ".github/workflows/site.yml"]
+    paths: ["site/**", "heatmap/**", "history/**", "requirements.txt", ".github/workflows/site.yml"]
   workflow_dispatch: {}
 
 permissions:
@@ -20,12 +20,12 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     outputs:
       pages: ${{ steps.pages.outputs.enabled }}
     steps:
@@ -37,10 +37,39 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Tanggal (kunci cache arsip Binance)
+        id: day
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Ambil arsip Binance dari cache
+        id: bcache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/binance
+          key: binance-${{ steps.day.outputs.day }}
+          restore-keys: binance-
+
       - name: Bangun data website (_site/)
         run: |
           pip install --quiet -r requirements.txt
           python site/build.py
+
+      - name: Unduh arsip publik Binance yang belum ada (data.binance.vision)
+        run: python history/binance_public.py
+
+      - name: Simpan arsip Binance ke cache (sekali sehari)
+        if: steps.bcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/binance
+          key: binance-${{ steps.day.outputs.day }}
+
+      - name: Heatmap 1D / 1W / 1M sejak 2020 (_site/hist/)
+        run: python site/build_history.py
+
+      - name: Cek model cepat = model.py (hanya saat kode berubah)
+        if: github.event_name == 'push'
+        run: python heatmap/check_fastmodel.py
 
       - name: Cek model JavaScript = model Python (snapshot.py)
         run: |

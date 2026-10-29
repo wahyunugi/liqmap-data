@@ -80,7 +80,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <span class="sep"></span>
     <div class="grp" role="group" aria-label="Visible range" id="ranges"><span class="lbl">Range</span></div>
     <span class="sep"></span>
-    <div class="grp" role="group" aria-label="Heatmap window" id="wins" title="How long a liquidation level stays on the heatmap. 24h is the CoinGlass-checked model; 3D and 7D keep levels longer (same rules, not checked against CoinGlass)."><span class="lbl">Window</span></div>
+    <div class="grp" title="How long a liquidation level stays on the heatmap: one candle of the interval, at least 24 hours. 24 hours is the model checked against CoinGlass."><span class="lbl">Window</span><span class="winnow" id="winlabel"></span></div>
     <span class="sep"></span>
     <label class="chk"><input type="checkbox" id="optHeat" checked><span class="box"></span><span class="t">Heatmap</span></label>
     <label class="chk"><input type="checkbox" id="optMap" checked><span class="box"></span><span class="t">Liquidation map</span></label>
@@ -100,7 +100,8 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <div>
       <h2>What you are looking at</h2>
       <p><b>Heatmap</b> (behind the candles): estimated liquidation levels at each moment, from the repo's model v6, a replica of CoinGlass Model 1. Each column shows the levels created during the window before it that price has not touched yet. Brighter = more USD.</p>
-      <p><b>Window</b>: 24h is the model checked against CoinGlass. 3D and 7D use the same rules but keep levels longer, so zones stay visible on 4h and daily candles; they are not checked against CoinGlass. Auto picks 24h up to 1h candles, 3D for 4h, 7D for 1D. When zoomed out, neighbouring price boxes are added together so each row stays readable.</p>
+      <p><b>Window</b> (how long a level counts): 24 hours up to 1D candles, 7 days on 1W, 30 days on 1M. Only the 24-hour window is checked against CoinGlass; 7 and 30 days use the same rules with levels kept longer. When zoomed out, neighbouring price boxes are added together so each row stays readable.</p>
+      <p><b>1D, 1W, 1M</b> go back to 2020: candles and open interest from the Binance public archive (data.binance.vision), joined with this repo's data. The heatmap is calculated with the same model and checked equal to the repo's Python model.</p>
       <p><b>Liquidation map</b> (bars on the right): the same levels for the candle under your cursor, or the latest candle, as a side profile. <span class="sw" style="background:var(--long)"></span>blue = long positions that get liquidated if price falls to that level; <span class="sw" style="background:var(--short)"></span>orange = short positions liquidated if price rises to it. Longer bar = more USD.</p>
     </div>
     <div>
@@ -114,7 +115,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <h2>Data and limits</h2>
       <p id="cover"></p>
       <p>The heatmap shows where new money entered, not where liquidations are guaranteed. It assumes 25x/50x/100x leverage and isolated margin. Times are WIB (UTC+7); candle buckets follow Binance (UTC).</p>
-      <p>Source: repo <code>wahyunugi/liqmap-data</code>. The site rebuilds itself after each data collection (every hour) and shows the last <span id="days"></span> days.</p>
+      <p>Source: repo <code>wahyunugi/liqmap-data</code>. The site rebuilds itself after each data collection (every hour); 5m to 4h show the last <span id="days"></span> days, 1D/1W/1M everything since 2020.</p>
     </div>
   </div>
 </div>

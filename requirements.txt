@@ -2,3 +2,4 @@
 # Diuji 29 Okt 2026 (build.py, snapshot.py, check_model.js, check_sides.py). Ganti versi hanya setelah menguji ulang.
 numpy==2.5.4
 pandas==3.1.0
+sortedcontainers==2.4.0
