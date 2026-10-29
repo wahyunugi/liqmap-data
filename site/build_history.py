@@ -58,6 +58,19 @@ def series(sym, report):
             d = ((m.oi_h - m.oi_r).abs() / m.oi_r).dropna()
             r["overlap_oi_median_diff_pct"] = round(float(d.median() * 100), 5) if len(d) else None
             r["overlap_oi_p95_diff_pct"] = round(float(d.quantile(0.95) * 100), 5) if len(d) else None
+            # waktu OI arsip publik vs arsip repo: geser -1/0/+1 candle, cari selisih terkecil
+            for sh in (-300, 0, 300):
+                mm = hist[["t", "oi"]].assign(t=hist.t + sh).merge(arch[["t", "oi"]], on="t", suffixes=("_h", "_r"))
+                dd = ((mm.oi_h - mm.oi_r).abs() / mm.oi_r).dropna()
+                r[f"overlap_oi_median_diff_pct_shift{sh:+d}s"] = round(float(dd.median() * 100), 5) if len(dd) else None
+        # cakupan OI: tanggal pertama, dan bulan-bulan sesudahnya yang OI-nya kurang dari 95%
+        has = hist[hist.oi.notna()]
+        if len(has):
+            r["oi_first"] = str(pd.to_datetime(has.t.min(), unit="s"))
+            after = hist[hist.t >= has.t.min()].copy()
+            after["m"] = pd.to_datetime(after.t, unit="s").dt.strftime("%Y-%m")
+            cov = after.groupby("m").oi.apply(lambda x: x.notna().mean() * 100)
+            r["oi_months_below_95pct"] = {k: round(float(v), 1) for k, v in cov[cov < 95].items()}
     first_repo = int(repo.t.min())
     h = hist[hist.t < first_repo][["t", "open", "high", "low", "close", "vol", "oi"]]
     df = pd.concat([h, repo[["t", "open", "high", "low", "close", "vol", "oi"]]], ignore_index=True)
