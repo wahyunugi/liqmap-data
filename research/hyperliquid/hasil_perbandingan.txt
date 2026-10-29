@@ -1,0 +1,10 @@
+Harga acuan 79,970 (Hyperliquid) | Binance close 79,972.2
+Porsi nilai menurut jarak dari harga, hanya dalam ±10%:   <1%  1-2%  2-4%  4-10%
+  Hyperliquid nyata                                     [5.7, 16.4, 13.2, 64.6]
+  model Binance jendela  24h                          [24.8, 9.1, 53.9, 12.2]  | korelasi bentuk: pearson -0.01, peringkat +0.15
+  model Binance jendela  72h                          [19.1, 26.5, 41.7, 12.6]  | korelasi bentuk: pearson +0.14, peringkat +0.26
+  model Binance jendela 168h                          [11.6, 23.1, 46.5, 18.7]  | korelasi bentuk: pearson +0.05, peringkat +0.21
+
+Porsi di bawah harga (likuidasi long): nyata 73%, model 24h 43%
+5 kotak terbesar nyata (% dari harga, juta USD): [(-4.12, 64.3), (-6.62, 54.9), (-1.12, 24.5), (7.12, 24.4), (8.88, 21.4)]
+5 kotak terbesar model 24h                    : [(2.88, 76.1), (-0.12, 64.9), (2.62, 54.1), (2.38, 47.9), (-0.38, 41.5)]

@@ -30,6 +30,12 @@ jobs:
           COINALYZE_API_KEY: ${{ secrets.COINALYZE_API_KEY }}
         run: python collector/coinalyze.py
 
+      - name: Hitung heatmap replika (model v6) dan simpan level aktif
+        if: always()
+        run: |
+          pip install --quiet numpy pandas
+          python heatmap/snapshot.py --save-history
+
       - name: Cek arti kolom l/s (tidak mengubah data)
         if: always()
         run: python collector/check_sides.py || true
