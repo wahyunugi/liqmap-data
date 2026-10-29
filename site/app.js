@@ -63,7 +63,10 @@ function buildBars(coin, tf) {
     const t = src.t[i], b = Math.floor(t / tf) * tf;
     if (!cur || cur.b !== b) { cur = { b, o: src.o[i], h: src.h[i], l: src.l[i], c: src.c[i], v: 0, oi: null, snap: -1 }; out.push(cur); }
     cur.h = Math.max(cur.h, src.h[i]); cur.l = Math.min(cur.l, src.l[i]); cur.c = src.c[i]; cur.v += src.v[i] || 0;
-    if (src.oi[i] != null) cur.oi = src.oi[i];
+    // open interest at the bar's close: 5-minute data stores OI at the START of each candle, so the close value is
+    // the next candle's (checked: Coinalyze close(t) vs open(t+5m), median difference 0.0008%); 1-minute data stores the close
+    const oiClose = tf === 60 ? src.oi[i] : (i + 1 < src.t.length && src.oi[i + 1] != null ? src.oi[i + 1] : src.oi[i]);
+    if (oiClose != null) cur.oi = oiClose;
     // heatmap column = state at the close of the latest 5-minute candle that has closed by this bar's close
     const j = tf === 60 ? Math.floor((t + 60 - 300 - c5.t[0]) / 300) : i;
     cur.snap = j;
@@ -189,7 +192,8 @@ function drawMap(target) {
       }
     });
     ctx.fillStyle = css("--muted"); ctx.font = `${Math.round(10 * vrt)}px ${css("--font-num")}`; ctx.textAlign = "right";
-    ctx.fillText((state.hover != null ? "Map at " + fmtT(bars[i].time) : "Map now") + " · max " + usd(mx), Math.round(right * hr), Math.round((Hm - 6) * vrt));
+    // the map is the state at the moment shown (close of the bar's last 5-minute candle), not a sum over the bar
+    ctx.fillText("Levels at " + fmtT(DATA[state.coin].c5.t[s] + 300 + WIB) + " WIB · max row " + usd(mx), Math.round(right * hr), Math.round((Hm - 6) * vrt));
   });
 }
 

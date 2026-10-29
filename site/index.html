@@ -108,6 +108,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
       <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
       <p><b>Volume</b>: coins traded per candle.</p>
+      <p><b>Per candle, on every interval</b>: volume and actual liquidations are totals over the candle; open interest is the value at the candle's close; the heatmap column and the liquidation map show the levels still open at the candle's close (not a sum over the candle).</p>
     </div>
     <div>
       <h2>Data and limits</h2>
