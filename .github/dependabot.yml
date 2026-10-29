@@ -1,0 +1,9 @@
+# Usulkan pembaruan versi GitHub Actions (checkout, setup-python, pages) sebulan sekali lewat pull request.
+# Alasan: GitHub berkala menghentikan versi Node lama di dalam actions; versi usang membuat workflow gagal.
+# Cukup buka pull request dari Dependabot dan klik "Merge" bila pemeriksaan berhasil.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

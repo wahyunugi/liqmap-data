@@ -110,6 +110,37 @@ Ambil screenshot heatmap CoinGlass (Liquidity Threshold = 1) bersamaan dengan da
 `research/compare.py` (contoh "E"), lalu dari folder `research`: `REF=E python evaluate.py`. Jika pola
 (toleransi 1 kotak) turun jauh di bawah ±0,85, aturannya perlu dicari ulang.
 
+## Agar tetap jalan 5 tahun tanpa henti
+Penjagaan yang sudah terpasang (29 Okt 2026):
+- **Aturan 60 hari GitHub** (workflow terjadwal di repo publik dimatikan bila 60 hari tanpa aktivitas): bot `collect`
+  membuat commit data tiap jam, cara yang sama dengan alat keepalive populer (keepalive-workflow, mode commit).
+  Bila data berhenti masuk, commit berhenti, tetapi cek kesehatan di bawah mengirim email jauh sebelum 60 hari.
+- **Cek kesehatan** (`collector/health.py`, tiap jalan `collect`): gagal + email bila candle/OI 5 menit terbaru > 3 jam,
+  atau (sekali sehari, jalan jam 00 UTC) ukuran repo menurut GitHub > 900 MB.
+- **Versi paket dikunci** di `requirements.txt` (numpy 2.5.4, pandas 3.1.0; diuji 29 Okt 2026), Python 3.12.
+- **Dependabot** (`.github/dependabot.yml`) mengusulkan versi baru GitHub Actions sebulan sekali lewat pull request;
+  klik **Merge** bila pemeriksaan hijau. Versi Actions yang usang suatu saat dihentikan GitHub dan membuat workflow gagal.
+- **Level heatmap disimpan tiap ±4 jam** (`SAVE_GAP_MIN` di `heatmap/snapshot.py`) walau `collect` jalan tiap jam;
+  level bisa dihitung ulang kapan saja dari data 5 menit. Pertumbuhan repo ≈ 0,56 MB/hari ≈ 205 MB/tahun → ±1 GB
+  setelah ±5 tahun (data saja; riwayat git ikut bertambah, dipantau lewat cek ukuran di atas).
+
+Yang harus dijaga pemilik:
+- Email notifikasi GitHub Actions aktif (Settings akun → Notifications → Actions → "Only notify for failed workflows").
+  Email jadwal dikirim ke orang yang terakhir mengubah jadwal (`cron`) atau yang terakhir mengaktifkan ulang workflow.
+- Akun GitHub dan akun Coinalyze tetap aktif; kunci API Coinalyze tidak dicabut (ganti di Settings → Secrets bila perlu).
+- Sesekali `git pull` di laptop (folder liqmap-replica) sebagai cadangan di luar GitHub.
+
+## Bila repo mendekati 1 GB (perkiraan ±tahun ke-4–5) atau setelah 5 tahun
+GitHub menyarankan repo < 1 GB (sangat disarankan < 5 GB); ukuran itu termasuk seluruh riwayat git, jadi mengompres atau
+memindahkan file di repo yang sama tidak mengecilkannya. Caranya: mulai repo baru dan jadikan repo lama arsip.
+1. Ganti nama repo ini menjadi `liqmap-data-<tahun mulai>-<tahun akhir>` (Settings → General → Repository name).
+2. Buat repo publik baru bernama `liqmap-data`, salin kode (`collector/`, `heatmap/`, `site/`, `research/`, `.github/`,
+   README, requirements.txt) dan data 90 hari terakhir (cukup untuk heatmap dan website).
+3. Di repo baru: isi secret `COINALYZE_API_KEY`, aktifkan Pages (Source: GitHub Actions), jalankan `collect` sekali.
+   Alamat website tetap `https://wahyunugi.github.io/liqmap-data/` karena namanya sama.
+4. Di repo lama: Settings → General → **Archive this repository** (hanya-baca; data tetap ada dan bisa dibaca).
+5. Bila butuh data lama untuk riset: salin dari repo arsip; tidak ada data yang dihapus.
+
 ## Operasional
 - **Jadwal:** tiap jam (menit ke-17; sampai 29 Okt 2026 tiap 4 jam). Jalankan manual: tab **Actions → collect → Run workflow**.
 - **Retensi Coinalyze:** 1 menit ≈ 1 hari, 5 menit ≈ 5–7 hari. Jika GitHub berhenti > ~1 hari, data 1 menit bolong;

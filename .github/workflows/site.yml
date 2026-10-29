@@ -39,7 +39,7 @@ jobs:
 
       - name: Bangun data website (_site/)
         run: |
-          pip install --quiet numpy pandas
+          pip install --quiet -r requirements.txt
           python site/build.py
 
       - name: Cek model JavaScript = model Python (snapshot.py)

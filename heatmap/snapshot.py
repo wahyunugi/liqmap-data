@@ -74,14 +74,24 @@ def compute(sym, at_wib=None):
                 t_last=t_last, levels=levels, n_gap=n_gap)
 
 
+SAVE_GAP_MIN = 210   # level aktif disimpan paling sering tiap ±4 jam walau collect jalan tiap jam (hemat ukuran repo;
+                     # level bisa dihitung ulang kapan saja dari data 5 menit dengan snapshot.py "YYYY-MM-DD HH:MM")
+
+
 def save_history(r):
-    """Simpan level aktif ke data/heatmap_levels (hanya menambah; satu waktu tidak disimpan dua kali)."""
+    """Simpan level aktif ke data/heatmap_levels (hanya menambah; satu waktu tidak disimpan dua kali;
+    dilewati bila simpanan terakhir di file bulan ini < SAVE_GAP_MIN menit sebelumnya)."""
     ts = r["t_last"].strftime("%Y-%m-%d %H:%M")
     path = os.path.join(ROOT, "data", "heatmap_levels", f"{r['sym']}_{r['t_last']:%Y-%m}.csv")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if os.path.exists(path):
         with open(path, newline="") as f:
-            if any(row["time_wib"] == ts for row in csv.DictReader(f)):
+            times = {row["time_wib"] for row in csv.DictReader(f)}
+        if ts in times:
+            return 0
+        if times:
+            last = datetime.strptime(max(times), "%Y-%m-%d %H:%M").replace(tzinfo=WIB)
+            if (r["t_last"] - last).total_seconds() < SAVE_GAP_MIN * 60:
                 return 0
     new = not os.path.exists(path)
     with open(path, "a", newline="") as f:

@@ -33,12 +33,22 @@ jobs:
       - name: Hitung heatmap replika (model v6) dan simpan level aktif
         if: always()
         run: |
-          pip install --quiet numpy pandas
+          pip install --quiet -r requirements.txt
           python heatmap/snapshot.py --save-history
 
       - name: Cek arti kolom l/s (tidak mengubah data)
         if: always()
         run: python collector/check_sides.py || true
+
+      - name: Cek kesehatan data (gagal = email bila data berhenti masuk atau repo mendekati 1 GB)
+        id: health
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export REPO_SIZE_KB=$(gh api "repos/${{ github.repository }}" --jq .size 2>/dev/null || echo "")
+          python collector/health.py
 
       - name: Simpan ke repository
         if: always()
@@ -53,3 +63,9 @@ jobs:
             git pull --rebase
             git push
           fi
+
+      - name: Laporkan hasil cek kesehatan
+        if: always() && steps.health.outcome == 'failure'
+        run: |
+          echo "::error::Cek kesehatan data gagal; lihat langkah 'Cek kesehatan data' di atas."
+          exit 1
