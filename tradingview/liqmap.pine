@@ -1,0 +1,309 @@
+// Liqmap — liquidation levels, model v6 of the repo wahyunugi/liqmap-data (replica of CoinGlass Model 1).
+// Recalculated live on the chart from TradingView's own 5-minute candles and open interest.
+//
+// Rules (same as heatmap/model.py PARAMS_V6 + heatmap/snapshot.py):
+//   1. New positions = open-interest increase of each 5-minute candle; a decrease shrinks all levels proportionally.
+//   2. Each side (long and short) = 100% of that increase in USD, split over 25x / 50x / 100x as 25:50:100.
+//   3. Liquidation price = entry x (1 -/+ 1/leverage), minimum margin 0.01%; entry = average of open, high, low, close.
+//   4. A level disappears when price touches it.   5. Only levels created inside the window (24 h) count.
+//   6. Price boxes 0.0744% of price, anchored on a round number, shifted +0.025% (CoinGlass display).
+// Order per 5-minute candle, identical to model.py: the previous candle's open-interest change (OI at the start of this
+// candle minus OI at the start of the previous one) is applied first, then levels touched by this candle are removed.
+// So, like snapshot.py, the state at a candle's close does not yet include that candle's own open-interest change.
+// Checked 29 Oct 2026 with a Python copy of this loop on the repo's data: identical to model.py ($0 difference).
+//@version=6
+indicator("Liqmap liquidation levels (model v6)", shorttitle = "Liqmap", overlay = true, max_boxes_count = 500, max_labels_count = 10)
+
+// ---------- inputs ----------
+string G1 = "Data"
+string oiIn   = input.string("", "Open interest symbol (empty = this chart + _OI)", group = G1, tooltip = "Example: BINANCE:BTCUSDT.P_OI")
+string oiUnit = input.string("Coins", "Open interest unit", options = ["Coins", "USD"], group = G1, tooltip = "Check the 'Open interest now' row of the table: BTC should show about 90-100K if the unit is coins.")
+int    days   = input.int(3, "Days to draw", minval = 1, maxval = 7, group = G1)
+string G2 = "Model"
+int    winH   = input.int(24, "Window (hours)", options = [24, 72], group = G2, tooltip = "24 h = model v6 as checked against CoinGlass. 72 h keeps levels longer (same rules, not checked).")
+string G3 = "Display"
+bool   showZones = input.bool(true, "Heatmap zones", group = G3)
+float  minZoneM  = input.float(2.0, "Smallest zone to draw (million USD)", minval = 0.0, step = 0.5, group = G3)
+int    zoneMax   = input.int(330, "Max zone boxes", minval = 50, maxval = 380, group = G3)
+float  thr       = input.float(0.6, "Threshold (yellow = this x biggest zone)", minval = 0.1, maxval = 1.0, step = 0.05, group = G3)
+bool   showMap   = input.bool(true, "Liquidation map (right of last candle)", group = G3)
+int    mapRows   = input.int(100, "Map rows (biggest)", minval = 10, maxval = 110, group = G3)
+int    mapWidth  = input.int(40, "Map width (bars)", minval = 10, maxval = 200, group = G3)
+bool   showTable = input.bool(true, "Top-10 table (to compare with snapshot.py)", group = G3)
+color  colLong  = input.color(#3987e5, "Long levels", group = G3)
+color  colShort = input.color(#d95926, "Short levels", group = G3)
+
+// ---------- types ----------
+type Zone
+    int   key
+    float usd   = 0.0
+    float peak  = 0.0
+    int   n     = 0
+    bool  alive = true
+    int   left
+    int   right
+    float top
+    float bot
+    box   bx
+    bool  drawn   = false
+    bool  evicted = false
+
+type Lv
+    float p
+    float u
+    int   s
+    int   born
+    Zone  z
+
+// ---------- helpers ----------
+binsFor(float P) =>
+    float w   = 0.000744 * P
+    float k   = math.pow(10, math.floor(math.log10(P)))
+    float off = (math.round(P / k) * k) % w
+    [w, off, 0.00025 * P]
+
+viridis(float t) =>
+    float x = math.max(0.0, math.min(1.0, t))
+    color c = x < 0.25 ? color.from_gradient(x, 0.0, 0.25, #440154, #3b528b) : x < 0.5 ? color.from_gradient(x, 0.25, 0.5, #3b528b, #21918c) : x < 0.75 ? color.from_gradient(x, 0.5, 0.75, #21918c, #5ec962) : color.from_gradient(x, 0.75, 1.0, #5ec962, #fde725)
+    c
+
+fmtUsd(float v) =>
+    v >= 1e9 ? str.tostring(v / 1e9, "#.##") + "B" : v >= 1e6 ? str.tostring(v / 1e6, "#.##") + "M" : str.tostring(v / 1e3, "#.#") + "K"
+
+fmtQty(float v) =>
+    v >= 1e9 ? str.tostring(v / 1e9, "#.##") + "B" : v >= 1e6 ? str.tostring(v / 1e6, "#.##") + "M" : v >= 1e3 ? str.tostring(v / 1e3, "#.#") + "K" : str.tostring(v, "#.##")
+
+addLevel(array<Lv> levels, array<Zone> aliveZ, map<int, Zone> zoneOf, float p, float u, int s, int born, int tt, float w0, float off0, float dx0) =>
+    int  bfix = int(math.floor((p + dx0 - off0) / w0))
+    int  key  = bfix * 2 + s
+    Zone z    = map.get(zoneOf, key)
+    if na(z)
+        z := Zone.new(key = key, left = tt, right = tt, top = off0 + (bfix + 1) * w0, bot = off0 + bfix * w0)
+        map.put(zoneOf, key, z)
+        array.push(aliveZ, z)
+    z.usd  := z.usd + u
+    z.n    := z.n + 1
+    z.peak := math.max(z.peak, z.usd)
+    array.push(levels, Lv.new(p, u, s, born, z))
+
+// ---------- data: 5-minute candles inside each chart bar ----------
+bool   tfOk  = timeframe.in_seconds() >= 300
+string ltf   = tfOk ? "5" : timeframe.period
+string oiSym = oiIn == "" ? syminfo.prefix + ":" + syminfo.ticker + "_OI" : oiIn
+[pO, pH, pL, pC, pT] = request.security_lower_tf(syminfo.tickerid, ltf, [open, high, low, close, time])
+[oO, oC, oT]         = request.security_lower_tf(oiSym, ltf, [open, close, time], ignore_invalid_symbol = true)
+
+// ---------- state ----------
+var array<Lv>       levels   = array.new<Lv>()
+var array<Zone>     aliveZ   = array.new<Zone>()
+var array<Zone>     drawnZ   = array.new<Zone>()
+var map<int, Zone>  zoneOf   = map.new<int, Zone>()
+var array<box>      mapBoxes = array.new<box>()
+var table           tbl      = table.new(position.top_right, 4, 14, bgcolor = color.new(#11141a, 10), border_color = #1e232c, border_width = 1)
+var int   k5      = 0
+var float w0      = na
+var float off0    = na
+var float dx0     = na
+var float lastOi  = na
+var int   oiMiss  = 0
+// previous 5-minute candle (its open-interest change is only known at the start of the next candle, as in model.py)
+var bool  hasPrev = false
+var float prevOi  = na
+var float prevE   = na
+var float prevLo  = na
+var float prevHi  = na
+var int   prevT   = 0
+
+int  winN      = winH * 12
+int  calcStart = last_bar_time - (days * 24 + winH) * 3600000
+int  drawStart = last_bar_time - days * 24 * 3600000
+bool lastDone  = bar_index >= last_bar_index - 1          // the last confirmed bar, or a realtime bar that just closed
+
+// ---------- snapshot: liquidation map + table at the close of the latest complete 5-minute candle ----------
+drawSnapshot(float P, int tt) =>
+    for bx in mapBoxes
+        box.delete(bx)
+    array.clear(mapBoxes)
+    [w, off, dx] = binsFor(P)
+    map<int, float> m = map.new<int, float>()
+    for lv in levels
+        int key = int(math.floor((lv.p + dx - off) / w)) * 2 + lv.s
+        map.put(m, key, nz(map.get(m, key)) + lv.u)
+    array<int>   keys = map.keys(m)
+    array<float> vals = map.values(m)
+    int nK = array.size(keys)
+    if nK > 0
+        array<int> idx = array.sort_indices(vals, order.descending)
+        float maxU = array.max(vals)
+        if showMap
+            for r = 0 to math.min(mapRows, nK) - 1
+                int   kk  = array.get(keys, array.get(idx, r))
+                float u   = array.get(vals, array.get(idx, r))
+                int   b   = int(math.floor(kk / 2.0))
+                int   sd  = kk - b * 2
+                float lo_ = off + b * w
+                int   len = math.max(1, int(math.round(u / maxU * mapWidth)))
+                array.push(mapBoxes, box.new(bar_index + 2, lo_ + w, bar_index + 2 + len, lo_, xloc = xloc.bar_index, border_color = na, bgcolor = color.new(sd == 0 ? colLong : colShort, 10)))
+        if showTable
+            table.clear(tbl, 0, 0, 3, 13)
+            table.cell(tbl, 0, 0, "Price box (mid)", text_color = #8a92a2, text_size = size.small)
+            table.cell(tbl, 1, 0, "Side", text_color = #8a92a2, text_size = size.small)
+            table.cell(tbl, 2, 0, "USD", text_color = #8a92a2, text_size = size.small)
+            table.cell(tbl, 3, 0, "From price", text_color = #8a92a2, text_size = size.small)
+            int nT = math.min(10, nK)
+            // top 10 by size, listed by price like snapshot.py
+            array<float> mids = array.new<float>()
+            array<int>   rows = array.new<int>()
+            for r = 0 to nT - 1
+                int kk = array.get(keys, array.get(idx, r))
+                array.push(mids, off + math.floor(kk / 2.0) * w + w / 2)
+                array.push(rows, array.get(idx, r))
+            array<int> byPrice = array.sort_indices(mids, order.ascending)
+            for r = 0 to nT - 1
+                int   ii  = array.get(rows, array.get(byPrice, r))
+                int   kk  = array.get(keys, ii)
+                float mid = array.get(mids, array.get(byPrice, r))
+                bool  lg  = kk % 2 == 0
+                table.cell(tbl, 0, r + 1, str.tostring(mid, format.mintick), text_color = color.white, text_size = size.small)
+                table.cell(tbl, 1, r + 1, lg ? "long" : "short", text_color = lg ? colLong : colShort, text_size = size.small)
+                table.cell(tbl, 2, r + 1, fmtUsd(array.get(vals, ii)), text_color = color.white, text_size = size.small)
+                table.cell(tbl, 3, r + 1, (mid >= P ? "+" : "") + str.tostring((mid / P - 1) * 100, "0.00") + "%", text_color = color.white, text_size = size.small)
+            table.cell(tbl, 0, 11, "Levels at", text_color = #8a92a2, text_size = size.small)
+            table.cell(tbl, 1, 11, str.format_time(tt + 300000, "yyyy-MM-dd HH:mm", "Asia/Bangkok") + " WIB", text_color = color.white, text_size = size.small)
+            table.merge_cells(tbl, 1, 11, 3, 11)
+            table.cell(tbl, 0, 12, "Open interest now", text_color = #8a92a2, text_size = size.small)
+            table.cell(tbl, 1, 12, na(lastOi) ? "no data: check symbol" : fmtQty(lastOi) + (oiUnit == "Coins" ? " " + syminfo.basecurrency : " USD"), text_color = na(lastOi) ? color.orange : color.white, text_size = size.small)
+            table.merge_cells(tbl, 1, 12, 3, 12)
+            table.cell(tbl, 0, 13, "OI symbol", text_color = #8a92a2, text_size = size.small)
+            table.cell(tbl, 1, 13, oiSym + "  (" + str.tostring(oiMiss) + " candles without OI)", text_color = oiMiss > 0 ? color.orange : color.white, text_size = size.small)
+            table.merge_cells(tbl, 1, 13, 3, 13)
+
+// ---------- main loop: only confirmed chart bars change the state ----------
+if not tfOk and barstate.islast
+    var label warn = label.new(bar_index, high, "Liqmap: use a 5-minute or higher chart", style = label.style_label_down, color = color.orange, textcolor = color.black)
+    label.set_xy(warn, bar_index, high)
+
+if tfOk and barstate.isconfirmed and time >= calcStart
+    int nP = array.size(pT)
+    int nO = array.size(oT)
+    int jO = 0
+    if nP > 0
+        for i = 0 to nP - 1
+            float hi = array.get(pH, i)
+            float lo = array.get(pL, i)
+            int   tt = array.get(pT, i)
+            if na(w0)
+                [a, b, c] = binsFor(array.get(pC, i))
+                w0   := a
+                off0 := b
+                dx0  := c
+            // open interest of the same 5-minute candle (open = value at the candle's start)
+            while jO < nO and array.get(oT, jO) < tt
+                jO += 1
+            float oiOpen = na
+            if jO < nO and array.get(oT, jO) == tt
+                oiOpen := array.get(oO, jO)
+                lastOi := array.get(oC, jO)
+            else
+                oiMiss += 1
+            // A) previous candle's open-interest change, applied with that candle's entry price and range
+            if hasPrev and not na(oiOpen) and not na(prevOi)
+                float dv = oiOpen - prevOi
+                if dv > 0
+                    for q = 0 to 2
+                        float lev = q == 0 ? 25.0 : q == 1 ? 50.0 : 100.0
+                        float val = (oiUnit == "Coins" ? dv * prevE : dv) * lev / 175.0
+                        float pl  = prevE * (1 - 1 / lev + 0.0001)
+                        float ps  = prevE * (1 + 1 / lev - 0.0001)
+                        if not (prevLo <= pl and pl <= prevHi)
+                            addLevel(levels, aliveZ, zoneOf, pl, val, 0, k5 - 1, prevT, w0, off0, dx0)
+                        if not (prevLo <= ps and ps <= prevHi)
+                            addLevel(levels, aliveZ, zoneOf, ps, val, 1, k5 - 1, prevT, w0, off0, dx0)
+                else if dv < 0 and prevOi > 0 and array.size(levels) > 0
+                    float frac = math.max(0.0, 1 + dv / prevOi)
+                    for lv in levels
+                        lv.u := lv.u * frac
+                    for z in aliveZ
+                        z.usd := z.usd * frac
+            // B) remove levels touched by this candle or older than the window
+            int sz   = array.size(levels)
+            int keep = 0
+            if sz > 0
+                for j = 0 to sz - 1
+                    Lv lv = array.get(levels, j)
+                    if (lo <= lv.p and lv.p <= hi) or lv.born <= k5 - winN
+                        Zone z = lv.z
+                        z.usd := z.usd - lv.u
+                        z.n   := z.n - 1
+                        if z.n <= 0
+                            z.alive := false
+                            z.usd   := 0.0
+                            z.right := tt
+                            map.remove(zoneOf, z.key)
+                            if z.drawn
+                                box.set_right(z.bx, tt)
+                    else
+                        if keep != j
+                            array.set(levels, keep, lv)
+                        keep += 1
+                while array.size(levels) > keep
+                    array.pop(levels)
+            int za = array.size(aliveZ)
+            int zk = 0
+            if za > 0
+                for j = 0 to za - 1
+                    Zone z = array.get(aliveZ, j)
+                    if z.alive
+                        if zk != j
+                            array.set(aliveZ, zk, z)
+                        zk += 1
+                while array.size(aliveZ) > zk
+                    array.pop(aliveZ)
+            // C) snapshot: the moment snapshot.py reports for this candle
+            if lastDone and i == nP - 1
+                drawSnapshot(array.get(pC, i), tt)
+            hasPrev := true
+            prevOi  := oiOpen
+            prevE   := (array.get(pO, i) + hi + lo + array.get(pC, i)) / 4
+            prevLo  := lo
+            prevHi  := hi
+            prevT   := tt
+            k5 += 1
+    // 3) heatmap zones: draw the biggest ones, keep within the box budget
+    if showZones and time >= drawStart
+        for z in aliveZ
+            if not z.drawn and not z.evicted and z.peak >= minZoneM * 1e6
+                z.bx    := box.new(z.left, z.top, time, z.bot, xloc = xloc.bar_time, border_color = na, bgcolor = color.new(#21918c, 40))
+                z.drawn := true
+                array.push(drawnZ, z)
+        while array.size(drawnZ) > zoneMax
+            int   worst = -1
+            float wv    = 1e30
+            int   nd    = array.size(drawnZ)
+            for j = 0 to nd - 1
+                Zone z = array.get(drawnZ, j)
+                if not z.alive and z.peak < wv
+                    wv    := z.peak
+                    worst := j
+            if worst < 0
+                for j = 0 to nd - 1
+                    Zone z = array.get(drawnZ, j)
+                    if z.peak < wv
+                        wv    := z.peak
+                        worst := j
+            Zone gone = array.get(drawnZ, worst)
+            box.delete(gone.bx)
+            gone.drawn   := false
+            gone.evicted := true
+            array.remove(drawnZ, worst)
+        for z in drawnZ
+            if z.alive
+                box.set_right(z.bx, time)
+    // 4) colour all zones on the last bar (scale = threshold x biggest zone)
+    if lastDone and array.size(drawnZ) > 0
+        float vmax = 0.0
+        for z in drawnZ
+            vmax := math.max(vmax, z.peak)
+        vmax := vmax * thr
+        for z in drawnZ
+            box.set_bgcolor(z.bx, color.new(viridis(z.peak / vmax), z.alive ? 15 : 45))

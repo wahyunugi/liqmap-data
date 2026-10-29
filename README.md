@@ -34,6 +34,7 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 | `data/heatmap_levels/` | level aktif replika heatmap tiap jalan (tiap jam; sebelum 29 Okt 2026 11:00 WIB direncanakan tiap 4 jam) |
 | `logs/` | `runs.csv` riwayat jalan; `sides_check.txt` cek kolom likuidasi |
 | `research/` | jejak riset reverse-engineering: screenshot CoinGlass, skrip penilaian, uji Hyperliquid |
+| `tradingview/` | indikator TradingView `liqmap.pine` (model v6 dalam Pine Script v6) |
 | `site/` | website Liqmap Chart: `index.html`, `app.js`, `model.js` (model v6 dalam JavaScript), `build.py` (membangun `_site/`), `check_model.js` (cek JS = Python) |
 
 ## Website (Liqmap Chart)
@@ -51,6 +52,18 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   situsnya tetap bisa dibuka siapa saja yang tahu alamatnya. Aktifkan: Settings → Pages → Source: **GitHub Actions**.
   Selama Pages belum aktif, workflow tetap membangun dan mengecek, tanpa gagal.
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
+
+## Indikator TradingView (`tradingview/liqmap.pine`)
+Model v6 yang sama, dihitung langsung di grafik TradingView dari data TradingView sendiri (candle 5 menit + open
+interest, simbol bawaan `<grafik>_OI`, misalnya `BINANCE:BTCUSDT.P_OI`). Tidak membaca data dari repo ini.
+- **Isi:** zona heatmap (zona terbesar sebagai kotak dari terbentuk sampai tersentuh), liquidation map di kanan candle
+  terakhir, dan tabel 10 level terbesar (format sama dengan `snapshot.py`) untuk dicocokkan.
+- **Urutan hitung sama dengan `model.py`:** diuji 29 Okt 2026 dengan salinan Python dari loop indikator pada data yang
+  sama: selisih $0. Dengan sumber open interest berbeda (Coinalyze vs arsip Binance, beda median 0,009%) hasilnya
+  bergeser: 10 level terbesar sama 9–10 dari 10, korelasi 0,99, selisih per kotak sampai ±$5 juta. Sumber TradingView
+  belum diuji: bandingkan tabelnya dengan `python heatmap/snapshot.py <SIMBOL> "<waktu di baris Levels at>"`.
+- **Batas TradingView:** maks 500 kotak (heatmap tidak penuh seperti website), grafik minimal 5 menit, perhitungan
+  hanya beberapa hari terakhir (input "Days to draw") karena batas waktu eksekusi; tidak ada data likuidasi nyata.
 
 ## Data likuidasi nyata
 - Kolom `t` = awal interval (detik UTC). File dipecah per bulan.
