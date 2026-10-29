@@ -7,7 +7,7 @@ Bangun website Liqmap Chart ke folder _site/ (dipakai GitHub Actions, workflow "
 Isi _site/:
   index.html, app.js, model.js  — salinan dari folder site/
   data.json                     — data untuk grafik:
-     c5  candle 5 menit + open interest (SAMA dengan masukan heatmap/inputs.py), N hari + 1 hari pemanasan heatmap
+     c5  candle 5 menit + open interest (SAMA dengan masukan heatmap/inputs.py), N hari + 7 hari pemanasan heatmap
      c1  candle 1 menit + open interest 1 menit (Coinalyze), 7 hari terakhir
      l5, l1  likuidasi nyata 5 dan 1 menit (Coinalyze), N hari terakhir
 Heatmap TIDAK dihitung di sini: model.js (salinan model v6 dalam JavaScript) menghitungnya di browser.
@@ -23,6 +23,7 @@ import inputs  # noqa: E402
 
 DAYS = int(sys.argv[1]) if len(sys.argv) > 1 else 60
 DAYS_1M = 7
+WARMUP = 7                                 # hari pemanasan heatmap: jendela terpanjang di website = 7 hari
 PAIRS = {"BTCUSDT": 1, "ETHUSDT": 2}       # desimal harga
 OUT = os.path.join(ROOT, "_site")
 
@@ -48,7 +49,7 @@ def build():
     for sym, nd in PAIRS.items():
         c5 = inputs.load(sym)
         t_end = int(c5.t.iat[-1]) + 300
-        c5 = c5[c5.t >= t_end - (DAYS + 1) * 86400].reset_index(drop=True)
+        c5 = c5[c5.t >= t_end - (DAYS + WARMUP) * 86400].reset_index(drop=True)
         steps = c5.t.diff().dropna()
         if (steps != 300).any():
             print(f"PERINGATAN {sym}: {int((steps != 300).sum())} lubang di data 5 menit (heatmap mengikuti urutan candle)")

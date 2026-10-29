@@ -20,8 +20,11 @@ var LiqModel = (function () {
   }
   function binOf(price, B) { return Math.floor((price + B.dx - B.off) / B.w); }
 
-  // Simulate every 5-minute candle. Calls onSnap(i, lp, usd, side, count) after each candle i >= window.
-  function simulate(c, onSnap) {
+  // Simulate every 5-minute candle. Calls onSnap(i, lp, usd, side, count) at the close of each candle i >= win.
+  // win = window length in 5-minute candles: 288 (24 h) is model v6 as calibrated against CoinGlass;
+  // longer windows (864 = 3 days, 2016 = 7 days) apply the same rules, keeping levels longer (not calibrated).
+  function simulate(c, onSnap, win) {
+    win = win || P.window;
     var n = c.t.length, cap = 4096;
     var lp = new Float64Array(cap), usd = new Float64Array(cap), side = new Uint8Array(cap), born = new Int32Array(cap);
     var m = 0;
@@ -34,23 +37,17 @@ var LiqModel = (function () {
     }
     for (var i = 0; i < n; i++) {
       var hi = c.h[i], lo = c.l[i];
-      // 1) sweep levels touched by this candle
-      var k = 0;
+      // 1) sweep levels touched by this candle, and keep only levels created inside the window ending
+      //    at this candle (for 24 h: created i-287 .. i)
+      var k = 0, oldest = i - win;
       for (var j = 0; j < m; j++) {
-        if (lo <= lp[j] && lp[j] <= hi) continue;
+        if ((lo <= lp[j] && lp[j] <= hi) || born[j] <= oldest) continue;
         lp[k] = lp[j]; usd[k] = usd[j]; side[k] = side[j]; born[k] = born[j]; k++;
-      }
-      m = k;
-      // keep only levels created inside the 24h window ending at this candle (created i-287 .. i)
-      k = 0;
-      for (var j3 = 0; j3 < m; j3++) {
-        if (born[j3] <= i - P.window) continue;
-        lp[k] = lp[j3]; usd[k] = usd[j3]; side[k] = side[j3]; born[k] = born[j3]; k++;
       }
       m = k;
       // Snapshot at the close of candle i, exactly as snapshot.py sees it: the OI change of candle i
       // (= OI[i+1] - OI[i]) is not known yet, so it only shows from the next candle on.
-      if (i >= P.window) onSnap(i, lp, usd, side, m);
+      if (i >= win) onSnap(i, lp, usd, side, m);
       // 2) open-interest change of this candle: OI[i+1] - OI[i]
       var dv = (i + 1 < n && c.oi[i + 1] != null && c.oi[i] != null) ? c.oi[i + 1] - c.oi[i] : 0;
       var e = (c.o[i] + c.h[i] + c.l[i] + c.c[i]) / 4;
@@ -69,8 +66,9 @@ var LiqModel = (function () {
     }
   }
 
-  // Heatmap store: per candle, sorted list of (bin, longUSD, shortUSD)
-  function build(c, B) {
+  // Heatmap store: per candle, sorted list of (bin, longUSD, shortUSD).
+  // want (optional): array/typed array of 0/1 per candle; only marked candles are stored (saves time for long windows).
+  function build(c, B, win, want) {
     var n = c.t.length, start = new Int32Array(n + 1), cap = 1 << 20;
     var bins = new Int32Array(cap), lv = new Float32Array(cap), sv = new Float32Array(cap), len = 0;
     var colMax = new Float32Array(n);
@@ -78,6 +76,7 @@ var LiqModel = (function () {
     var first = -1;
     simulate(c, function (i, lp, usd, side, m) {
       if (first < 0) { first = i; for (var z = 0; z <= i; z++) start[z] = 0; }
+      if (want && !want[i]) { start[i] = len; start[i + 1] = len; colMax[i] = 0; return; }
       tmp.clear();
       for (var j = 0; j < m; j++) {
         var b = binOf(lp[j], B), a = tmp.get(b);
@@ -98,7 +97,7 @@ var LiqModel = (function () {
         if (v[0] + v[1] > mx) mx = v[0] + v[1];
       }
       start[i + 1] = len; colMax[i] = mx;
-    });
+    }, win);
     return { B: B, first: first, start: start, bins: bins, lv: lv, sv: sv, colMax: colMax, n: n };
   }
 

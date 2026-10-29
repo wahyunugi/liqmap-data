@@ -33,6 +33,8 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .btn{font:500 .86rem var(--font-ui);color:var(--muted);background:transparent;border:0;border-radius:5px;padding:5px 9px;cursor:pointer}
 .btn:hover{color:var(--fg);background:var(--raise)}
 .btn[aria-pressed="true"]{color:var(--bg);background:var(--fg)}
+.btn:disabled{opacity:.35;cursor:not-allowed;background:transparent;color:var(--muted)}
+.winnow{font:400 .74rem var(--font-num);color:var(--muted);margin-left:6px}
 .btn:focus-visible,.chk input:focus-visible+span,input[type=range]:focus-visible{outline:2px solid var(--long);outline-offset:1px}
 .sep{width:1px;height:22px;background:var(--line)}
 .chk{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.86rem;color:var(--muted);padding:4px 6px;user-select:none}
@@ -78,6 +80,8 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <span class="sep"></span>
     <div class="grp" role="group" aria-label="Visible range" id="ranges"><span class="lbl">Range</span></div>
     <span class="sep"></span>
+    <div class="grp" role="group" aria-label="Heatmap window" id="wins" title="How long a liquidation level stays on the heatmap. 24h is the CoinGlass-checked model; 3D and 7D keep levels longer (same rules, not checked against CoinGlass)."><span class="lbl">Window</span></div>
+    <span class="sep"></span>
     <label class="chk"><input type="checkbox" id="optHeat" checked><span class="box"></span><span class="t">Heatmap</span></label>
     <label class="chk"><input type="checkbox" id="optMap" checked><span class="box"></span><span class="t">Liquidation map</span></label>
     <label class="thr" for="thr" title="Colour scale: yellow = this share of the brightest cell in view. Lower = brighter. 1.0 matches the CoinGlass reference screenshots.">Threshold <span class="scale"></span><input type="range" id="thr" min="0.1" max="1" step="0.05" value="0.6"><output id="thrv">0.60</output></label>
@@ -95,13 +99,15 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
   <div class="notes">
     <div>
       <h2>What you are looking at</h2>
-      <p><b>Heatmap</b> (behind the candles): estimated liquidation levels at each moment, from the repo's model v6, a replica of CoinGlass Model 1 with a 24-hour window. Each 5-minute column shows the levels created in the 24 hours before it that price has not touched yet.</p>
-      <p><b>Liquidation map</b> (bars on the right): the same levels for the candle under your cursor, or the latest candle. <span class="sw" style="background:var(--long)"></span>long levels sit below price, <span class="sw" style="background:var(--short)"></span>short levels above.</p>
+      <p><b>Heatmap</b> (behind the candles): estimated liquidation levels at each moment, from the repo's model v6, a replica of CoinGlass Model 1. Each column shows the levels created during the window before it that price has not touched yet. Brighter = more USD.</p>
+      <p><b>Window</b>: 24h is the model checked against CoinGlass. 3D and 7D use the same rules but keep levels longer, so zones stay visible on 4h and daily candles; they are not checked against CoinGlass. Auto picks 24h up to 1h candles, 3D for 4h, 7D for 1D. When zoomed out, neighbouring price boxes are added together so each row stays readable.</p>
+      <p><b>Liquidation map</b> (bars on the right): the same levels for the candle under your cursor, or the latest candle, as a side profile. <span class="sw" style="background:var(--long)"></span>blue = long positions that get liquidated if price falls to that level; <span class="sw" style="background:var(--short)"></span>orange = short positions liquidated if price rises to it. Longer bar = more USD.</p>
     </div>
     <div>
       <h2>Lower panes</h2>
       <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
-      <p><b>Open interest</b> in coins, and <b>volume</b> in coins.</p>
+      <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
+      <p><b>Volume</b>: coins traded per candle.</p>
     </div>
     <div>
       <h2>Data and limits</h2>
