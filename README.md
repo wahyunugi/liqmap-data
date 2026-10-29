@@ -119,4 +119,4 @@ Ambil screenshot heatmap CoinGlass (Liquidity Threshold = 1) bersamaan dengan da
 - **Kunci API:** secret `COINALYZE_API_KEY` (Settings → Secrets and variables → Actions). Batas Coinalyze
   40 panggilan/menit; tiap jalan ±14.
 - **Menit GitHub Actions:** `collect` ±1–2 menit per jalan dan `site` ±1–2 menit per jalan; 6 jalan/hari ≈ 360–720 menit/bulan (repo privat: gratis 2.000/bulan; repo publik: tanpa batas).
-- **Ukuran repo:** ±0,2–0,3 MB/hari bertambah.
+- **Ukuran repo:** ±0,56 MB/hari bertambah, ≈ 205 MB/tahun (diukur 29 Okt 2026 dari ukuran file per hari data: candle + OI 1 menit ±390 KB, level heatmap ±70 KB, data 5 menit + likuidasi ±100 KB; dua koin). Batas GitHub: repo idealnya < 1 GB, satu file maks 100 MB (file bulanan terbesar ±3,6 MB).
