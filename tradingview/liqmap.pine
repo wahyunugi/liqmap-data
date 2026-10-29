@@ -16,7 +16,8 @@ indicator("Liqmap liquidation levels (model v6)", shorttitle = "Liqmap", overlay
 
 // ---------- inputs ----------
 string G1 = "Data"
-string oiIn   = input.string("", "Open interest symbol (empty = this chart + _OI)", group = G1, tooltip = "Example: BINANCE:BTCUSDT.P_OI")
+string pxIn   = input.string("", "Price symbol (empty = BINANCE:<coin>USDT.P)", group = G1, tooltip = "The model always runs on the Binance perpetual of the chart's coin, whatever chart you are on. Example: BINANCE:BTCUSDT.P")
+string oiIn   = input.string("", "Open interest symbol (empty = price symbol + _OI)", group = G1, tooltip = "Example: BINANCE:BTCUSDT.P_OI")
 string oiUnit = input.string("Coins", "Open interest unit", options = ["Coins", "USD"], group = G1, tooltip = "Check the 'Open interest now' row of the table: BTC should show about 90-100K if the unit is coins.")
 int    days   = input.int(3, "Days to draw", minval = 1, maxval = 7, group = G1)
 string G2 = "Model"
@@ -89,8 +90,9 @@ addLevel(array<Lv> levels, array<Zone> aliveZ, map<int, Zone> zoneOf, float p, f
 // ---------- data: 5-minute candles inside each chart bar ----------
 bool   tfOk  = timeframe.in_seconds() >= 300
 string ltf   = tfOk ? "5" : timeframe.period
-string oiSym = oiIn == "" ? syminfo.prefix + ":" + syminfo.ticker + "_OI" : oiIn
-[pO, pH, pL, pC, pT] = request.security_lower_tf(syminfo.tickerid, ltf, [open, high, low, close, time])
+string pxSym = pxIn == "" ? "BINANCE:" + syminfo.basecurrency + "USDT.P" : pxIn
+string oiSym = oiIn == "" ? pxSym + "_OI" : oiIn
+[pO, pH, pL, pC, pT] = request.security_lower_tf(pxSym, ltf, [open, high, low, close, time], ignore_invalid_symbol = true)
 [oO, oC, oT]         = request.security_lower_tf(oiSym, ltf, [open, close, time], ignore_invalid_symbol = true)
 
 // ---------- state ----------
@@ -99,7 +101,7 @@ var array<Zone>     aliveZ   = array.new<Zone>()
 var array<Zone>     drawnZ   = array.new<Zone>()
 var map<int, Zone>  zoneOf   = map.new<int, Zone>()
 var array<box>      mapBoxes = array.new<box>()
-var table           tbl      = table.new(position.top_right, 4, 16, bgcolor = color.new(#11141a, 10), border_color = #1e232c, border_width = 1)
+var table           tbl      = table.new(position.top_right, 4, 17, bgcolor = color.new(#11141a, 10), border_color = #1e232c, border_width = 1)
 var int   k5      = 0
 var float w0      = na
 var float off0    = na
@@ -125,7 +127,7 @@ drawSnapshot(float P, int tt) =>
         box.delete(bx)
     array.clear(mapBoxes)
     if showTable
-        table.clear(tbl, 0, 0, 3, 15)
+        table.clear(tbl, 0, 0, 3, 16)
     [w, off, dx] = binsFor(P)
     map<int, float> m = map.new<int, float>()
     for lv in levels
@@ -180,6 +182,9 @@ drawSnapshot(float P, int tt) =>
         table.cell(tbl, 0, 12, "Open interest now", text_color = #8a92a2, text_size = size.small)
         table.cell(tbl, 1, 12, na(lastOi) ? "NO DATA - check OI symbol" : fmtQty(lastOi) + (oiUnit == "Coins" ? " " + syminfo.basecurrency : " USD"), text_color = na(lastOi) ? color.orange : color.white, text_size = size.small)
         table.merge_cells(tbl, 1, 12, 3, 12)
+        table.cell(tbl, 0, 16, "Price symbol", text_color = #8a92a2, text_size = size.small)
+        table.cell(tbl, 1, 16, pxSym, text_color = color.white, text_size = size.small)
+        table.merge_cells(tbl, 1, 16, 3, 16)
         table.cell(tbl, 0, 13, "OI symbol", text_color = #8a92a2, text_size = size.small)
         table.cell(tbl, 1, 13, oiSym, text_color = color.white, text_size = size.small)
         table.merge_cells(tbl, 1, 13, 3, 13)
@@ -196,8 +201,8 @@ if not tfOk and barstate.islast
     label.set_xy(warn, bar_index, high)
 
 if tfOk and barstate.isconfirmed and time >= calcStart
-    int nP = array.size(pT)
-    int nO = array.size(oT)
+    int nP = na(pT) ? 0 : array.size(pT)
+    int nO = na(oT) ? 0 : array.size(oT)
     int jO = 0
     if nP > 0
         for i = 0 to nP - 1
