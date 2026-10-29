@@ -1,6 +1,6 @@
 # liqmap-data — replika heatmap likuidasi CoinGlass + data likuidasi nyata (gratis, tanpa laptop)
 
-Semua berjalan di **GitHub Actions** tiap 4 jam, tanpa perangkat pribadi:
+Semua berjalan di **GitHub Actions** tiap jam, tanpa perangkat pribadi:
 1. Mengambil data Binance BTCUSDT dan ETHUSDT perpetual dari **API gratis Coinalyze**
    (harga, open interest, dan likuidasi nyata).
 2. Menghitung **replika heatmap likuidasi CoinGlass** (Model 1, jendela 24 jam, model v6) dan
@@ -31,7 +31,7 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
 | `data/liquidations/` | likuidasi nyata dari Coinalyze, 1 dan 5 menit |
-| `data/heatmap_levels/` | level aktif replika heatmap tiap jalan (tiap 4 jam) |
+| `data/heatmap_levels/` | level aktif replika heatmap tiap jalan (tiap jam; sebelum 29 Okt 2026 11:00 WIB direncanakan tiap 4 jam) |
 | `logs/` | `runs.csv` riwayat jalan; `sides_check.txt` cek kolom likuidasi |
 | `research/` | jejak riset reverse-engineering: screenshot CoinGlass, skrip penilaian, uji Hyperliquid |
 | `site/` | website Liqmap Chart: `index.html`, `app.js`, `model.js` (model v6 dalam JavaScript), `build.py` (membangun `_site/`), `check_model.js` (cek JS = Python) |
@@ -40,7 +40,7 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di belakangnya, liquidation map di sisi kanan
 (mengikuti kursor), likuidasi nyata, open interest, dan volume. Interval 1m/5m/15m/1h/4h/1D, rentang 1D–All.
 
-- **Diperbarui otomatis:** workflow `site` jalan setiap kali `collect` selesai (tiap 4 jam): `python site/build.py`
+- **Diperbarui otomatis:** workflow `site` jalan setiap kali `collect` selesai (tiap jam): `python site/build.py`
   menyusun `_site/data.json` dari folder `data/`, lalu terbit ke GitHub Pages.
 - **Heatmap dihitung di browser** oleh `site/model.js`, salinan model v6 (`heatmap/model.py` + pengelompokan kotak
   `snapshot.py`). Tiap kolom 5 menit = hasil `snapshot.py` bila dijalankan pada waktu itu. Kecocokan diuji 29 Okt 2026
@@ -111,12 +111,12 @@ Ambil screenshot heatmap CoinGlass (Liquidity Threshold = 1) bersamaan dengan da
 (toleransi 1 kotak) turun jauh di bawah ±0,85, aturannya perlu dicari ulang.
 
 ## Operasional
-- **Jadwal:** tiap 4 jam (menit ke-17). Jalankan manual: tab **Actions → collect → Run workflow**.
+- **Jadwal:** tiap jam (menit ke-17; sampai 29 Okt 2026 tiap 4 jam). Jalankan manual: tab **Actions → collect → Run workflow**.
 - **Retensi Coinalyze:** 1 menit ≈ 1 hari, 5 menit ≈ 5–7 hari. Jika GitHub berhenti > ~1 hari, data 1 menit bolong;
   5 menit aman sampai ~5 hari. Heatmap memakai data 5 menit.
 - **Aturan penyimpanan:** hanya menambah, tanpa duplikat waktu, interval belum selesai tidak disimpan.
 - **Gagal?** GitHub mengirim email; lihat tab **Actions** dan `logs/runs.csv`.
 - **Kunci API:** secret `COINALYZE_API_KEY` (Settings → Secrets and variables → Actions). Batas Coinalyze
   40 panggilan/menit; tiap jalan ±14.
-- **Menit GitHub Actions:** `collect` ±1–2 menit per jalan dan `site` ±1–2 menit per jalan; 6 jalan/hari ≈ 360–720 menit/bulan (repo privat: gratis 2.000/bulan; repo publik: tanpa batas).
-- **Ukuran repo:** ±0,56 MB/hari bertambah, ≈ 205 MB/tahun (diukur 29 Okt 2026 dari ukuran file per hari data: candle + OI 1 menit ±390 KB, level heatmap ±70 KB, data 5 menit + likuidasi ±100 KB; dua koin). Batas GitHub: repo idealnya < 1 GB, satu file maks 100 MB (file bulanan terbesar ±3,6 MB).
+- **Menit GitHub Actions:** repo publik = tanpa batas. Diukur 29 Okt 2026: `collect` ±25 detik, `site` ±20 detik per jalan; 24 jalan/hari.
+- **Ukuran repo:** ±0,77 MB/hari bertambah, ≈ 280 MB/tahun (diukur 29 Okt 2026 dari ukuran file per hari, dua koin: candle + OI 1 menit ±390 KB, level heatmap ±280 KB karena disimpan tiap jam, data 5 menit + likuidasi ±100 KB). Riwayat git ikut bertambah tiap commit (belum diukur). Batas GitHub: repo idealnya < 1 GB, satu file maks 100 MB (file bulanan terbesar ±3,6 MB).

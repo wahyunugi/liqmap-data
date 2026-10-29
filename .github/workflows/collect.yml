@@ -1,10 +1,10 @@
 name: collect
 
-# Jalan otomatis tiap 4 jam (menit ke-17 agar tidak bertabrakan dengan antrean jam bulat GitHub),
+# Jalan otomatis tiap jam (menit ke-17 agar tidak bertabrakan dengan antrean jam bulat GitHub),
 # dan bisa dijalankan manual dari tab Actions -> collect -> Run workflow.
 on:
   schedule:
-    - cron: "17 */4 * * *"
+    - cron: "17 * * * *"
   workflow_dispatch: {}
 
 permissions:

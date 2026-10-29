@@ -1,7 +1,7 @@
 name: site
 
 # Bangun dan terbitkan website Liqmap Chart ke GitHub Pages.
-# Jalan otomatis setiap kali workflow "collect" selesai (tiap 4 jam), saat kode website/model berubah,
+# Jalan otomatis setiap kali workflow "collect" selesai (tiap jam), saat kode website/model berubah,
 # dan bisa dijalankan manual dari tab Actions -> site -> Run workflow.
 # Selama GitHub Pages belum aktif, website tetap dibangun dan dicek, tetapi tidak diterbitkan (tidak gagal).
 on:
