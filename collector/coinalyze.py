@@ -33,6 +33,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 LOGF = os.path.join(ROOT, "logs", "runs.csv")
 MAX_CALLS_PER_MIN = 35                              # batas Coinalyze 40/menit, sisakan ruang
+STALE_HOURS = 3                                     # data 5 menit lebih tua dari ini = dianggap macet
 
 
 class Client:
@@ -190,6 +191,14 @@ def run(client, now=None):
             for p in PAIRS:
                 hist = back.get(syms[p]["symbol"], [])
                 summary[f"{ds}/{iv}/{p}"] = merge_append(ds, iv, p, hist, cols, now)
+    # cek kesegaran: data 5 menit terbaru harus berumur < STALE_HOURS. Jika tidak, tandai gagal
+    # (mencegah jalan "sukses" padahal Coinalyze diam-diam tidak mengirim data baru).
+    for p in PAIRS:
+        for ds in ("ohlcv", "open_interest"):
+            last = last_stored(ds, "5min", p)
+            if last is None or now - last > STALE_HOURS * 3600:
+                age = "tidak ada data" if last is None else f"{(now - last) / 3600:.1f} jam"
+                errors.append(f"DATA BASI {ds}/5min/{p}: data terbaru {age} lalu")
     rec = {"run_utc": datetime.fromtimestamp(now, timezone.utc).strftime("%Y-%m-%d %H:%M"),
            "api_calls": client.calls, "rows_added": sum(summary.values()),
            "detail": json.dumps(summary), "errors": " | ".join(errors)}
