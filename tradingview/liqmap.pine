@@ -99,7 +99,7 @@ var array<Zone>     aliveZ   = array.new<Zone>()
 var array<Zone>     drawnZ   = array.new<Zone>()
 var map<int, Zone>  zoneOf   = map.new<int, Zone>()
 var array<box>      mapBoxes = array.new<box>()
-var table           tbl      = table.new(position.top_right, 4, 14, bgcolor = color.new(#11141a, 10), border_color = #1e232c, border_width = 1)
+var table           tbl      = table.new(position.top_right, 4, 16, bgcolor = color.new(#11141a, 10), border_color = #1e232c, border_width = 1)
 var int   k5      = 0
 var float w0      = na
 var float off0    = na
@@ -124,6 +124,8 @@ drawSnapshot(float P, int tt) =>
     for bx in mapBoxes
         box.delete(bx)
     array.clear(mapBoxes)
+    if showTable
+        table.clear(tbl, 0, 0, 3, 15)
     [w, off, dx] = binsFor(P)
     map<int, float> m = map.new<int, float>()
     for lv in levels
@@ -145,7 +147,6 @@ drawSnapshot(float P, int tt) =>
                 int   len = math.max(1, int(math.round(u / maxU * mapWidth)))
                 array.push(mapBoxes, box.new(bar_index + 2, lo_ + w, bar_index + 2 + len, lo_, xloc = xloc.bar_index, border_color = na, bgcolor = color.new(sd == 0 ? colLong : colShort, 10)))
         if showTable
-            table.clear(tbl, 0, 0, 3, 13)
             table.cell(tbl, 0, 0, "Price box (mid)", text_color = #8a92a2, text_size = size.small)
             table.cell(tbl, 1, 0, "Side", text_color = #8a92a2, text_size = size.small)
             table.cell(tbl, 2, 0, "USD", text_color = #8a92a2, text_size = size.small)
@@ -168,15 +169,26 @@ drawSnapshot(float P, int tt) =>
                 table.cell(tbl, 1, r + 1, lg ? "long" : "short", text_color = lg ? colLong : colShort, text_size = size.small)
                 table.cell(tbl, 2, r + 1, fmtUsd(array.get(vals, ii)), text_color = color.white, text_size = size.small)
                 table.cell(tbl, 3, r + 1, (mid >= P ? "+" : "") + str.tostring((mid / P - 1) * 100, "0.00") + "%", text_color = color.white, text_size = size.small)
-            table.cell(tbl, 0, 11, "Levels at", text_color = #8a92a2, text_size = size.small)
-            table.cell(tbl, 1, 11, str.format_time(tt + 300000, "yyyy-MM-dd HH:mm", "Asia/Bangkok") + " WIB", text_color = color.white, text_size = size.small)
-            table.merge_cells(tbl, 1, 11, 3, 11)
-            table.cell(tbl, 0, 12, "Open interest now", text_color = #8a92a2, text_size = size.small)
-            table.cell(tbl, 1, 12, na(lastOi) ? "no data: check symbol" : fmtQty(lastOi) + (oiUnit == "Coins" ? " " + syminfo.basecurrency : " USD"), text_color = na(lastOi) ? color.orange : color.white, text_size = size.small)
-            table.merge_cells(tbl, 1, 12, 3, 12)
-            table.cell(tbl, 0, 13, "OI symbol", text_color = #8a92a2, text_size = size.small)
-            table.cell(tbl, 1, 13, oiSym + "  (" + str.tostring(oiMiss) + " candles without OI)", text_color = oiMiss > 0 ? color.orange : color.white, text_size = size.small)
-            table.merge_cells(tbl, 1, 13, 3, 13)
+    // status rows: always shown, so a missing data source is visible instead of an empty chart
+    if showTable
+        if nK == 0
+            table.cell(tbl, 0, 0, "No liquidation levels yet", text_color = color.orange, text_size = size.small)
+            table.merge_cells(tbl, 0, 0, 3, 0)
+        table.cell(tbl, 0, 11, "Levels at", text_color = #8a92a2, text_size = size.small)
+        table.cell(tbl, 1, 11, str.format_time(tt + 300000, "yyyy-MM-dd HH:mm", "Asia/Bangkok") + " WIB", text_color = color.white, text_size = size.small)
+        table.merge_cells(tbl, 1, 11, 3, 11)
+        table.cell(tbl, 0, 12, "Open interest now", text_color = #8a92a2, text_size = size.small)
+        table.cell(tbl, 1, 12, na(lastOi) ? "NO DATA - check OI symbol" : fmtQty(lastOi) + (oiUnit == "Coins" ? " " + syminfo.basecurrency : " USD"), text_color = na(lastOi) ? color.orange : color.white, text_size = size.small)
+        table.merge_cells(tbl, 1, 12, 3, 12)
+        table.cell(tbl, 0, 13, "OI symbol", text_color = #8a92a2, text_size = size.small)
+        table.cell(tbl, 1, 13, oiSym, text_color = color.white, text_size = size.small)
+        table.merge_cells(tbl, 1, 13, 3, 13)
+        table.cell(tbl, 0, 14, "5-min candles used", text_color = #8a92a2, text_size = size.small)
+        table.cell(tbl, 1, 14, str.tostring(k5) + " (without OI: " + str.tostring(oiMiss) + ")", text_color = oiMiss > 0 ? color.orange : color.white, text_size = size.small)
+        table.merge_cells(tbl, 1, 14, 3, 14)
+        table.cell(tbl, 0, 15, "Active levels", text_color = #8a92a2, text_size = size.small)
+        table.cell(tbl, 1, 15, str.tostring(array.size(levels)), text_color = color.white, text_size = size.small)
+        table.merge_cells(tbl, 1, 15, 3, 15)
 
 // ---------- main loop: only confirmed chart bars change the state ----------
 if not tfOk and barstate.islast
@@ -269,6 +281,8 @@ if tfOk and barstate.isconfirmed and time >= calcStart
             prevHi  := hi
             prevT   := tt
             k5 += 1
+    if lastDone and nP == 0
+        drawSnapshot(close, time)
     // 3) heatmap zones: draw the biggest ones, keep within the box budget
     if showZones and time >= drawStart
         for z in aliveZ
