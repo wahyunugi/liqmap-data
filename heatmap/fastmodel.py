@@ -30,17 +30,19 @@ def bins_for(price):
     return w, off, 0.00025 * price
 
 
-def simulate(t, o, h, l, c, oi, window, snap_at, on_snap):
+def simulate(t, o, h, l, c, oi, window, snap_at, on_snap, levs=LEVS, weights=WEIGHTS, start=0, with_born=False):
     """Jalankan model pada deret candle 5 menit.
     oi[i] = open interest di AWAL candle i (seperti model.py). snap_at: himpunan indeks candle tempat snapshot diambil.
-    on_snap(i, prices: np.ndarray, usd: np.ndarray, side: np.ndarray[int8]) dipanggil di tiap indeks snap_at."""
+    on_snap(i, prices: np.ndarray, usd: np.ndarray, side: np.ndarray[int8]) dipanggil di tiap indeks snap_at.
+    levs/weights: tingkat leverage dan porsinya (bawaan = model v6: 25/50/100x, 25:50:100). start: candle pertama
+    yang disimulasikan (posisi yang dibuka sebelum itu diabaikan)."""
     n = len(t)
     sl = SortedList()                 # (harga, id)
     raw, sid, born, pr = [], [], [], []   # per id: nilai/skala saat dibuat, sisi (0 long, 1 short), candle lahir, harga
     alive = []
     q = deque()                       # id menurut urutan lahir (untuk batas jendela)
     S = 1.0                           # faktor skala bersama
-    for i in range(n):
+    for i in range(start, n):
         lo, hi = l[i], h[i]
         # 1) sapu level yang tersentuh candle ini (lo <= harga <= hi)
         if sl:
@@ -57,10 +59,13 @@ def simulate(t, o, h, l, c, oi, window, snap_at, on_snap):
         # 3) snapshot (perubahan OI candle i belum ikut)
         if i in snap_at:
             m = len(sl)
-            px = np.empty(m); us = np.empty(m); sd = np.empty(m, dtype=np.int8)
+            px = np.empty(m); us = np.empty(m); sd = np.empty(m, dtype=np.int8); bn = np.empty(m, dtype=np.int64)
             for k, (p, j) in enumerate(sl):
-                px[k] = p; us[k] = raw[j] * S; sd[k] = sid[j]
-            on_snap(i, px, us, sd)
+                px[k] = p; us[k] = raw[j] * S; sd[k] = sid[j]; bn[k] = born[j]
+            if with_born:
+                on_snap(i, px, us, sd, bn)
+            else:
+                on_snap(i, px, us, sd)
         # 4) perubahan OI candle i
         if i + 1 < n:
             a, b = oi[i + 1], oi[i]
@@ -69,7 +74,7 @@ def simulate(t, o, h, l, c, oi, window, snap_at, on_snap):
             dv = 0.0
         e = (o[i] + h[i] + l[i] + c[i]) / 4
         if dv > 0:
-            for lev, w in zip(LEVS, WEIGHTS):
+            for lev, w in zip(levs, weights):
                 val = dv * e * w
                 for side, lp in ((0, e * (1 - 1 / lev + MMR)), (1, e * (1 + 1 / lev - MMR))):
                     if lo <= lp <= hi:
