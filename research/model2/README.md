@@ -5,9 +5,9 @@ screenshot CoinGlass, seperti model v6 dicocokkan ke Model 1.
 
 ## Bahan
 - `ref/coinglass_24h_thr1_20261029.png`, `ref/coinglass_1w_thr1_20261029.png`, `ref/coinglass_1m_thr1_20261029.png`
-  (Binance BTC/USDT Perpetual, Liquidity Threshold = 1, diambil Wahyu 29 Okt 2026 ±14:30 WIB). Model CoinGlass yang
-  dipilih di halaman belum dicatat (perlu dikonfirmasi: Model 1/2/3). Tampilannya halus dan mengisi harga jauh,
-  berbeda dari screenshot Model 1 lama (garis-garis tipis), jadi kemungkinan model "semua leverage".
+  (Binance BTC/USDT Perpetual, **CoinGlass Model 2**, Liquidity Threshold = 1, diambil Wahyu 29 Okt 2026 ±14:30 WIB;
+  model dikonfirmasi Wahyu). Menurut CoinGlass sendiri, Model 1 hanya menghitung leverage tinggi (10x, 25x, 50x, 100x)
+  untuk jangka pendek, Model 2 menghitung semua leverage untuk jangka panjang (akun X @coinglass_com).
 - Data candle 5 menit + OI dari repo (`heatmap/inputs.py`), sampai 29 Okt 07:25 UTC.
 
 ## Langkah dan hasil
@@ -38,4 +38,3 @@ screenshot CoinGlass, seperti model v6 dicocokkan ke Model 1.
 
 ## Langkah berikutnya
 - Screenshot uji: rentang yang sama untuk ETH, dan BTC di waktu lain; nilai porsi per rentang tanpa diubah.
-- Konfirmasi model CoinGlass mana yang dipakai di screenshot ini.
