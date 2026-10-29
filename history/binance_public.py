@@ -4,7 +4,8 @@ Sejarah panjang dari arsip publik Binance (https://data.binance.vision), gratis 
   candle 5 menit perpetual USDT-M : data/futures/um/monthly/klines/<SYM>/5m/  (BTCUSDT tersedia sejak 2020-01)
                                     data/futures/um/daily/klines/<SYM>/5m/    (bulan berjalan)
   open interest 5 menit            : data/futures/um/daily/metrics/<SYM>/      (BTCUSDT sejak 2020-09-01;
-                                    kolom sum_open_interest, satuan koin, waktu create_time UTC)
+                                    kolom sum_open_interest, satuan koin; create_time UTC + 5 menit = waktu nilai;
+                                    ETHUSDT baru tersedia sejak 2021-12-01)
 
 File zip disimpan di .cache/binance/ (tidak masuk repo; GitHub Actions menyimpannya di cache). Unduhan bertahap:
 file yang sudah ada tidak diunduh lagi. Arsip ini milik Binance dan tetap tersedia di sana, jadi tidak disalin ke repo.
@@ -129,7 +130,10 @@ def load(sym):
                     ts = (_ms(ct) // 1000).astype("int64")
                 else:
                     ts = ((pd.to_datetime(ct, utc=True) - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta(seconds=1)).astype("int64")
-                ts = (np.round(ts / 300) * 300).astype("int64")     # waktu create_time dibulatkan ke 5 menit
+                # create_time dibulatkan ke 5 menit, lalu +5 menit: nilai berlabel T = open interest di T + 5 menit.
+                # Diuji 29 Okt 2026 vs arsip Binance di repo (8.532 candle): selisih median 0,02% tanpa geser,
+                # 0,0% dengan geser +300 detik (BTC dan ETH). Konvensi repo: oi[t] = open interest di awal candle t.
+                ts = (np.round(ts / 300) * 300).astype("int64") + 300
                 mf.append(pd.DataFrame({"t": ts, "oi": pd.to_numeric(m["sum_open_interest"], errors="coerce")}))
     oi = pd.concat(mf, ignore_index=True).drop_duplicates("t", keep="last") if mf else pd.DataFrame(columns=["t", "oi"])
     df = px.merge(oi, on="t", how="left")
