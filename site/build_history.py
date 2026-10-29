@@ -83,6 +83,12 @@ def series(sym, report):
     r["gaps"] = int((steps != 300).sum())
     r["missing_minutes_total"] = int(((steps[steps != 300] - 300) / 60).sum())
     r["oi_coverage_pct"] = round(float(df.oi.notna().mean() * 100), 2)
+    # 10 perubahan OI 5 menit terbesar (sesudah pembersihan), untuk memeriksa sisa data rusak
+    oiv = pd.to_numeric(df.oi, errors="coerce").astype("float64")
+    ch = (oiv.shift(-1) - oiv) / oiv
+    top = ch.abs().dropna().nlargest(10).index
+    r["largest_oi_changes"] = [[str(pd.to_datetime(df.t[i], unit="s")), round(float(oiv[i]), 1),
+                                round(float(oiv[i + 1]), 1), round(float(ch[i] * 100), 2)] for i in top]
     return df
 
 
