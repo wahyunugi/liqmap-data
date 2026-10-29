@@ -19,7 +19,7 @@ string G1 = "Data"
 string pxIn   = input.string("", "Price symbol (empty = BINANCE:<coin>USDT.P)", group = G1, tooltip = "The model always runs on the Binance perpetual of the chart's coin, whatever chart you are on. Example: BINANCE:BTCUSDT.P")
 string oiIn   = input.string("", "Open interest symbol (empty = price symbol + _OI)", group = G1, tooltip = "Example: BINANCE:BTCUSDT.P_OI")
 string oiUnit = input.string("Coins", "Open interest unit", options = ["Coins", "USD"], group = G1, tooltip = "Check the 'Open interest now' row of the table: BTC should show about 90-100K if the unit is coins.")
-int    days   = input.int(3, "Days to draw", minval = 1, maxval = 7, group = G1)
+int    days   = input.int(7, "Days to draw", minval = 1, maxval = 30, group = G1, tooltip = "More days = longer calculation. If TradingView reports that the script takes too long to execute, lower this number.")
 string G2 = "Model"
 int    winH   = input.int(24, "Window (hours)", options = [24, 72], group = G2, tooltip = "24 h = model v6 as checked against CoinGlass. 72 h keeps levels longer (same rules, not checked).")
 string G3 = "Display"
