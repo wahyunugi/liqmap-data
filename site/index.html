@@ -15,6 +15,7 @@ body{margin:0}
    Deliberately single-theme (dark): the heatmap colour scale is built for a dark field, like the CoinGlass screen it replicates. */
 :root{
   --bg:#0b0d11; --panel:#11141a; --raise:#181c24; --fg:#e6e9ef; --muted:#8a92a2; --line:#1e232c;
+  --c1:#199e70; --c2:#c98500; --c3:#d55181; --c4:#9085e9;   /* CFTC groups; checked with the dataviz palette validator on --panel */
   --long:#3987e5; --short:#d95926; --up:#eef1f5; --down:#f2557c; --oi:#b9c1cf;
   --font-ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --font-num:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -23,12 +24,13 @@ body{margin:0}
 html,body{background:var(--bg);color:var(--fg)}
 body{font-family:var(--font-ui);font-size:14px;line-height:1.45}
 .wrap{max-width:1600px;margin:0 auto;padding-block:14px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:10px}
+.wrap>*{min-width:0}
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
 .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
 h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
-.asof{font:400 .78rem var(--font-num);color:var(--muted)}
+.asof{font:400 .78rem var(--font-num);color:var(--muted);overflow-wrap:anywhere}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
-.grp{display:flex;align-items:center;gap:2px}
+.grp{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
 .grp .lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 6px 0 4px}
 .btn{font:500 .86rem var(--font-ui);color:var(--muted);background:transparent;border:0;border-radius:5px;padding:5px 9px;cursor:pointer}
 .btn:hover{color:var(--fg);background:var(--raise)}
@@ -64,6 +66,25 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .notes p{margin:0 0 6px;max-width:70ch}
 .notes code{font-family:var(--font-num);font-size:.78rem;color:var(--fg)}
 .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+.cot{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 12px 10px;display:grid;gap:10px}
+.cothead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.cothead h2{font-size:1rem;font-weight:600;margin:0}
+.cothead .asof{margin-right:auto}
+.cotgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
+.cotchartbox{position:relative;height:340px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+#cotchart{position:absolute;inset:0}
+.cottab{display:grid;gap:6px;min-width:0}
+.cottab .wk{font:500 .8rem var(--font-num);color:var(--fg)}
+.cottab table{width:100%;border-collapse:collapse;font:400 .8rem var(--font-num)}
+.cottab th,.cottab td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.cottab thead th{font:600 .68rem var(--font-ui);text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.cottab tbody th{text-align:left;font:500 .84rem var(--font-ui);color:var(--fg);white-space:normal}
+.cottab tbody th small{display:block;font-weight:400;font-size:.72rem;color:var(--muted);margin-left:14px}
+.cottab td{color:var(--muted)} .cottab td.strong{color:var(--fg);font-weight:500}
+.cottab .foot{font:400 .74rem var(--font-num);color:var(--muted)}
+.sw.blank{background:transparent;border:1px solid var(--muted)}
+.cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
+@media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}}
 @media (max-width:640px){.chartbox{height:76vh;min-height:520px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -95,6 +116,26 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <div class="plabel" id="pl3"></div>
     <div class="loading" id="loading">Calculating heatmap…</div>
   </div>
+
+  <section class="cot" id="cot" aria-labelledby="cot-h" hidden>
+    <div class="cothead">
+      <h2 id="cot-h">CME institutions · CFTC weekly report</h2>
+      <span class="asof" id="cotasof"></span>
+      <div class="grp" role="group" aria-label="CFTC range" id="cotranges"><span class="lbl">Range</span><button class="btn" data-d="365">1Y</button><button class="btn" data-d="1095">3Y</button><button class="btn" data-d="0">All</button></div>
+    </div>
+    <div class="cotgrid">
+      <div class="cotchartbox" aria-label="Net position per group over time"><div id="cotchart"></div></div>
+      <div class="cottab">
+        <div class="wk" id="cotweek"></div>
+        <table>
+          <thead><tr><th scope="col" style="text-align:left">Group</th><th scope="col">Long</th><th scope="col">Short</th><th scope="col">Net</th><th scope="col" title="Change in net position from the previous weekly report">Net chg</th></tr></thead>
+          <tbody id="cotbody"></tbody>
+        </table>
+        <div class="foot" id="cotfoot"></div>
+      </div>
+    </div>
+    <p class="cotnote">Net position (long minus short) of each group in Bitcoin or Ether futures on CME, the US exchange where most institutions trade crypto futures. The CFTC (the US futures regulator) collects these positions every Tuesday and publishes them on Friday. Hover the chart to see any week in the table. Big and micro contracts are added together and shown in coins; spread positions (a long and a short held together) are left out. Note: this is CME, not Binance, and it shows who holds positions, not their leverage or entry price. A hedge-fund short is often one leg of a basis trade (buying spot or an ETF while shorting futures to earn the price gap), not a bet on price falling. A sudden one-week jump in one group can also come from the CFTC moving a trader to another group, not only from trading.</p>
+  </section>
 
   <div class="notes">
     <div>

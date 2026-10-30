@@ -44,8 +44,37 @@ def pack_liq(df, t0):
     return dict(t=df.t.astype(int).tolist(), l=r(df.l, 0), s=r(df.s, 0), first=int(df.t.min()) if len(df) else None)
 
 
+COT_GROUPS = ["dealer", "am", "lev", "oth", "nr"]       # lihat collector/cftc.py
+
+
+def pack_cftc():
+    """Laporan CFTC mingguan (data/cftc/cme_tff.csv) -> per koin, posisi dalam satuan koin, semua kontrak CME
+    (besar + micro) dijumlahkan: kontrak x satuan kontrak. Long/short tanpa posisi spread (spread = long dan short
+    sekaligus milik trader yang sama, jadi tidak mengubah posisi bersih)."""
+    path = os.path.join(ROOT, "data", "cftc", "cme_tff.csv")
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path, dtype={"code": str})
+    cols = ["oi"] + [f"{g}_{s}" for g in COT_GROUPS for s in ("l", "s", "sp") if f"{g}_{s}" in df.columns]
+    for c in cols:
+        df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0) * df.units
+    out = {}
+    for coin, sym in (("BTC", "BTCUSDT"), ("ETH", "ETHUSDT")):
+        d = df[df.coin == coin]
+        if not len(d):
+            continue
+        g = d.groupby("date")[cols].sum().sort_index()
+        last = d[d.date == d.date.max()]
+        out[sym] = dict(t=[int(pd.Timestamp(x, tz="UTC").timestamp()) for x in g.index],
+                        **{c: [round(float(v), 1) for v in g[c]] for c in cols},
+                        markets=[dict(market=m, units=float(u), oi_coins=round(float(o), 1))
+                                 for m, u, o in zip(last.market, last.units, last.oi)])
+    return out
+
+
 def build():
     out = {"built": int(time.time()), "days": DAYS}
+    out["cftc"] = pack_cftc()
     for sym, nd in PAIRS.items():
         c5 = inputs.load(sym)
         t_end = int(c5.t.iat[-1]) + 300

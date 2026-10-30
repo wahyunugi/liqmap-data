@@ -308,6 +308,73 @@ function refresh(keepRange, after) { // load what the interval needs (history fi
     catch (e) { el.textContent = "Could not load this interval (" + e.message + "). Try another interval or reload."; }
   }, 30);
 }
+// ---------- CME institutions: CFTC weekly report (data/cftc/cme_tff.csv, collected by collector/cftc.py) ----------
+// Positions in coins, all CME contracts of the coin added together (big + micro). Net = long - short; spread positions
+// (a long and a short held together by the same trader) are left out because they do not change the net position.
+const COT = DATA.cftc || {};
+const COT_ROWS = [ // key, name, who, colour token (null = table only)
+  ["lev", "Hedge funds", "“leveraged funds”", "--c1"],
+  ["am", "Asset managers", "pension funds, insurers, mutual funds", "--c2"],
+  ["dealer", "Dealers", "banks and market makers", "--c3"],
+  ["nr", "Small traders", "below the reporting threshold", "--c4"],
+  ["oth", "Other large traders", "", null],
+];
+const fmtD = t => new Date(t * 1000).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+const sq = v => (v < 0 ? "−" : v > 0 ? "+" : "") + qty(v);
+const cotBox = document.getElementById("cot");
+const cotChart = LC.createChart(document.getElementById("cotchart"), {
+  autoSize: true,
+  layout: { background: { type: "solid", color: css("--panel") }, textColor: css("--muted"), fontFamily: css("--font-ui"), fontSize: 11 },
+  grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
+  crosshair: { mode: LC.CrosshairMode.Magnet, vertLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" }, horzLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" } },
+  rightPriceScale: { borderColor: css("--line") },
+  timeScale: { borderColor: css("--line"), timeVisible: false, rightOffset: 2 },
+  localization: { timeFormatter: t => "Tue " + fmtD(t) },
+});
+const cotSeries = {};
+for (const [k, , , tok] of COT_ROWS) if (tok)
+  cotSeries[k] = cotChart.addSeries(LC.LineSeries, { color: css(tok), lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerRadius: 4, priceFormat: { type: "custom", formatter: sq, minMove: 0.1 } });
+cotSeries.lev.createPriceLine({ price: 0, color: "#3a4150", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+let cotRange = 3 * 365;
+function binanceOi(coin) { const o = DATA[coin].c5.oi; for (let i = o.length - 1; i >= 0; i--) if (o[i] != null) return o[i]; return null; }
+function cotTable(i) {
+  const D = COT[state.coin]; if (!D) return;
+  const n = D.t.length; if (i == null || i < 0 || i >= n) i = n - 1;
+  const coin = state.coin.replace("USDT", ""), p = i > 0 ? i - 1 : null;
+  const net = (k, j) => D[k + "_l"][j] - D[k + "_s"][j];
+  document.getElementById("cotweek").textContent = `Positions on Tue ${fmtD(D.t[i])}` + (i === n - 1 ? " (latest report)" : "") + ` · in ${coin}`;
+  document.getElementById("cotbody").innerHTML = COT_ROWS.map(([k, name, who, tok]) => {
+    const ch = p == null ? null : net(k, i) - net(k, p);
+    return `<tr><th scope="row">${tok ? `<span class="sw" style="background:var(${tok})"></span>` : `<span class="sw blank"></span>`}${name}${who ? `<small>${who}</small>` : ""}</th>` +
+      `<td>${qty(D[k + "_l"][i])}</td><td>${qty(D[k + "_s"][i])}</td><td class="strong">${sq(net(k, i))}</td><td>${ch == null ? "–" : sq(ch)}</td></tr>`;
+  }).join("");
+  const bo = binanceOi(state.coin);
+  document.getElementById("cotfoot").textContent = `CME open interest that week: ${qty(D.oi[i])} ${coin}` +
+    (bo != null ? ` · Binance ${state.coin} perpetual now: ${qty(bo)} ${coin}` : "");
+}
+function cotApplyRange() {
+  const D = COT[state.coin]; if (!D) return;
+  const n = D.t.length, last = D.t[n - 1];
+  let from = 0; if (cotRange) while (from < n - 1 && D.t[from] < last - cotRange * 86400) from++;
+  // logical range (bar indexes) also works before the chart has its final size (first draw, coin switch)
+  requestAnimationFrame(() => cotChart.timeScale().setVisibleLogicalRange({ from: from - 0.5, to: n - 1 + 2 }));
+  for (const b of document.querySelectorAll("#cotranges .btn")) b.setAttribute("aria-pressed", +b.dataset.d === cotRange);
+}
+function setCot() {
+  const D = COT[state.coin];
+  cotBox.hidden = !D; if (!D) return;
+  for (const k in cotSeries) cotSeries[k].setData(D.t.map((t, j) => ({ time: t, value: D[k + "_l"][j] - D[k + "_s"][j] })));
+  const last = D.t[D.t.length - 1];
+  document.getElementById("cotasof").textContent = `Latest report: positions on Tue ${fmtD(last)} · CFTC publishes each Friday, so this updates once a week`;
+  cotApplyRange(); cotTable();
+}
+for (const b of document.querySelectorAll("#cotranges .btn")) b.onclick = () => { cotRange = +b.dataset.d; cotApplyRange(); };
+cotChart.subscribeCrosshairMove(p => {
+  const D = COT[state.coin]; if (!D) return;
+  cotTable(p && p.time != null ? D.t.indexOf(p.time) : null);
+});
+for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setCot);
+
 const B5 = DATA.BTCUSDT, last5 = Math.max(B5.c5.t[B5.c5.t.length - 1] + 300, B5.c1.t[B5.c1.t.length - 1] + 60);
 document.getElementById("asof").textContent = "Data to " + fmtT(last5 + WIB) + " WIB · built " + fmtT(DATA.built + WIB) + " WIB";
 document.getElementById("days").textContent = Math.round((B5.c5.t[B5.c5.t.length - 1] - B5.c5.t[0]) / 86400);
@@ -315,6 +382,7 @@ document.getElementById("cover").textContent = `Coverage: 1D/1W/1M from the Bina
 if (!DATA[state.coin]) state.coin = "BTCUSDT";
 if (!TFS.some(x => x[1] === state.tf)) state.tf = 900;
 pressed();
+setCot();
 refresh(false, () => applyRange(HIST[state.tf] ? 365 : 3));
 new ResizeObserver(() => requestAnimationFrame(placeLabels)).observe(document.getElementById("chart"));
 })();
