@@ -26,11 +26,12 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 ## Isi repository
 | Folder | Isi |
 |---|---|
-| `collector/` | `coinalyze.py` pengumpul data; `check_sides.py` cek arti kolom likuidasi |
+| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `check_sides.py` cek arti kolom likuidasi |
 | `heatmap/` | `model.py` aturan model (PARAMS_V6 dipakai); `inputs.py` penggabung sumber data; `snapshot.py` penghitung heatmap |
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
 | `data/liquidations/` | likuidasi nyata dari Coinalyze, 1 dan 5 menit |
+| `data/cftc/` | laporan mingguan CFTC untuk futures Bitcoin & Ether di CME (`cme_tff.csv`), daftar pasar yang ditemukan (`markets.json`) |
 | `data/heatmap_levels/` | level aktif replika heatmap tiap jalan (tiap jam; sebelum 29 Okt 2026 11:00 WIB direncanakan tiap 4 jam) |
 | `logs/` | `runs.csv` riwayat jalan; `sides_check.txt` cek kolom likuidasi |
 | `research/` | jejak riset reverse-engineering: screenshot CoinGlass, skrip penilaian, uji Hyperliquid |
@@ -59,6 +60,14 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
 - **Syarat GitHub Pages:** di akun GitHub Free, Pages hanya untuk repo **publik**; repo privat butuh GitHub Pro, dan
   situsnya tetap bisa dibuka siapa saja yang tahu alamatnya. Aktifkan: Settings → Pages → Source: **GitHub Actions**.
   Selama Pages belum aktif, workflow tetap membangun dan mengecek, tanpa gagal.
+- **Panel "CME institutions" (laporan CFTC):** di bawah grafik utama. Posisi bersih (long − short) tiap kelompok di
+  futures Bitcoin/Ether CME: hedge fund ("leveraged funds"), asset manager, dealer (bank), pemain kecil; tabel per minggu
+  (ikut kursor). Sumber: CFTC Public Reporting Environment, dataset `gpe5-46if` ("Traders in Financial Futures", futures
+  saja), gratis tanpa kunci; diambil `collector/cftc.py` tiap jalan `collect` ke `data/cftc/cme_tff.csv`. CFTC terbit
+  tiap Jumat untuk posisi hari Selasa, jadi angkanya berubah seminggu sekali. Kontrak besar + micro dijumlahkan dalam koin
+  (satuan dari spesifikasi CME: Bitcoin 5 BTC, Micro Bitcoin 0,1 BTC, Ether 50 ETH, Micro Ether 0,1 ETH). Dicek 30 Okt 2026:
+  laporan 20 Okt 2026, kontrak Bitcoin besar 21.040 kontrak, sama dengan angka CFTC; sisi long semua kelompok + spread
+  = open interest (BTC 108.962,3 BTC, ETH 1.424.935 ETH).
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 
 ## Indikator TradingView (`tradingview/liqmap.pine`)
@@ -148,6 +157,7 @@ Penjagaan yang sudah terpasang (29 Okt 2026):
 Yang harus dijaga pemilik:
 - Email notifikasi GitHub Actions aktif (Settings akun → Notifications → Actions → "Only notify for failed workflows").
   Email jadwal dikirim ke orang yang terakhir mengubah jadwal (`cron`) atau yang terakhir mengaktifkan ulang workflow.
+- Token `liqmap-trigger` untuk cron-job.org diperpanjang sebelum kedaluwarsa (lihat "Pemicu tiap jam dari luar").
 - Akun GitHub dan akun Coinalyze tetap aktif; kunci API Coinalyze tidak dicabut (ganti di Settings → Secrets bila perlu).
 - Sesekali `git pull` di laptop (folder liqmap-replica) sebagai cadangan di luar GitHub.
 
@@ -162,8 +172,36 @@ memindahkan file di repo yang sama tidak mengecilkannya. Caranya: mulai repo bar
 4. Di repo lama: Settings → General → **Archive this repository** (hanya-baca; data tetap ada dan bisa dibaca).
 5. Bila butuh data lama untuk riset: salin dari repo arsip; tidak ada data yang dihapus.
 
+## Pemicu tiap jam dari luar (cron-job.org)
+Jadwal bawaan GitHub (`cron` di `collect.yml`) tidak dijamin tepat waktu: 29–30 Okt 2026 jadwal "tiap jam" hanya jalan
+±tiap 4–6 jam (13.09, 18.58, 23.18 UTC). GitHub memang menunda atau melewatkan jadwal saat servernya sibuk. Solusinya:
+layanan jadwal gratis di luar GitHub memanggil API GitHub tiap jam untuk menjalankan `collect` (lalu `site` ikut jalan).
+Jadwal bawaan tetap dipasang sebagai cadangan; dua jalan berdekatan tidak merusak data (antre lewat `concurrency`,
+baris yang sama tidak dobel).
+
+1. **Token GitHub khusus** (hanya bisa menjalankan workflow repo ini, tidak bisa mengubah kode):
+   GitHub → foto profil → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** →
+   **Generate new token**. Isi: Token name `liqmap-trigger`; Expiration paling lama yang ditawarkan (catat tanggalnya);
+   Repository access **Only select repositories** → `liqmap-data`; Permissions → Repository permissions →
+   **Actions: Read and write** (yang lain biarkan). **Generate token**, salin (hanya tampil sekali).
+2. **cron-job.org** (gratis): daftar, lalu **Create cronjob**.
+   - URL: `https://api.github.com/repos/wahyunugi/liqmap-data/actions/workflows/collect.yml/dispatches`
+   - Jadwal: tiap jam, menit ke-5.
+   - Tab **Advanced**: Request method **POST**; Headers:
+     `Accept: application/vnd.github+json`, `Authorization: Bearer <token dari langkah 1>`,
+     `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`; Request body: `{"ref":"main"}`.
+   - Simpan, lalu **Test run**: berhasil bila jawabannya HTTP **204**. Di tab **Actions → collect** muncul jalan baru
+     dengan pemicu `workflow_dispatch`.
+3. **Perpanjang token sebelum kedaluwarsa** (Regenerate di halaman token, lalu ganti header Authorization di cron-job.org).
+   Bila lupa: cron-job.org menerima HTTP 401, `collect` kembali hanya ikut jadwal bawaan GitHub (data tetap masuk,
+   lebih jarang); aktifkan email kegagalan di cron-job.org supaya tahu.
+
+Panggilan API yang sama diuji 30 Okt 2026 dari sesi ini (`POST .../workflows/collect.yml/dispatches`, ref main): jalan
+`collect` langsung dimulai dan selesai sukses.
+
 ## Operasional
-- **Jadwal:** tiap jam (menit ke-17; sampai 29 Okt 2026 tiap 4 jam). Jalankan manual: tab **Actions → collect → Run workflow**.
+- **Jadwal:** tiap jam lewat cron-job.org (lihat di atas) + jadwal bawaan GitHub menit ke-17 sebagai cadangan.
+  Jalankan manual: tab **Actions → collect → Run workflow**.
 - **Retensi Coinalyze:** 1 menit ≈ 1 hari, 5 menit ≈ 5–7 hari. Jika GitHub berhenti > ~1 hari, data 1 menit bolong;
   5 menit aman sampai ~5 hari. Heatmap memakai data 5 menit.
 - **Aturan penyimpanan:** hanya menambah, tanpa duplikat waktu, interval belum selesai tidak disimpan.
