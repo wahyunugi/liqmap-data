@@ -49,7 +49,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .thr input{width:110px;accent-color:#fde725}
 .thr output{font:500 .8rem var(--font-num);color:var(--fg);width:2.6em}
 .scale{width:70px;height:8px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
-.chartbox{position:relative;height:min(80vh,860px);min-height:540px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chartbox{position:relative;height:min(86vh,940px);min-height:620px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #chart{position:absolute;inset:0}
 .legend{position:absolute;left:10px;top:8px;z-index:5;pointer-events:none;font:400 .78rem var(--font-num);display:grid;gap:3px;max-width:calc(100% - 90px);text-shadow:0 0 3px #000,0 0 6px #000}
 .legend .sym{font:600 .92rem var(--font-ui);letter-spacing:.02em}
@@ -57,6 +57,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .legend .k{color:var(--muted)}
 .legend .pos{color:var(--up)} .legend .neg{color:var(--down)}
 .legend .lg{color:var(--long)} .legend .sh{color:var(--short)}
+.pp{color:var(--c1)} .pn{color:var(--c3)}
 .plabel{position:absolute;left:10px;z-index:5;pointer-events:none;font:400 .74rem var(--font-num);color:var(--muted);text-shadow:0 0 3px #000}
 .plabel b{font-family:var(--font-ui);font-weight:600;color:var(--fg);margin-right:8px}
 .loading[hidden]{display:none}
@@ -72,7 +73,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .cothead .asof{margin-right:auto}
 .cotgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
 .cotchartbox{position:relative;height:340px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-#cotchart{position:absolute;inset:0}
+#cotchart,#etfchart{position:absolute;inset:0}
 .cottab{display:grid;gap:6px;min-width:0}
 .cottab .wk{font:500 .8rem var(--font-num);color:var(--fg)}
 .cottab table{width:100%;border-collapse:collapse;font:400 .8rem var(--font-num)}
@@ -83,9 +84,12 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .cottab td{color:var(--muted)} .cottab td.strong{color:var(--fg);font-weight:500}
 .cottab .foot{font:400 .74rem var(--font-num);color:var(--muted)}
 .sw.blank{background:transparent;border:1px solid var(--muted)}
+.etfgrid{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}
+.cottab tr.sum th{font-weight:400;color:var(--muted)}
+.cottab tr.sum:first-of-type th,.cottab tr.sum:first-of-type td{border-top:1px solid var(--muted)}
 .cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
 @media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}}
-@media (max-width:640px){.chartbox{height:76vh;min-height:520px}.thr input{width:80px}.sep{display:none}}
+@media (max-width:640px){.chartbox{height:82vh;min-height:600px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -114,8 +118,28 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <div class="plabel" id="pl1"></div>
     <div class="plabel" id="pl2"></div>
     <div class="plabel" id="pl3"></div>
+    <div class="plabel" id="pl4"></div>
     <div class="loading" id="loading">Calculating heatmap…</div>
   </div>
+
+  <section class="cot" id="etf" aria-labelledby="etf-h" hidden>
+    <div class="cothead">
+      <h2 id="etf-h">US spot ETF flows</h2>
+      <span class="asof" id="etfasof"></span>
+      <div class="grp" role="group" aria-label="ETF range" id="etfranges"><span class="lbl">Range</span><button class="btn" data-d="92">3M</button><button class="btn" data-d="365">1Y</button><button class="btn" data-d="0">All</button></div>
+    </div>
+    <div class="cotgrid etfgrid">
+      <div class="cotchartbox" aria-label="Net ETF flow per day"><div id="etfchart"></div></div>
+      <div class="cottab">
+        <div class="wk" id="etfweek"></div>
+        <table>
+          <thead><tr><th scope="col" style="text-align:left">Fund</th><th scope="col">Net flow</th></tr></thead>
+          <tbody id="etfbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="cotnote">Net money into (<span class="pp">above zero</span>) or out of (<span class="pn">below zero</span>) the US spot ETFs each trading day, all funds added together. Spot ETFs (BlackRock IBIT, Fidelity FBTC, and others) must hold real coins, so an inflow means the funds bought that much and an outflow means they sold. Hover the chart to see any day by fund. Source: Farside Investors daily recap, checked hourly. Not every inflow is a bet on price rising: hedge funds often buy the ETF while shorting CME futures to earn the price gap (a basis trade), which is why ETF inflows and the hedge-fund short in the CFTC panel below often grow together.</p>
+  </section>
 
   <section class="cot" id="cot" aria-labelledby="cot-h" hidden>
     <div class="cothead">
@@ -150,6 +174,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
       <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
       <p><b>Volume</b>: coins traded per candle.</p>
+      <p><b>Coinbase premium</b>: how much higher (<span class="pp">above zero</span>) or lower (<span class="pn">below zero</span>) bitcoin or ether trades on Coinbase, where US buyers and most US institutions trade, than on Binance spot, in percent, averaged over the candle. Binance prices are in USDT, so they are converted to dollars with Coinbase's USDT price first; otherwise the gap mostly shows USDT trading slightly off $1. Above zero = US buyers are paying up; below zero = US sellers are more eager. It is a reading of behaviour, not a record of who traded. Data: 5-minute values for the last 60 days, daily averages since June 2021 on 1D/1W/1M.</p>
       <p><b>Per candle, on every interval</b>: volume and actual liquidations are totals over the candle; open interest is the value at the candle's close; the heatmap column and the liquidation map show the levels still open at the candle's close (not a sum over the candle).</p>
     </div>
     <div>

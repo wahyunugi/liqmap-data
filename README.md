@@ -26,11 +26,13 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 ## Isi repository
 | Folder | Isi |
 |---|---|
-| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `check_sides.py` cek arti kolom likuidasi |
+| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
 | `heatmap/` | `model.py` aturan model (PARAMS_V6 dipakai); `inputs.py` penggabung sumber data; `snapshot.py` penghitung heatmap |
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
 | `data/liquidations/` | likuidasi nyata dari Coinalyze, 1 dan 5 menit |
+| `data/etf/` | arus harian ETF spot BTC & ETH di AS (juta USD per ETF), dari Farside, sejak Jan 2024 (BTC) / Jul 2024 (ETH) |
+| `data/premium/` | Coinbase premium per 5 menit (sejak 60 hari sebelum 30 Okt 2026) dan per jam (sejak Jun 2021) |
 | `data/cftc/` | laporan mingguan CFTC untuk futures Bitcoin & Ether di CME (`cme_tff.csv`), daftar pasar yang ditemukan (`markets.json`) |
 | `data/heatmap_levels/` | level aktif replika heatmap tiap jalan (tiap jam; sebelum 29 Okt 2026 11:00 WIB direncanakan tiap 4 jam) |
 | `logs/` | `runs.csv` riwayat jalan; `sides_check.txt` cek kolom likuidasi |
@@ -68,6 +70,19 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   (satuan dari spesifikasi CME: Bitcoin 5 BTC, Micro Bitcoin 0,1 BTC, Ether 50 ETH, Micro Ether 0,1 ETH). Dicek 30 Okt 2026:
   laporan 20 Okt 2026, kontrak Bitcoin besar 21.040 kontrak, sama dengan angka CFTC; sisi long semua kelompok + spread
   = open interest (BTC 108.962,3 BTC, ETH 1.424.935 ETH).
+- **Pane "Coinbase premium"** (paling bawah di grafik utama): selisih harga spot Coinbase (pembeli AS) vs Binance spot,
+  dalam persen, rata-rata per candle. Rumus: Coinbase BTC-USD / (Binance BTCUSDT x harga USDT-USD di Coinbase) - 1;
+  dikali harga USDT karena USDT sering tidak tepat $1 (30 Okt 2026: $0,998; tanpa penyesuaian selisihnya -0,1 s/d -0,28%,
+  sesudahnya 0 s/d -0,07%). Sumber: Coinbase Exchange API dan Binance spot (`data-api.binance.vision`, bisa diakses dari
+  server GitHub; `api.binance.com` cadangan), gratis tanpa kunci. Diambil `collector/premium.py` tiap jalan `collect`.
+  Interval < 1D memakai nilai 5 menit, 1D/1W/1M rata-rata harian dari data per jam.
+- **Panel "US spot ETF flows":** arus bersih harian semua ETF spot BTC atau ETH di AS (batang), dan rincian per ETF untuk
+  hari yang ditunjuk kursor + jumlah 5 hari, 20 hari, dan sejak peluncuran. Sumber: rekap Farside Investors
+  (`farside.co.uk/btc/`, `/eth/`, halaman "all data" sekali sehari), diambil `collector/etf.py` tiap jalan `collect`.
+  Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
+  Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
+  tanggal yang sama dengan angka terbaru.
+- **Status sumber tambahan:** `logs/sources_status.json` (berhasil/gagal terakhir per sumber, tanpa perlu membuka log GitHub).
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 
 ## Indikator TradingView (`tradingview/liqmap.pine`)

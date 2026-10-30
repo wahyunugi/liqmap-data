@@ -72,14 +72,26 @@ function liqBuckets(L, opens) { // sum actual liquidations into bars given by th
   if (L.first != null) { firstBar = 0; while (firstBar + 1 < n && opens[firstBar + 1] <= L.first) firstBar++; if (opens[firstBar] > L.first) firstBar = 0; }
   return { sumL, sumS, firstBar };
 }
+function premAvg(P, a, b) { // mean of a regular series P = {t0, step, p[]} over open times in [a, b); null if none
+  if (!P) return null;
+  let i0 = Math.max(0, Math.ceil((a - P.t0) / P.step)), i1 = Math.min(P.p.length, Math.ceil((b - P.t0) / P.step)), s = 0, n = 0;
+  for (let i = i0; i < i1; i++) { const v = P.p[i]; if (v != null) { s += v; n++; } }
+  return n ? s / n : null;
+}
+function addPrem(coin, out, tf) { // Coinbase premium per bar: average over the bar (5-minute values below 1D, daily values on 1D/1W/1M)
+  const P = DATA[coin].prem || {}, src = HIST[tf] ? P.d1 : P.m5;
+  out.forEach((r, i) => { const end = i + 1 < out.length ? out[i + 1].b : r.b + (HIST[tf] ? Math.max(tf, 86400) : tf);
+    r.prem = tf === 60 ? premAvg(src, Math.floor(r.b / 300) * 300, Math.floor(r.b / 300) * 300 + 300) : premAvg(src, r.b, end); });
+  return out;
+}
 function buildBars(coin, tf) {
   const D = DATA[coin];
   if (HIST[tf]) {
     const { H, store: st } = hist[coin + "|" + HIST[tf]];
     store = st;
     const q = liqBuckets(D.l5, H.t);
-    return H.t.map((t, i) => ({ b: t, o: H.o[i], h: H.h[i], l: H.l[i], c: H.c[i], v: H.v[i], oi: H.oi[i],
-      snap: st.start[i + 1] > st.start[i] ? i : -1, liqL: q.sumL[i], liqS: q.sumS[i], hasLiq: i >= q.firstBar, time: t + WIB }));
+    return addPrem(coin, H.t.map((t, i) => ({ b: t, o: H.o[i], h: H.h[i], l: H.l[i], c: H.c[i], v: H.v[i], oi: H.oi[i],
+      snap: st.start[i + 1] > st.start[i] ? i : -1, liqL: q.sumL[i], liqS: q.sumS[i], hasLiq: i >= q.firstBar, time: t + WIB })), tf);
   }
   const c5 = D.c5, src = tf === 60 ? D.c1 : c5, L = tf === 60 ? D.l1 : D.l5;
   const out = [];
@@ -99,7 +111,7 @@ function buildBars(coin, tf) {
   const q = liqBuckets(L, out.map(r => r.b));
   out.forEach((r, i) => { if (!(r.snap >= store.first && r.snap < store.n)) r.snap = -1;
     r.liqL = q.sumL[i]; r.liqS = q.sumS[i]; r.hasLiq = i >= q.firstBar; r.time = r.b + WIB; });
-  return out;
+  return addPrem(coin, out, tf);
 }
 
 // ---------- chart ----------
@@ -119,8 +131,10 @@ const liqS = chart.addSeries(LC.HistogramSeries, { color: css("--short"), priceF
 const liqL = chart.addSeries(LC.HistogramSeries, { color: css("--long"), priceFormat: fmtUsd, lastValueVisible: false, priceLineVisible: false, base: 0 }, 1);
 const oiS = chart.addSeries(LC.LineSeries, { color: css("--oi"), lineWidth: 2, priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 2);
 const volS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: false, priceLineVisible: false }, 3);
+const fmtPrem = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(3) + "%";
+const premS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPrem, minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 4);
 const panes = chart.panes();
-[5, 1.4, 1.1, 0.9].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
+[5, 1.4, 1.1, 0.9, 1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
 
 // heatmap + liquidation-map primitive on the candle series
 const heat = {
@@ -243,10 +257,13 @@ function renderLegend() {
   lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span>` : `no data before ${fmtT(DATA[c][state.tf === 60 ? "l1" : "l5"].first + WIB)}`);
   op.innerHTML = `<b>Open interest</b>${r.oi != null ? qty(r.oi) + " " + c.replace("USDT", "") + " ≈ " + usd(r.oi * r.c) : "–"}`;
   vp.innerHTML = `<b>Volume</b>${qty(r.v)} ${c.replace("USDT", "")}`;
+  const pr = document.getElementById("pl4"), P = DATA[c].prem;
+  pr.innerHTML = `<b>Coinbase premium</b>` + (r.prem != null ? `<span class="${r.prem >= 0 ? "pp" : "pn"}">${fmtPrem(r.prem)}</span> <span class="k">${r.prem >= 0 ? "Coinbase pricier: US buyers more eager" : "Coinbase cheaper: US sellers more eager"}</span>`
+    : (() => { const S = P && P[HIST[state.tf] ? "d1" : "m5"]; return !S ? "no data" : r.b < S.t0 ? "no data before " + fmtT(S.t0 + WIB) : "not available for this candle yet"; })());
 }
 function placeLabels() {
-  let y = 0; const ids = ["pl1", "pl2", "pl3"];
-  for (let p = 0; p < 4; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
+  let y = 0; const ids = ["pl1", "pl2", "pl3", "pl4"];
+  for (let p = 0; p < 5; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
 }
 chart.subscribeCrosshairMove(p => {
   const i = (p && p.logical != null && p.point) ? Math.round(p.logical) : null;
@@ -266,6 +283,8 @@ function setData(keepRange) {
   liqL.setData(bars.map(r => r.hasLiq ? { time: r.time, value: -r.liqL } : { time: r.time }));
   oiS.setData(bars.map(r => r.oi != null ? { time: r.time, value: r.oi } : { time: r.time }));
   volS.setData(bars.map(r => ({ time: r.time, value: r.v, color: r.c >= r.o ? "rgba(238,241,245,0.35)" : "rgba(242,85,124,0.45)" })));
+  const pPos = css("--c1"), pNeg = css("--c3");
+  premS.setData(bars.map(r => r.prem != null ? { time: r.time, value: r.prem, color: r.prem >= 0 ? pPos : pNeg } : { time: r.time }));
   if (prev) { try { chart.timeScale().setVisibleRange(prev); } catch (e) { applyRange(3); } }
   renderLegend(); heat.update(); requestAnimationFrame(placeLabels);
 }
@@ -308,6 +327,55 @@ function refresh(keepRange, after) { // load what the interval needs (history fi
     catch (e) { el.textContent = "Could not load this interval (" + e.message + "). Try another interval or reload."; }
   }, 30);
 }
+// ---------- US spot ETF flows (data/etf/<COIN>.csv from Farside, collected by collector/etf.py) ----------
+const ETF = DATA.etf || {};
+const fmtM = v => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + (Math.abs(v) >= 1000 ? "$" + (Math.abs(v) / 1000).toFixed(2) + "B" : "$" + Math.abs(v).toFixed(1) + "M");
+const etfBox = document.getElementById("etf");
+const etfChart = LC.createChart(document.getElementById("etfchart"), {
+  autoSize: true,
+  layout: { background: { type: "solid", color: css("--panel") }, textColor: css("--muted"), fontFamily: css("--font-ui"), fontSize: 11 },
+  grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
+  crosshair: { mode: LC.CrosshairMode.Magnet, vertLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" }, horzLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" } },
+  rightPriceScale: { borderColor: css("--line") },
+  timeScale: { borderColor: css("--line"), timeVisible: false, rightOffset: 2 },
+  localization: { timeFormatter: t => fmtD(t) },
+});
+const etfS = etfChart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtM, minMove: 0.1 }, lastValueVisible: false, priceLineVisible: false, base: 0 });
+let etfRange = 92;
+function etfTable(i) {
+  const E = ETF[state.coin]; if (!E) return;
+  const n = E.t.length; if (i == null || i < 0 || i >= n) i = n - 1;
+  const sum = k => { let s = 0; for (let j = Math.max(0, i - k + 1); j <= i; j++) s += E.total[j] || 0; return s; };
+  const fund = E.cols.map(c => [c, E.v[c][i]]).filter(([, v]) => v != null && v !== 0).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const shown = fund.slice(0, 6), rest = fund.slice(6).reduce((s, x) => s + x[1], 0);
+  document.getElementById("etfweek").textContent = `Flows on ${fmtD(E.t[i])}` + (i === n - 1 ? " (latest day)" : "") + " · US$";
+  const row = (name, v, cls = "") => `<tr${cls ? ` class="${cls}"` : ""}><th scope="row">${name}</th><td class="strong ${v > 0 ? "pp" : v < 0 ? "pn" : ""}">${fmtM(v)}</td></tr>`;
+  document.getElementById("etfbody").innerHTML =
+    (shown.length ? shown.map(([c, v]) => row(c, v)).join("") : `<tr><th scope="row">No fund moved</th><td>–</td></tr>`) +
+    (fund.length > 6 ? row(`${fund.length - 6} others`, rest) : "") +
+    row("Total that day", E.total[i], "sum") + row("Last 5 trading days", sum(5), "sum") + row("Last 20 trading days", sum(20), "sum") +
+    row("Since launch (" + fmtD(E.t[0]) + ")", sum(n), "sum");
+}
+function etfApplyRange() {
+  const E = ETF[state.coin]; if (!E) return;
+  const n = E.t.length, last = E.t[n - 1];
+  let from = 0; if (etfRange) while (from < n - 1 && E.t[from] < last - etfRange * 86400) from++;
+  requestAnimationFrame(() => etfChart.timeScale().setVisibleLogicalRange({ from: from - 0.5, to: n - 1 + 2 }));
+  for (const b of document.querySelectorAll("#etfranges .btn")) b.setAttribute("aria-pressed", +b.dataset.d === etfRange);
+}
+function setEtf() {
+  const E = ETF[state.coin];
+  etfBox.hidden = !E; if (!E) return;
+  const pos = css("--c1"), neg = css("--c3");
+  etfS.setData(E.t.map((t, j) => E.total[j] != null ? { time: t, value: E.total[j], color: E.total[j] >= 0 ? pos : neg } : { time: t }));
+  document.getElementById("etf-h").textContent = `US spot ${state.coin.replace("USDT", "") === "BTC" ? "Bitcoin" : "Ether"} ETF flows`;
+  document.getElementById("etfasof").textContent = `Daily, US trading days · latest: ${fmtD(E.t[E.t.length - 1])} · a day's figures arrive after the US close (about 04:00 WIB) and can be revised the next day`;
+  etfApplyRange(); etfTable();
+}
+for (const b of document.querySelectorAll("#etfranges .btn")) b.onclick = () => { etfRange = +b.dataset.d; etfApplyRange(); };
+etfChart.subscribeCrosshairMove(p => { const E = ETF[state.coin]; if (!E) return; etfTable(p && p.time != null ? E.t.indexOf(p.time) : null); });
+for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setEtf);
+
 // ---------- CME institutions: CFTC weekly report (data/cftc/cme_tff.csv, collected by collector/cftc.py) ----------
 // Positions in coins, all CME contracts of the coin added together (big + micro). Net = long - short; spread positions
 // (a long and a short held together by the same trader) are left out because they do not change the net position.
@@ -382,6 +450,7 @@ document.getElementById("cover").textContent = `Coverage: 1D/1W/1M from the Bina
 if (!DATA[state.coin]) state.coin = "BTCUSDT";
 if (!TFS.some(x => x[1] === state.tf)) state.tf = 900;
 pressed();
+setEtf();
 setCot();
 refresh(false, () => applyRange(HIST[state.tf] ? 365 : 3));
 new ResizeObserver(() => requestAnimationFrame(placeLabels)).observe(document.getElementById("chart"));

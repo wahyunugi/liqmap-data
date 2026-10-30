@@ -72,9 +72,47 @@ def pack_cftc():
     return out
 
 
+def pack_premium(sym, t_start):
+    """Coinbase premium (collector/premium.py): 5 menit sejak t_start (deret rapat, null = tidak ada data) dan rata-rata
+    harian (hari UTC, dari data per jam sejak Jun 2021) untuk interval 1D/1W/1M."""
+    out = {}
+    p5 = months(f"premium/5min/{sym}_*.csv")
+    if len(p5):
+        p5 = p5[p5.t >= t_start]
+        if len(p5):
+            t0 = int(p5.t.iat[0]); n = (int(p5.t.iat[-1]) - t0) // 300 + 1
+            arr = [None] * n
+            for t, v in zip(p5.t.astype(int), p5.prem):
+                arr[(t - t0) // 300] = round(float(v), 4)
+            out["m5"] = dict(t0=t0, step=300, p=arr)
+    p1 = months(f"premium/1h/{sym}_*.csv")
+    if len(p1):
+        day = (p1.t.astype(int) // 86400) * 86400
+        g = p1.groupby(day).prem.mean()
+        d0 = int(g.index[0]); n = (int(g.index[-1]) - d0) // 86400 + 1
+        arr = [None] * n
+        for t, v in g.items():
+            arr[(int(t) - d0) // 86400] = round(float(v), 4)
+        out["d1"] = dict(t0=d0, step=86400, p=arr)
+    return out or None
+
+
+def pack_etf(coin):
+    """Arus harian ETF spot AS (collector/etf.py), juta USD per ETF per hari bursa."""
+    path = os.path.join(ROOT, "data", "etf", f"{coin}.csv")
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path)
+    cols = [c for c in df.columns if c not in ("date", "total")]
+    nn = lambda s: [None if pd.isna(v) else round(float(v), 1) for v in s]
+    return dict(t=[int(pd.Timestamp(d, tz="UTC").timestamp()) for d in df.date], total=nn(df.total),
+                cols=cols, v={c: nn(df[c]) for c in cols})
+
+
 def build():
     out = {"built": int(time.time()), "days": DAYS}
     out["cftc"] = pack_cftc()
+    out["etf"] = {sym: pack_etf(sym.replace("USDT", "")) for sym in PAIRS}
     for sym, nd in PAIRS.items():
         c5 = inputs.load(sym)
         t_end = int(c5.t.iat[-1]) + 300
@@ -94,6 +132,7 @@ def build():
                     v=r(c1.v, 3), oi=r(c1.oi, 3)),
             l5=pack_liq(months(f"liquidations/5min/{sym}_*.csv"), t0),
             l1=pack_liq(months(f"liquidations/1min/{sym}_*.csv"), c1.t.min()),
+            prem=pack_premium(sym, int(c5.t.iat[0])),
         )
         print(f"{sym}: {len(c5)} candle 5m, {len(c1)} candle 1m, "
               f"{len(out[sym]['l5']['t'])} baris likuidasi 5m, data sampai {pd.to_datetime(t_end, unit='s')} UTC")
