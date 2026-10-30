@@ -6,7 +6,8 @@
   "rows": 446,
   "first": "2018-04-10",
   "last": "2026-10-20",
-  "used": true
+  "used": true,
+  "units": 5.0
  },
  {
   "code": "146021",
@@ -15,7 +16,8 @@
   "rows": 290,
   "first": "2021-04-06",
   "last": "2026-10-20",
-  "used": false
+  "used": true,
+  "units": 50.0
  },
  {
   "code": "133742",
@@ -24,7 +26,8 @@
   "rows": 286,
   "first": "2021-05-04",
   "last": "2026-10-20",
-  "used": false
+  "used": true,
+  "units": 0.1
  },
  {
   "code": "146022",
@@ -33,6 +36,7 @@
   "rows": 254,
   "first": "2021-12-14",
   "last": "2026-10-20",
-  "used": false
+  "used": true,
+  "units": 0.1
  }
 ]
