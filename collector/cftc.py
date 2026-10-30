@@ -90,6 +90,23 @@ def main():
         print("  pakai:", m)
     for k, v in skipped.items():
         print("  lewati:", k, v)
+    # daftar semua pasar yang ditemukan (dipakai / dilewati), supaya bisa dicek tanpa membuka log GitHub
+    info = {}
+    for rec in raw:
+        k = (rec.get("cftc_contract_market_code"), (rec.get("market_and_exchange_names") or "").strip())
+        d = (rec.get("report_date_as_yyyy_mm_dd") or "")[:10]
+        e = info.setdefault(k, {"code": k[0], "market": k[1], "units_text": rec.get("contract_units"),
+                                "rows": 0, "first": d, "last": d})
+        e["rows"] += 1; e["first"] = min(e["first"], d); e["last"] = max(e["last"], d)
+        e["units_text"] = rec.get("contract_units") or e["units_text"]
+    used = {(r["code"], r["market"]) for r in rows}
+    mk = [dict(e, used=(e["code"], e["market"]) in used) for e in sorted(info.values(), key=lambda e: e["market"])]
+    mtext = json.dumps(mk, indent=1)
+    mpath = os.path.join(os.path.dirname(OUT), "markets.json")
+    if not os.path.exists(mpath) or open(mpath).read() != mtext:
+        os.makedirs(os.path.dirname(OUT), exist_ok=True)
+        with open(mpath, "w") as f:
+            f.write(mtext)
     if text != old:
         os.makedirs(os.path.dirname(OUT), exist_ok=True)
         tmp = OUT + ".tmp"
