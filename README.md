@@ -157,7 +157,7 @@ Penjagaan yang sudah terpasang (29 Okt 2026):
 Yang harus dijaga pemilik:
 - Email notifikasi GitHub Actions aktif (Settings akun → Notifications → Actions → "Only notify for failed workflows").
   Email jadwal dikirim ke orang yang terakhir mengubah jadwal (`cron`) atau yang terakhir mengaktifkan ulang workflow.
-- Token `liqmap-trigger` untuk cron-job.org diperpanjang sebelum kedaluwarsa (lihat "Pemicu tiap jam dari luar").
+- Token `liqmap-trigger` untuk cron-job.org: bila diberi tanggal kedaluwarsa, perpanjang sebelum tanggal itu; bila bocor, hapus di halaman token lalu buat baru (lihat "Pemicu tiap jam dari luar").
 - Akun GitHub dan akun Coinalyze tetap aktif; kunci API Coinalyze tidak dicabut (ganti di Settings → Secrets bila perlu).
 - Sesekali `git pull` di laptop (folder liqmap-replica) sebagai cadangan di luar GitHub.
 
@@ -181,7 +181,7 @@ baris yang sama tidak dobel).
 
 1. **Token GitHub khusus** (hanya bisa menjalankan workflow repo ini, tidak bisa mengubah kode):
    GitHub → foto profil → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** →
-   **Generate new token**. Isi: Token name `liqmap-trigger`; Expiration paling lama yang ditawarkan (catat tanggalnya);
+   **Generate new token**. Isi: Token name `liqmap-trigger`; Expiration **No expiration** (boleh untuk token sesempit ini; atau pilih tanggal dan catat);
    Repository access **Only select repositories** → `liqmap-data`; Permissions → Repository permissions →
    **Actions: Read and write** (yang lain biarkan). **Generate token**, salin (hanya tampil sekali).
 2. **cron-job.org** (gratis): daftar, lalu **Create cronjob**.
@@ -192,7 +192,7 @@ baris yang sama tidak dobel).
      `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`; Request body: `{"ref":"main"}`.
    - Simpan, lalu **Test run**: berhasil bila jawabannya HTTP **204**. Di tab **Actions → collect** muncul jalan baru
      dengan pemicu `workflow_dispatch`.
-3. **Perpanjang token sebelum kedaluwarsa** (Regenerate di halaman token, lalu ganti header Authorization di cron-job.org).
+3. **Bila token diberi tanggal kedaluwarsa, perpanjang sebelum tanggal itu** (Regenerate di halaman token, lalu ganti header Authorization di cron-job.org).
    Bila lupa: cron-job.org menerima HTTP 401, `collect` kembali hanya ikut jadwal bawaan GitHub (data tetap masuk,
    lebih jarang); aktifkan email kegagalan di cron-job.org supaya tahu.
 
