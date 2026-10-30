@@ -35,6 +35,16 @@ jobs:
         continue-on-error: true
         run: python collector/cftc.py
 
+      - name: Ambil arus harian ETF spot BTC/ETH AS (Farside; gagal tidak menghentikan pengumpulan)
+        if: always()
+        continue-on-error: true
+        run: python collector/etf.py
+
+      - name: Hitung Coinbase premium (Coinbase vs Binance spot; gagal tidak menghentikan pengumpulan)
+        if: always()
+        continue-on-error: true
+        run: python collector/premium.py
+
       - name: Hitung heatmap replika (model v6) dan simpan level aktif
         if: always()
         run: |
