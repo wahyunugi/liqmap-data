@@ -11,13 +11,15 @@ Laporan terbit tiap Jumat untuk posisi hari Selasa. Posisi dipecah per kelompok:
   nonreportable = pemain kecil di bawah batas wajib lapor
 Sumber: CFTC Public Reporting Environment, dataset gpe5-46if (publicreporting.cftc.gov), gratis tanpa kunci.
 
-Semua kontrak CME yang satuannya Bitcoin atau Ether ikut (kontrak besar dan micro); satuan kontrak dibaca dari
-kolom contract_units, misalnya "(5 Bitcoins)". Seluruh riwayat diambil ulang tiap jalan (kecil, ±2.000 baris),
+Kontrak yang dipakai dan satuannya (spesifikasi kontrak CME; teks contract_units dari CFTC tidak seragam, misalnya
+"(50 Index Points)" untuk Ether, jadi satuannya ditulis tetap di CONTRACTS):
+  133741 Bitcoin futures 5 BTC, 133742 Micro Bitcoin 0,1 BTC, 146021 Ether futures 50 ETH, 146022 Micro Ether 0,1 ETH.
+Pasar lain yang ditemukan (mis. kontrak baru) dilewati dan dicatat di data/cftc/markets.json. Seluruh riwayat diambil ulang tiap jalan (kecil, ±2.000 baris),
 sehingga revisi CFTC atas data lama ikut terbawa. File hanya ditulis bila isinya berubah.
 
     python collector/cftc.py
 """
-import csv, io, json, os, re, sys, urllib.parse, urllib.request
+import csv, io, json, os, sys, urllib.parse, urllib.request
 
 URL = "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,7 +42,7 @@ FIELDS = {
 }
 NUM = [v for v in FIELDS.values() if v not in ("date", "code", "market", "units_text")]
 COLS = ["date", "coin", "code", "market", "units"] + NUM
-UNIT_RE = re.compile(r"\(\s*([\d.,]+)\s*(bitcoins?|btc|ether|eth)\b", re.I)
+CONTRACTS = {"133741": ("BTC", 5.0), "133742": ("BTC", 0.1), "146021": ("ETH", 50.0), "146022": ("ETH", 0.1)}
 
 
 def fetch():
@@ -57,14 +59,12 @@ def rows_from(raw):
     out, skipped = [], {}
     for rec in raw:
         r = {FIELDS[k]: rec.get(k) for k in FIELDS}
-        name = (r["market"] or "").upper()
-        m = UNIT_RE.search(r["units_text"] or "")
-        if not m or "/" in name or "RATIO" in name:      # bukan kontrak bersatuan koin (mis. rasio ETH/BTC)
+        if r["code"] not in CONTRACTS:
             skipped[r["market"]] = r["units_text"]
             continue
-        coin = "BTC" if m.group(2).lower().startswith(("bit", "btc")) else "ETH"
-        row = {"date": (r["date"] or "")[:10], "coin": coin, "code": r["code"], "market": r["market"].strip(),
-               "units": float(m.group(1).replace(",", ""))}
+        coin, units = CONTRACTS[r["code"]]
+        row = {"date": (r["date"] or "")[:10], "coin": coin, "code": r["code"], "market": " ".join(r["market"].split()),
+               "units": units}
         for k in NUM:
             v = r[k]
             row[k] = int(float(v)) if v not in (None, "") else ""
@@ -99,8 +99,7 @@ def main():
                                 "rows": 0, "first": d, "last": d})
         e["rows"] += 1; e["first"] = min(e["first"], d); e["last"] = max(e["last"], d)
         e["units_text"] = rec.get("contract_units") or e["units_text"]
-    used = {(r["code"], r["market"]) for r in rows}
-    mk = [dict(e, used=(e["code"], e["market"]) in used) for e in sorted(info.values(), key=lambda e: e["market"])]
+    mk = [dict(e, used=e["code"] in CONTRACTS, units=CONTRACTS.get(e["code"], (None, None))[1]) for e in sorted(info.values(), key=lambda e: e["market"])]
     mtext = json.dumps(mk, indent=1)
     mpath = os.path.join(os.path.dirname(OUT), "markets.json")
     if not os.path.exists(mpath) or open(mpath).read() != mtext:
