@@ -29,6 +29,9 @@ DATASETS = {
     "ohlcv": ("ohlcv-history", {}, ["o", "h", "l", "c", "v", "bv", "tx", "btx"]),
     "open_interest": ("open-interest-history", {"convert_to_usd": "false"}, ["o", "h", "l", "c"]),
 }
+# Tambahan opsional (hanya 5 menit): gagal tidak membuat jalan gagal, dicatat di logs/sources_status.json.
+#   long_short_ratio: rasio akun long/short Binance (Coinalyze "long-short-ratio-history"): r = rasio, l / s = % akun
+OPTIONAL = {"long_short_ratio": ("long-short-ratio-history", {}, ["r", "l", "s"])}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 LOGF = os.path.join(ROOT, "logs", "runs.csv")
@@ -152,6 +155,15 @@ def merge_append(dataset, interval, pair, history, cols, now):
     return added
 
 
+def _status(name, ok, detail):
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import status
+        status.record(name, ok, detail)
+    except Exception:
+        pass
+
+
 def log_run(rec):
     os.makedirs(os.path.dirname(LOGF), exist_ok=True)
     new = not os.path.exists(LOGF)
@@ -191,6 +203,22 @@ def run(client, now=None):
             for p in PAIRS:
                 hist = back.get(syms[p]["symbol"], [])
                 summary[f"{ds}/{iv}/{p}"] = merge_append(ds, iv, p, hist, cols, now)
+    for ds, (endpoint, extra, cols) in OPTIONAL.items():
+        iv, step = "5min", INTERVALS["5min"]
+        starts = [max(now - LOOKBACK[iv], (last_stored(ds, iv, p) or 0) + step) for p in PAIRS]
+        frm = min(starts)
+        if frm >= now - step:
+            continue
+        try:
+            resp = client.get(endpoint, {"symbols": ",".join(syms[p]["symbol"] for p in PAIRS), "interval": iv,
+                                         "from": frm, "to": now, **extra}, cost=len(PAIRS))
+            back = {r["symbol"]: r.get("history", []) for r in resp}
+            keys = sorted({k for h in back.values() for row in h[:3] for k in row})
+            for p in PAIRS:
+                summary[f"{ds}/{iv}/{p}"] = merge_append(ds, iv, p, back.get(syms[p]["symbol"], []), cols, now)
+            _status(ds, True, f"kolom dari Coinalyze: {keys}; baris baru {[summary[f'{ds}/{iv}/{p}'] for p in PAIRS]}")
+        except Exception as e:
+            _status(ds, False, repr(e))
     # cek kesegaran: data 5 menit terbaru harus berumur < STALE_HOURS. Jika tidak, tandai gagal
     # (mencegah jalan "sukses" padahal Coinalyze diam-diam tidak mengirim data baru).
     for p in PAIRS:
