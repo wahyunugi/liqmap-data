@@ -1,0 +1,43 @@
+name: export
+
+# Ringkasan harian sejak 2020 dari arsip publik Binance -> data/derived/<SIMBOL>_1d.csv (untuk analisis).
+# Jalan manual (Actions -> export -> Run workflow) dan sekali seminggu (Senin 01:23 UTC).
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "23 1 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ambil arsip Binance dari cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/binance
+          key: binance-none
+          restore-keys: binance-
+      - name: Ringkasan harian
+        run: |
+          pip install --quiet -r requirements.txt
+          python history/binance_public.py
+          python history/export_daily.py
+      - name: Simpan ke repository
+        run: |
+          git config user.name "liqmap-bot"
+          git config user.email "liqmap-bot@users.noreply.github.com"
+          git add data/derived
+          if git diff --cached --quiet; then echo "tidak ada perubahan"; else
+            git commit -m "derived: ringkasan harian $(date -u +%Y-%m-%d)"; git pull --rebase; git push; fi
