@@ -37,6 +37,15 @@ def bucket(t, tf):
     return ((first - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta(seconds=1)).to_numpy(dtype=np.int64)
 
 
+def coinalyze_lsr(sym):
+    import glob
+    fs = sorted(glob.glob(os.path.join(ROOT, "data", "long_short_ratio", "5min", f"{sym}_*.csv")))
+    if not fs:
+        return pd.DataFrame(columns=["t", "cz_r"])
+    c = pd.concat([pd.read_csv(f) for f in fs]).drop_duplicates("t")
+    return pd.DataFrame({"t": c.t.astype("int64"), "cz_r": pd.to_numeric(c.r, errors="coerce")})
+
+
 def series(sym, report):
     repo = inputs.load(sym)
     try:
@@ -76,6 +85,22 @@ def series(sym, report):
     h = hist[hist.t < first_repo][["t", "open", "high", "low", "close", "vol", "oi"]]
     df = pd.concat([h, repo[["t", "open", "high", "low", "close", "vol", "oi"]]], ignore_index=True)
     df = df.drop_duplicates("t").sort_values("t").reset_index(drop=True)
+    # rasio long/short Binance: arsip publik (sampai kemarin), sisanya dari Coinalyze (data/long_short_ratio, 5 menit)
+    if len(hist) and "acc_lsr" in hist.columns:
+        df = df.merge(hist[["t", "acc_lsr", "top_lsr"]], on="t", how="left")
+    else:
+        df["acc_lsr"] = np.nan; df["top_lsr"] = np.nan
+    cz = coinalyze_lsr(sym)
+    if len(cz):
+        df = df.merge(cz, on="t", how="left")
+        miss = df.acc_lsr.isna() & df.cz_r.notna() & (df.t > (hist.t.max() if len(hist) else 0))
+        df.loc[miss, "acc_lsr"] = df.loc[miss, "cz_r"]
+        both = df.acc_lsr.notna() & df.cz_r.notna() & ~miss
+        if both.any():                               # cek: Coinalyze r = rasio akun Binance?
+            r["lsr_coinalyze_vs_archive_median_diff_pct"] = round(float(((df.cz_r[both] / df.acc_lsr[both] - 1).abs()).median() * 100), 3)
+            r["lsr_overlap_points"] = int(both.sum())
+        r["lsr_filled_from_coinalyze"] = int(miss.sum())
+        df = df.drop(columns=["cz_r"])
     steps = df.t.diff().dropna()
     r["candles"] = int(len(df))
     r["from"] = str(pd.to_datetime(df.t.min(), unit="s"))
@@ -98,7 +123,8 @@ def build_tf(df, sym, nd, tf, B):
     starts = np.r_[0, np.nonzero(np.diff(keys))[0] + 1]
     ends = np.r_[starts[1:] - 1, len(df) - 1]
     oi = df.oi.values
-    bars = {"t": [], "o": [], "h": [], "l": [], "c": [], "v": [], "oi": [], "tclose": []}
+    bars = {"t": [], "o": [], "h": [], "l": [], "c": [], "v": [], "oi": [], "tclose": [], "lsr": [], "tpr": []}
+    acc, top = df.acc_lsr.values, df.top_lsr.values
     for a, e in zip(starts, ends):
         bars["t"].append(int(keys[a]))
         bars["o"].append(round(float(df.open.iat[a]), nd))
@@ -109,6 +135,9 @@ def build_tf(df, sym, nd, tf, B):
         x = oi[e + 1] if e + 1 < len(df) and oi[e + 1] == oi[e + 1] else oi[e]     # OI saat candle ditutup
         bars["oi"].append(None if x != x else round(float(x), 1))
         bars["tclose"].append(int(t[e]) + 300)
+        for k, arr in (("lsr", acc), ("tpr", top)):              # rata-rata rasio long/short selama candle
+            seg = arr[a:e + 1]; seg = seg[~np.isnan(seg)]
+            bars[k].append(round(float(seg.mean()), 3) if len(seg) else None)
     window = TFS[tf]
     snaps = {}
     fastmodel.simulate(t, df.open.values, df.high.values, df.low.values, df.close.values,
@@ -133,6 +162,46 @@ def build_tf(df, sym, nd, tf, B):
     return len(bars["t"]), len(bins), os.path.getsize(path)
 
 
+def crowd(df, sym):
+    """Rasio akun long/short harian vs perubahan harga 30 hari kemudian (dibagi lima kelompok sama besar).
+    Juga deret 5 menit 70 hari terakhir untuk interval < 1D di website."""
+    day = pd.to_datetime(df.t, unit="s").dt.floor("D")
+    g = df.groupby(day)
+    d = pd.DataFrame({"close": g.close.last(), "lsr": g.acc_lsr.mean(), "tpr": g.top_lsr.mean()})
+    d["fwd30"] = (d.close.shift(-30) / d.close - 1) * 100
+    x = d.dropna(subset=["lsr", "fwd30"])
+    out = {"from": str(x.index.min().date()) if len(x) else None, "to": str(x.index.max().date()) if len(x) else None}
+    if len(x) >= 200:
+        edges = x.lsr.quantile([0, .2, .4, .6, .8, 1]).round(3).tolist()
+        q = pd.cut(x.lsr, [-np.inf] + edges[1:-1] + [np.inf], labels=False)
+        def stats(mask):
+            y = x[mask]; qq = q[mask]
+            rows = []
+            for k in range(5):
+                f = y.fwd30[qq == k]
+                rows.append(dict(days=int(len(f)), median=round(float(f.median()), 2) if len(f) else None,
+                                 up=round(float((f > 0).mean() * 100), 1) if len(f) else None))
+            return dict(rows=rows, base_up=round(float((y.fwd30 > 0).mean() * 100), 1), days=int(len(y)),
+                        base_median=round(float(y.fwd30.median()), 2))
+        out.update(edges=edges, all=stats(np.ones(len(x), bool)), recent=stats(x.index >= "2023-01-01"),
+                   recent_from="2023-01-01")
+    lat = d.dropna(subset=["lsr"])
+    if len(lat):
+        out["latest_day"] = str(lat.index[-1].date()); out["latest_lsr"] = round(float(lat.lsr.iat[-1]), 3)
+        out["latest_tpr"] = None if pd.isna(lat.tpr.iat[-1]) else round(float(lat.tpr.iat[-1]), 3)
+    # 5 menit, 70 hari terakhir
+    tail = df[df.t >= df.t.max() - 70 * 86400]
+    t0 = int(tail.t.iat[0]); n = (int(tail.t.iat[-1]) - t0) // 300 + 1
+    a = [None] * n; b = [None] * n
+    for tt, v1, v2 in zip(tail.t.astype(int), tail.acc_lsr, tail.top_lsr):
+        i = (tt - t0) // 300
+        a[i] = None if pd.isna(v1) else round(float(v1), 3); b[i] = None if pd.isna(v2) else round(float(v2), 3)
+    out["m5"] = dict(t0=t0, step=300, acc=a, top=b)
+    with open(os.path.join(OUT, f"{sym}_crowd.json"), "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+    return {k: out.get(k) for k in ("from", "to", "edges", "latest_day", "latest_lsr")}
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     report = {"built": int(time.time())}
@@ -145,6 +214,7 @@ def main():
         for tf in TFS:
             nb, ne, size = build_tf(df, sym, nd, tf, B)
             rep[tf] = dict(bars=nb, cells=ne, file_mb=round(size / 1e6, 2))
+        rep["crowd"] = crowd(df, sym)
         rep["seconds"] = round(time.time() - t0, 1)
         print(sym, json.dumps(rep))
     with open(os.path.join(ROOT, "_site", "history_report.json"), "w") as f:

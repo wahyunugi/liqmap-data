@@ -49,7 +49,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .thr input{width:110px;accent-color:#fde725}
 .thr output{font:500 .8rem var(--font-num);color:var(--fg);width:2.6em}
 .scale{width:70px;height:8px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
-.chartbox{position:relative;height:min(86vh,940px);min-height:620px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chartbox{position:relative;height:min(92vh,1040px);min-height:700px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #chart{position:absolute;inset:0}
 .legend{position:absolute;left:10px;top:8px;z-index:5;pointer-events:none;font:400 .78rem var(--font-num);display:grid;gap:3px;max-width:calc(100% - 90px);text-shadow:0 0 3px #000,0 0 6px #000}
 .legend .sym{font:600 .92rem var(--font-ui);letter-spacing:.02em}
@@ -57,7 +57,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .legend .k{color:var(--muted)}
 .legend .pos{color:var(--up)} .legend .neg{color:var(--down)}
 .legend .lg{color:var(--long)} .legend .sh{color:var(--short)}
-.pp{color:var(--c1)} .pn{color:var(--c3)}
+.pp{color:var(--c1)} .pn{color:var(--c3)} .ca{color:var(--c4)} .cb{color:var(--c2)}
 .plabel{position:absolute;left:10px;z-index:5;pointer-events:none;font:400 .74rem var(--font-num);color:var(--muted);text-shadow:0 0 3px #000}
 .plabel b{font-family:var(--font-ui);font-weight:600;color:var(--fg);margin-right:8px}
 .loading[hidden]{display:none}
@@ -87,9 +87,15 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .etfgrid{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}
 .cottab tr.sum th{font-weight:400;color:var(--muted)}
 .cottab tr.sum:first-of-type th,.cottab tr.sum:first-of-type td{border-top:1px solid var(--muted)}
+.crowdgrid{display:block}
+.crowdnow{font:400 .9rem var(--font-ui);color:var(--fg);margin:0}
+.cottab tr.now th,.cottab tr.now td{background:var(--raise)}
+.tag{font:600 .66rem var(--font-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--bg);background:var(--fg);border-radius:3px;padding:1px 5px;margin-left:4px;vertical-align:1px}
+.crowdtab{overflow-x:auto}
+.crowdtab table{min-width:640px}
 .cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
 @media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}}
-@media (max-width:640px){.chartbox{height:82vh;min-height:600px}.thr input{width:80px}.sep{display:none}}
+@media (max-width:640px){.chartbox{height:88vh;min-height:680px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -119,8 +125,27 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <div class="plabel" id="pl2"></div>
     <div class="plabel" id="pl3"></div>
     <div class="plabel" id="pl4"></div>
+    <div class="plabel" id="pl5"></div>
     <div class="loading" id="loading">Calculating heatmap…</div>
   </div>
+
+  <section class="cot" id="crowd" aria-labelledby="crowd-h" hidden>
+    <div class="cothead">
+      <h2 id="crowd-h">Crowd positioning · Binance accounts long vs short</h2>
+      <span class="asof">History of the account ratio against the price 30 days later</span>
+    </div>
+    <p class="crowdnow" id="crowdnow"></p>
+    <div class="cottab crowdtab">
+      <table>
+        <thead>
+          <tr><th scope="col" rowspan="2" style="text-align:left">Group (each holds a fifth of all days)</th><th scope="colgroup" colspan="3" id="crowdhdr1">all</th><th scope="colgroup" colspan="2" id="crowdhdr2">recent</th></tr>
+          <tr><th scope="col" title="Middle value of the price change 30 days later">Price 30 days later (median)</th><th scope="col">Share of times up</th><th scope="col">Days</th><th scope="col">Price 30 days later (median)</th><th scope="col">Share of times up</th></tr>
+        </thead>
+        <tbody id="crowdbody"></tbody>
+      </table>
+    </div>
+    <p class="cotnote">The ratio is the number of Binance accounts holding a long position for every account holding a short one (Binance's "long/short account ratio", all accounts). It counts accounts, not money: a $100 account counts the same as a $10 million one. Every contract has a buyer and a seller, so when 70% of accounts are long, the 30% that are short hold on average more than twice as much each; a high ratio means many small accounts long against fewer, bigger accounts short. The chart pane "Long vs short" shows it per candle (purple), next to the same ratio for Binance's top 20% accounts by margin balance, measured by position size (yellow). The table splits every day since the data starts into five equal groups by the day's average ratio, then looks at the price 30 days later. The 30-day windows overlap, so neighbouring days are not independent results, and each group holds only around a dozen truly separate 30-day periods. Read it as how things have tended to go, not as a forecast. Source: Binance public archive (5-minute values, up to yesterday) and Coinalyze (today).</p>
+  </section>
 
   <section class="cot" id="etf" aria-labelledby="etf-h" hidden>
     <div class="cothead">
@@ -174,6 +199,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
       <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
       <p><b>Volume</b>: coins traded per candle.</p>
+      <p><b>Long vs short</b>: Binance accounts holding a long for every account holding a short (purple, all accounts), and the long/short ratio of Binance's top 20% accounts by margin balance measured by position size (yellow). 1.0 = even. See "Crowd positioning" below for what high values have meant historically.</p>
       <p><b>Coinbase premium</b>: how much higher (<span class="pp">above zero</span>) or lower (<span class="pn">below zero</span>) bitcoin or ether trades on Coinbase, where US buyers and most US institutions trade, than on Binance spot, in percent, averaged over the candle. Binance prices are in USDT, so they are converted to dollars with Coinbase's USDT price first; otherwise the gap mostly shows USDT trading slightly off $1. Above zero = US buyers are paying up; below zero = US sellers are more eager. It is a reading of behaviour, not a record of who traded. Data: 5-minute values for the last 60 days, daily averages since June 2021 on 1D/1W/1M.</p>
       <p><b>Per candle, on every interval</b>: volume and actual liquidations are totals over the candle; open interest is the value at the candle's close; the heatmap column and the liquidation map show the levels still open at the candle's close (not a sum over the candle).</p>
     </div>

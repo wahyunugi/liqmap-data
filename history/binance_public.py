@@ -109,7 +109,8 @@ def _ms(x):
 
 
 def load(sym):
-    """Gabungan candle 5 menit + open interest (awal candle). Kolom: t, open, high, low, close, vol, oi."""
+    """Gabungan candle 5 menit + open interest (awal candle) + rasio long/short. Kolom: t, open, high, low, close, vol,
+    oi, acc_lsr (rasio akun long/short semua akun), top_lsr (rasio long/short top trader menurut ukuran posisi)."""
     kdir = os.path.join(CACHE, sym, "klines"); ddir = os.path.join(CACHE, sym, "klines_daily")
     frames = []
     for d in (kdir, ddir):
@@ -135,8 +136,12 @@ def load(sym):
                 # Diuji 29 Okt 2026 vs arsip Binance di repo (8.532 candle): selisih median 0,02% tanpa geser,
                 # 0,0% dengan geser +300 detik (BTC dan ETH). Konvensi repo: oi[t] = open interest di awal candle t.
                 ts = (np.round(ts / 300) * 300).astype("int64") + 300
-                mf.append(pd.DataFrame({"t": ts, "oi": pd.to_numeric(m["sum_open_interest"], errors="coerce")}))
-    oi = pd.concat(mf, ignore_index=True).drop_duplicates("t", keep="last") if mf else pd.DataFrame(columns=["t", "oi"])
+                part = {"t": ts, "oi": pd.to_numeric(m["sum_open_interest"], errors="coerce")}
+                # rasio long/short Binance (5 menit): semua akun (jumlah akun) dan top trader (ukuran posisi)
+                for src, dst in (("count_long_short_ratio", "acc_lsr"), ("sum_toptrader_long_short_ratio", "top_lsr")):
+                    part[dst] = pd.to_numeric(m[src], errors="coerce") if src in m.columns else np.nan
+                mf.append(pd.DataFrame(part))
+    oi = pd.concat(mf, ignore_index=True).drop_duplicates("t", keep="last") if mf else pd.DataFrame(columns=["t", "oi", "acc_lsr", "top_lsr"])
     df = px.merge(oi, on="t", how="left")
     df = df.sort_values("t").reset_index(drop=True)
     # Bersihkan nilai OI rusak di arsip publik: 0, atau menyimpang > OI_GLITCH dari median 1 jam di sekitarnya

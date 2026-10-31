@@ -78,10 +78,14 @@ function premAvg(P, a, b) { // mean of a regular series P = {t0, step, p[]} over
   for (let i = i0; i < i1; i++) { const v = P.p[i]; if (v != null) { s += v; n++; } }
   return n ? s / n : null;
 }
-function addPrem(coin, out, tf) { // Coinbase premium per bar: average over the bar (5-minute values below 1D, daily values on 1D/1W/1M)
-  const P = DATA[coin].prem || {}, src = HIST[tf] ? P.d1 : P.m5;
+const CROWD = {};   // coin -> hist/<coin>_crowd.json (account long/short ratios + 30-day statistics), loaded at start
+function addPrem(coin, out, tf) { // per bar: Coinbase premium and Binance long/short ratios, averaged over the bar
+  const P = DATA[coin].prem || {}, src = HIST[tf] ? P.d1 : P.m5, C = CROWD[coin] && CROWD[coin].m5;
+  const A = C && { t0: C.t0, step: C.step, p: C.acc }, T = C && { t0: C.t0, step: C.step, p: C.top };
   out.forEach((r, i) => { const end = i + 1 < out.length ? out[i + 1].b : r.b + (HIST[tf] ? Math.max(tf, 86400) : tf);
-    r.prem = tf === 60 ? premAvg(src, Math.floor(r.b / 300) * 300, Math.floor(r.b / 300) * 300 + 300) : premAvg(src, r.b, end); });
+    const a = tf === 60 ? Math.floor(r.b / 300) * 300 : r.b, b = tf === 60 ? a + 300 : end;
+    r.prem = premAvg(src, a, b);
+    if (!HIST[tf]) { r.lsr = premAvg(A, a, b); r.tpr = premAvg(T, a, b); } });
   return out;
 }
 function buildBars(coin, tf) {
@@ -91,7 +95,8 @@ function buildBars(coin, tf) {
     store = st;
     const q = liqBuckets(D.l5, H.t);
     return addPrem(coin, H.t.map((t, i) => ({ b: t, o: H.o[i], h: H.h[i], l: H.l[i], c: H.c[i], v: H.v[i], oi: H.oi[i],
-      snap: st.start[i + 1] > st.start[i] ? i : -1, liqL: q.sumL[i], liqS: q.sumS[i], hasLiq: i >= q.firstBar, time: t + WIB })), tf);
+      snap: st.start[i + 1] > st.start[i] ? i : -1, liqL: q.sumL[i], liqS: q.sumS[i], hasLiq: i >= q.firstBar, time: t + WIB,
+      lsr: H.lsr ? H.lsr[i] : null, tpr: H.tpr ? H.tpr[i] : null })), tf);
   }
   const c5 = D.c5, src = tf === 60 ? D.c1 : c5, L = tf === 60 ? D.l1 : D.l5;
   const out = [];
@@ -133,8 +138,12 @@ const oiS = chart.addSeries(LC.LineSeries, { color: css("--oi"), lineWidth: 2, p
 const volS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: false, priceLineVisible: false }, 3);
 const fmtPrem = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(3) + "%";
 const premS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPrem, minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 4);
+const fmtR = v => v.toFixed(2);
+const lsrA = chart.addSeries(LC.LineSeries, { color: css("--c4"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtR, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 5);
+const lsrT = chart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtR, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 5);
+lsrA.createPriceLine({ price: 1, color: "#3a4150", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 const panes = chart.panes();
-[5, 1.4, 1.1, 0.9, 1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
+[5, 1.4, 1.1, 0.9, 1, 1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
 
 // heatmap + liquidation-map primitive on the candle series
 const heat = {
@@ -257,13 +266,17 @@ function renderLegend() {
   lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span>` : `no data before ${fmtT(DATA[c][state.tf === 60 ? "l1" : "l5"].first + WIB)}`);
   op.innerHTML = `<b>Open interest</b>${r.oi != null ? qty(r.oi) + " " + c.replace("USDT", "") + " ≈ " + usd(r.oi * r.c) : "–"}`;
   vp.innerHTML = `<b>Volume</b>${qty(r.v)} ${c.replace("USDT", "")}`;
+  const share = v => Math.round(v / (1 + v) * 100);
+  document.getElementById("pl5").innerHTML = `<b>Long vs short</b>` + (r.lsr != null || r.tpr != null ?
+    (r.lsr != null ? `<span class="ca">all accounts ${r.lsr.toFixed(2)}</span> <span class="k">(${share(r.lsr)}% of accounts long)</span>` : "") +
+    (r.tpr != null ? ` · <span class="cb">big accounts ${r.tpr.toFixed(2)}</span> <span class="k">(by position size)</span>` : "") : "no data for this candle");
   const pr = document.getElementById("pl4"), P = DATA[c].prem;
   pr.innerHTML = `<b>Coinbase premium</b>` + (r.prem != null ? `<span class="${r.prem >= 0 ? "pp" : "pn"}">${fmtPrem(r.prem)}</span> <span class="k">${r.prem >= 0 ? "Coinbase pricier: US buyers more eager" : "Coinbase cheaper: US sellers more eager"}</span>`
     : (() => { const S = P && P[HIST[state.tf] ? "d1" : "m5"]; return !S ? "no data" : r.b < S.t0 ? "no data before " + fmtT(S.t0 + WIB) : "not available for this candle yet"; })());
 }
 function placeLabels() {
-  let y = 0; const ids = ["pl1", "pl2", "pl3", "pl4"];
-  for (let p = 0; p < 5; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
+  let y = 0; const ids = ["pl1", "pl2", "pl3", "pl4", "pl5"];
+  for (let p = 0; p < 6; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
 }
 chart.subscribeCrosshairMove(p => {
   const i = (p && p.logical != null && p.point) ? Math.round(p.logical) : null;
@@ -285,6 +298,8 @@ function setData(keepRange) {
   volS.setData(bars.map(r => ({ time: r.time, value: r.v, color: r.c >= r.o ? "rgba(238,241,245,0.35)" : "rgba(242,85,124,0.45)" })));
   const pPos = css("--c1"), pNeg = css("--c3");
   premS.setData(bars.map(r => r.prem != null ? { time: r.time, value: r.prem, color: r.prem >= 0 ? pPos : pNeg } : { time: r.time }));
+  lsrA.setData(bars.map(r => r.lsr != null ? { time: r.time, value: r.lsr } : { time: r.time }));
+  lsrT.setData(bars.map(r => r.tpr != null ? { time: r.time, value: r.tpr } : { time: r.time }));
   if (prev) { try { chart.timeScale().setVisibleRange(prev); } catch (e) { applyRange(3); } }
   renderLegend(); heat.update(); requestAnimationFrame(placeLabels);
 }
@@ -375,6 +390,33 @@ function setEtf() {
 for (const b of document.querySelectorAll("#etfranges .btn")) b.onclick = () => { etfRange = +b.dataset.d; etfApplyRange(); };
 etfChart.subscribeCrosshairMove(p => { const E = ETF[state.coin]; if (!E) return; etfTable(p && p.time != null ? E.t.indexOf(p.time) : null); });
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setEtf);
+
+// ---------- Crowd positioning: Binance account long/short ratio vs price 30 days later ----------
+const crowdBox = document.getElementById("crowd");
+function fifthOf(C, v) { let k = 0; while (k < 4 && v >= C.edges[k + 1]) k++; return k; }
+function renderCrowd() {
+  const C = CROWD[state.coin]; crowdBox.hidden = !(C && C.edges); if (crowdBox.hidden) return;
+  const coin = state.coin.replace("USDT", ""), m = C.m5;
+  let now = null, nowT = null;
+  if (m) for (let i = m.acc.length - 1; i >= 0; i--) if (m.acc[i] != null) { now = m.acc[i]; nowT = m.t0 + i * m.step; break; }
+  if (now == null) { now = C.latest_lsr; nowT = null; }
+  const k = fifthOf(C, now), pct = v => Math.round(v / (1 + v) * 100), e = C.edges;
+  const names = ["Fewest accounts long", "Fewer long", "Middle", "More long", "Most accounts long"];
+  document.getElementById("crowdnow").innerHTML = `${coin} now: <b>${now.toFixed(2)}</b> long accounts per short account (${pct(now)}% of accounts long)` +
+    (nowT ? ` at ${fmtT(nowT + WIB)} WIB` : "") + ` → <b>${names[k].toLowerCase()}</b> group (${k + 1} of 5).`;
+  const cell = x => x.median == null ? "<td>–</td><td>–</td>" : `<td class="strong ${x.median >= 0 ? "pp" : "pn"}">${x.median >= 0 ? "+" : "−"}${Math.abs(x.median).toFixed(1)}%</td><td>${x.up.toFixed(0)}%</td>`;
+  document.getElementById("crowdbody").innerHTML = C.all.rows.map((row, j) => {
+    const lo = j === 0 ? null : e[j], hi = j === 4 ? null : e[j + 1];
+    const rng = lo == null ? `below ${hi.toFixed(2)}` : hi == null ? `${lo.toFixed(2)} or more` : `${lo.toFixed(2)}–${hi.toFixed(2)}`;
+    const sh = lo == null ? `under ${pct(hi)}%` : hi == null ? `${pct(lo)}% or more` : `${pct(lo)}–${pct(hi)}%`;
+    return `<tr${j === k ? ' class="now"' : ""}><th scope="row">${names[j]}${j === k ? ' <span class="tag">now</span>' : ""}<small>ratio ${rng} · ${sh} of accounts long</small></th>${cell(row)}<td>${row.days}</td>${cell(C.recent.rows[j])}</tr>`;
+  }).join("") + `<tr class="sum"><th scope="row">All days (baseline)</th><td class="strong">${C.all.base_median >= 0 ? "+" : "−"}${Math.abs(C.all.base_median).toFixed(1)}%</td><td>${C.all.base_up.toFixed(0)}%</td><td>${C.all.days}</td><td class="strong">${C.recent.base_median >= 0 ? "+" : "−"}${Math.abs(C.recent.base_median).toFixed(1)}%</td><td>${C.recent.base_up.toFixed(0)}%</td></tr>`;
+  document.getElementById("crowdhdr1").textContent = `${C.from.slice(0, 4)}–now`;
+  document.getElementById("crowdhdr2").textContent = `${C.recent_from.slice(0, 4)}–now`;
+}
+for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", renderCrowd);
+Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))
+  .then(() => { renderCrowd(); if (bars.length) setData(true); });
 
 // ---------- CME institutions: CFTC weekly report (data/cftc/cme_tff.csv, collected by collector/cftc.py) ----------
 // Positions in coins, all CME contracts of the coin added together (big + micro). Net = long - short; spread positions

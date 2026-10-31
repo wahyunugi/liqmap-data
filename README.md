@@ -82,6 +82,14 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
   Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
   tanggal yang sama dengan angka terbaru.
+- **Pane "Long vs short" + panel "Crowd positioning":** rasio akun long/short Binance (semua akun, jumlah akun) dan rasio
+  long/short top trader (20% akun dengan saldo margin terbesar, menurut ukuran posisi). Sumber: arsip publik Binance
+  (file metrics 5 menit, `count_long_short_ratio` dan `sum_toptrader_long_short_ratio`, sampai kemarin) dan Coinalyze
+  (`data/long_short_ratio/`, rasio semua akun, untuk hari ini; dicek 31 Okt 2026: rata-rata harian 24–29 Okt sama
+  dengan arsip Binance sampai 3 desimal). Panel membagi semua hari (BTC sejak Sep 2020, ETH sejak Des 2021) menjadi
+  lima kelompok sama besar menurut rasio harian, lalu menampilkan perubahan harga 30 hari kemudian (median dan
+  persentase naik), untuk seluruh periode dan sejak 2023. Dihitung di `site/build_history.py` (`crowd()`), ditulis ke
+  `_site/hist/<SIMBOL>_crowd.json`.
 - **Status sumber tambahan:** `logs/sources_status.json` (berhasil/gagal terakhir per sumber, tanpa perlu membuka log GitHub).
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 
