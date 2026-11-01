@@ -2,44 +2,44 @@
  "etf_BTC": {
   "detail": "704 hari, terakhir 2026-10-30 total -643.2 juta USD",
   "last_error": "2026-10-30T17:00Z",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  },
  "etf_ETH": {
   "detail": "572 hari, terakhir 2026-10-30 total -155.7 juta USD",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  },
  "long_short_ratio": {
-  "detail": "kolom dari Coinalyze: ['l', 'r', 's', 't']; baris baru [10, 10]",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "detail": "kolom dari Coinalyze: ['l', 'r', 's', 't']; baris baru [2, 2]",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  },
  "premium_1h_BTCUSDT": {
-  "detail": "1h BTCUSDT: +0 baris, terakhir 2026-11-01 21:00 UTC premium -0.0327% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "detail": "1h BTCUSDT: +1 baris, terakhir 2026-11-01 22:00 UTC premium -0.0360% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  },
  "premium_1h_ETHUSDT": {
-  "detail": "1h ETHUSDT: +0 baris, terakhir 2026-11-01 21:00 UTC premium -0.0038% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "detail": "1h ETHUSDT: +1 baris, terakhir 2026-11-01 22:00 UTC premium -0.0139% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  },
  "premium_5min_BTCUSDT": {
-  "detail": "5min BTCUSDT: +10 baris, terakhir 2026-11-01 22:45 UTC premium -0.0262% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "detail": "5min BTCUSDT: +2 baris, terakhir 2026-11-01 22:55 UTC premium -0.0360% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  },
  "premium_5min_ETHUSDT": {
-  "detail": "5min ETHUSDT: +10 baris, terakhir 2026-11-01 22:45 UTC premium -0.0095% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-01T22:50Z",
-  "last_run": "2026-11-01T22:50Z",
+  "detail": "5min ETHUSDT: +2 baris, terakhir 2026-11-01 22:55 UTC premium -0.0139% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-01T23:00Z",
+  "last_run": "2026-11-01T23:00Z",
   "ok": true
  }
 }
