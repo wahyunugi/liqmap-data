@@ -1,0 +1,840 @@
+{
+ "picked": {
+  "spot/BTCUSDT/coinbase": {
+   "symbol": "BTCUSD.C",
+   "on_exchange": "BTC-USD",
+   "quote": "USD"
+  },
+  "spot/BTCUSDT/kraken": {
+   "symbol": "BTCUSD.K",
+   "on_exchange": "XBT/USD",
+   "quote": "USD"
+  },
+  "spot/BTCUSDT/binance": {
+   "symbol": "BTCUSD.A",
+   "on_exchange": "BTCUSDT",
+   "quote": "USDT"
+  },
+  "spot/BTCUSDT/bybit": {
+   "symbol": "sBTCUSDT.6",
+   "on_exchange": "BTCUSDT",
+   "quote": "USDT"
+  },
+  "fut/BTCUSDT/bybit": {
+   "symbol": "BTCUSDT.6",
+   "on_exchange": "BTCUSDT",
+   "denom": "BASE_ASSET"
+  },
+  "fut/BTCUSDT/binance": {
+   "symbol": "BTCUSDT_PERP.A",
+   "on_exchange": "BTCUSDT",
+   "denom": "BASE_ASSET"
+  },
+  "fut/BTCUSDT/okx": {
+   "symbol": "BTCUSDT_PERP.3",
+   "on_exchange": "BTC-USDT-SWAP",
+   "denom": "BASE_ASSET"
+  },
+  "spot/ETHUSDT/coinbase": {
+   "symbol": "ETHUSD.C",
+   "on_exchange": "ETH-USD",
+   "quote": "USD"
+  },
+  "spot/ETHUSDT/kraken": {
+   "symbol": "ETHUSD.K",
+   "on_exchange": "ETH/USD",
+   "quote": "USD"
+  },
+  "spot/ETHUSDT/binance": {
+   "symbol": "ETHUSD.A",
+   "on_exchange": "ETHUSDT",
+   "quote": "USDT"
+  },
+  "spot/ETHUSDT/bybit": {
+   "symbol": "sETHUSDT.6",
+   "on_exchange": "ETHUSDT",
+   "quote": "USDT"
+  },
+  "fut/ETHUSDT/bybit": {
+   "symbol": "ETHUSDT.6",
+   "on_exchange": "ETHUSDT",
+   "denom": "BASE_ASSET"
+  },
+  "fut/ETHUSDT/binance": {
+   "symbol": "ETHUSDT_PERP.A",
+   "on_exchange": "ETHUSDT",
+   "denom": "BASE_ASSET"
+  },
+  "fut/ETHUSDT/okx": {
+   "symbol": "ETHUSDT_PERP.3",
+   "on_exchange": "ETH-USDT-SWAP",
+   "denom": "BASE_ASSET"
+  }
+ },
+ "candidates": {
+  "exchanges": [
+   {
+    "name": "Poloniex",
+    "code": "P"
+   },
+   {
+    "name": "Polymarket",
+    "code": "O"
+   },
+   {
+    "name": "Bitforex",
+    "code": "D"
+   },
+   {
+    "name": "Kraken",
+    "code": "K"
+   },
+   {
+    "name": "Bithumb",
+    "code": "U"
+   },
+   {
+    "name": "Bitstamp",
+    "code": "B"
+   },
+   {
+    "name": "Hyperliquid",
+    "code": "H"
+   },
+   {
+    "name": "BitFlyer",
+    "code": "L"
+   },
+   {
+    "name": "BtcMarkets",
+    "code": "M"
+   },
+   {
+    "name": "Bit2c",
+    "code": "I"
+   },
+   {
+    "name": "MercadoBitcoin",
+    "code": "E"
+   },
+   {
+    "name": "Independent Reserve",
+    "code": "N"
+   },
+   {
+    "name": "Gemini",
+    "code": "G"
+   },
+   {
+    "name": "Gate.io",
+    "code": "Y"
+   },
+   {
+    "name": "Deribit",
+    "code": "2"
+   },
+   {
+    "name": "OKX",
+    "code": "3"
+   },
+   {
+    "name": "Coinbase",
+    "code": "C"
+   },
+   {
+    "name": "Bitfinex",
+    "code": "F"
+   },
+   {
+    "name": "Luno",
+    "code": "J"
+   },
+   {
+    "name": "BitMEX",
+    "code": "0"
+   },
+   {
+    "name": "Phemex",
+    "code": "7"
+   },
+   {
+    "name": "WOO X",
+    "code": "W"
+   },
+   {
+    "name": "Huobi",
+    "code": "4"
+   },
+   {
+    "name": "dYdX",
+    "code": "8"
+   },
+   {
+    "name": "Bybit",
+    "code": "6"
+   },
+   {
+    "name": "Binance",
+    "code": "A"
+   },
+   {
+    "name": "Lighter",
+    "code": "T"
+   },
+   {
+    "name": "Aster",
+    "code": "S"
+   }
+  ],
+  "spot/BTCUSDT/coinbase": [
+   [
+    "BTCEUR.C",
+    "BTC-EUR",
+    "EUR",
+    true
+   ],
+   [
+    "BTCGBP.C",
+    "BTC-GBP",
+    "GBP",
+    true
+   ],
+   [
+    "BTCUSD.C",
+    "BTC-USD",
+    "USD",
+    true
+   ],
+   [
+    "BTCUSDT.C",
+    "BTC-USDT",
+    "USDT",
+    true
+   ],
+   [
+    "BTCINR.C",
+    "BTC-INR",
+    "INR",
+    true
+   ]
+  ],
+  "spot/BTCUSDT/kraken": [
+   [
+    "BTCUSDQ.K",
+    "XBT/USDQ",
+    "USDQ",
+    true
+   ],
+   [
+    "BTCUSDR.K",
+    "XBT/USDR",
+    "USDR",
+    true
+   ],
+   [
+    "BTCUSDC.K",
+    "XBT/USDC",
+    "USDC",
+    true
+   ],
+   [
+    "BTCDAI.K",
+    "XBT/DAI",
+    "DAI",
+    true
+   ],
+   [
+    "BTCUSDT.K",
+    "XBT/USDT",
+    "USDT",
+    true
+   ],
+   [
+    "BTCEUR.K",
+    "XBT/EUR",
+    "EUR",
+    true
+   ],
+   [
+    "BTCCAD.K",
+    "XBT/CAD",
+    "CAD",
+    true
+   ],
+   [
+    "BTCJPY.K",
+    "XBT/JPY",
+    "JPY",
+    true
+   ],
+   [
+    "BTCUSD.K",
+    "XBT/USD",
+    "USD",
+    true
+   ],
+   [
+    "BTCGBP.K",
+    "XBT/GBP",
+    "GBP",
+    true
+   ],
+   [
+    "BTCCHF.K",
+    "XBT/CHF",
+    "CHF",
+    true
+   ],
+   [
+    "BTCAUD.K",
+    "XBT/AUD",
+    "AUD",
+    true
+   ],
+   [
+    "BTCFIDD.K",
+    "XBT/FIDD",
+    "FIDD",
+    true
+   ],
+   [
+    "BTCSOFID.K",
+    "XBT/SOFID",
+    "SOFID",
+    true
+   ],
+   [
+    "BTCPYUSD.K",
+    "XBT/PYUSD",
+    "PYUSD",
+    true
+   ],
+   [
+    "BTCAUSD.K",
+    "XBT/AUSD",
+    "AUSD",
+    true
+   ],
+   [
+    "BTCEUROP.K",
+    "XBT/EUROP",
+    "EUROP",
+    true
+   ],
+   [
+    "BTCUSD1.K",
+    "XBT/USD1",
+    "USD1",
+    true
+   ],
+   [
+    "BTCEURC.K",
+    "XBT/EURC",
+    "EURC",
+    true
+   ]
+  ],
+  "spot/BTCUSDT/binance": [
+   [
+    "BTCARS.A",
+    "BTCARS",
+    "ARS",
+    true
+   ],
+   [
+    "BTCU.A",
+    "BTCU",
+    "U",
+    true
+   ],
+   [
+    "BTCFDUSD.A",
+    "BTCFDUSD",
+    "FDUSD",
+    true
+   ],
+   [
+    "BTCTRY.A",
+    "BTCTRY",
+    "TRY",
+    true
+   ],
+   [
+    "BTCUSD.A",
+    "BTCUSDT",
+    "USDT",
+    true
+   ],
+   [
+    "BTCEUR.A",
+    "BTCEUR",
+    "EUR",
+    true
+   ],
+   [
+    "BTCUSDC.A",
+    "BTCUSDC",
+    "USDC",
+    true
+   ],
+   [
+    "BTCBRL.A",
+    "BTCBRL",
+    "BRL",
+    true
+   ],
+   [
+    "BTCUSDS.A",
+    "BTCUSDS",
+    "USDS",
+    true
+   ],
+   [
+    "BTCUD.A",
+    "BTCUSD",
+    "USD",
+    true
+   ],
+   [
+    "BTCUSD1.A",
+    "BTCUSD1",
+    "USD1",
+    true
+   ],
+   [
+    "BTCJPY.A",
+    "BTCJPY",
+    "JPY",
+    true
+   ],
+   [
+    "BTCMXN.A",
+    "BTCMXN",
+    "MXN",
+    true
+   ],
+   [
+    "BTCIDR.A",
+    "BTCIDR",
+    "IDR",
+    true
+   ],
+   [
+    "BTCTHB.A",
+    "BTCTHB",
+    "THB",
+    true
+   ]
+  ],
+  "spot/BTCUSDT/okx": [],
+  "spot/BTCUSDT/bybit": [
+   [
+    "sBTCEUR.6",
+    "BTCEUR",
+    "EUR",
+    true
+   ],
+   [
+    "sBTCPLN.6",
+    "BTCPLN",
+    "PLN",
+    true
+   ],
+   [
+    "sBTCUSDT.6",
+    "BTCUSDT",
+    "USDT",
+    true
+   ],
+   [
+    "sBTCUSDC.6",
+    "BTCUSDC",
+    "USDC",
+    true
+   ],
+   [
+    "sBTCAED.6",
+    "BTCAED",
+    "AED",
+    true
+   ],
+   [
+    "sBTCUSD.6",
+    "BTCUSD",
+    "USD",
+    true
+   ],
+   [
+    "sBTCRLUSD.6",
+    "BTCRLUSD",
+    "RLUSD",
+    true
+   ],
+   [
+    "sBTCUSDE.6",
+    "BTCUSDE",
+    "USDE",
+    true
+   ],
+   [
+    "sBTCUSD1.6",
+    "BTCUSD1",
+    "USD1",
+    true
+   ],
+   [
+    "sBTCXUSD.6",
+    "BTCXUSD",
+    "XUSD",
+    true
+   ]
+  ],
+  "spot/BTCUSDT/upbit": [],
+  "fut/BTCUSDT/bybit": [
+   [
+    "BTCUSDT.6",
+    "BTCUSDT",
+    "BASE_ASSET"
+   ]
+  ],
+  "fut/BTCUSDT/binance": [
+   [
+    "BTCUSDT_PERP.A",
+    "BTCUSDT",
+    "BASE_ASSET"
+   ]
+  ],
+  "fut/BTCUSDT/okx": [
+   [
+    "BTCUSDT_PERP.3",
+    "BTC-USDT-SWAP",
+    "BASE_ASSET"
+   ]
+  ],
+  "spot/ETHUSDT/coinbase": [
+   [
+    "ETHBTC.C",
+    "ETH-BTC",
+    "BTC",
+    true
+   ],
+   [
+    "ETHEUR.C",
+    "ETH-EUR",
+    "EUR",
+    true
+   ],
+   [
+    "ETHGBP.C",
+    "ETH-GBP",
+    "GBP",
+    true
+   ],
+   [
+    "ETHUSD.C",
+    "ETH-USD",
+    "USD",
+    true
+   ],
+   [
+    "ETHUSDT.C",
+    "ETH-USDT",
+    "USDT",
+    true
+   ],
+   [
+    "ETHINR.C",
+    "ETH-INR",
+    "INR",
+    true
+   ]
+  ],
+  "spot/ETHUSDT/kraken": [
+   [
+    "ETHUSDT.K",
+    "ETH/USDT",
+    "USDT",
+    true
+   ],
+   [
+    "ETHUSD.K",
+    "ETH/USD",
+    "USD",
+    true
+   ],
+   [
+    "ETHEUR.K",
+    "ETH/EUR",
+    "EUR",
+    true
+   ],
+   [
+    "ETHCAD.K",
+    "ETH/CAD",
+    "CAD",
+    true
+   ],
+   [
+    "ETHJPY.K",
+    "ETH/JPY",
+    "JPY",
+    true
+   ],
+   [
+    "ETHBTC.K",
+    "ETH/XBT",
+    "BTC",
+    true
+   ],
+   [
+    "ETHDAI.K",
+    "ETH/DAI",
+    "DAI",
+    true
+   ],
+   [
+    "ETHUSDC.K",
+    "ETH/USDC",
+    "USDC",
+    true
+   ],
+   [
+    "ETHGBP.K",
+    "ETH/GBP",
+    "GBP",
+    true
+   ],
+   [
+    "ETHCHF.K",
+    "ETH/CHF",
+    "CHF",
+    true
+   ],
+   [
+    "ETHAUD.K",
+    "ETH/AUD",
+    "AUD",
+    true
+   ],
+   [
+    "ETHFIDD.K",
+    "ETH/FIDD",
+    "FIDD",
+    true
+   ],
+   [
+    "ETHSOFID.K",
+    "ETH/SOFID",
+    "SOFID",
+    true
+   ],
+   [
+    "ETHPYUSD.K",
+    "ETH/PYUSD",
+    "PYUSD",
+    true
+   ],
+   [
+    "ETHEUROP.K",
+    "ETH/EUROP",
+    "EUROP",
+    true
+   ],
+   [
+    "ETHUSD1.K",
+    "ETH/USD1",
+    "USD1",
+    true
+   ],
+   [
+    "ETHEURC.K",
+    "ETH/EURC",
+    "EURC",
+    true
+   ]
+  ],
+  "spot/ETHUSDT/binance": [
+   [
+    "ETHMXN.A",
+    "ETHMXN",
+    "MXN",
+    true
+   ],
+   [
+    "ETHFDUSD.A",
+    "ETHFDUSD",
+    "FDUSD",
+    true
+   ],
+   [
+    "ETHTRY.A",
+    "ETHTRY",
+    "TRY",
+    true
+   ],
+   [
+    "ETHBTC.A",
+    "ETHBTC",
+    "BTC",
+    true
+   ],
+   [
+    "ETHBRL.A",
+    "ETHBRL",
+    "BRL",
+    true
+   ],
+   [
+    "ETHUSD.A",
+    "ETHUSDT",
+    "USDT",
+    true
+   ],
+   [
+    "ETHEUR.A",
+    "ETHEUR",
+    "EUR",
+    true
+   ],
+   [
+    "ETHUSDC.A",
+    "ETHUSDC",
+    "USDC",
+    true
+   ],
+   [
+    "ETHUSDS.A",
+    "ETHUSDS",
+    "USDS",
+    true
+   ],
+   [
+    "ETHUD.A",
+    "ETHUSD",
+    "USD",
+    true
+   ],
+   [
+    "ETHTHB.A",
+    "ETHTHB",
+    "THB",
+    true
+   ],
+   [
+    "ETHARS.A",
+    "ETHARS",
+    "ARS",
+    true
+   ],
+   [
+    "ETHJPY.A",
+    "ETHJPY",
+    "JPY",
+    true
+   ],
+   [
+    "ETHUSD1.A",
+    "ETHUSD1",
+    "USD1",
+    true
+   ],
+   [
+    "ETHIDR.A",
+    "ETHIDR",
+    "IDR",
+    true
+   ],
+   [
+    "ETHU2.A",
+    "ETHU",
+    "U2",
+    true
+   ]
+  ],
+  "spot/ETHUSDT/okx": [],
+  "spot/ETHUSDT/bybit": [
+   [
+    "sETHEUR.6",
+    "ETHEUR",
+    "EUR",
+    true
+   ],
+   [
+    "sETHPLN.6",
+    "ETHPLN",
+    "PLN",
+    true
+   ],
+   [
+    "sETHBTC.6",
+    "ETHBTC",
+    "BTC",
+    true
+   ],
+   [
+    "sETHUSDT.6",
+    "ETHUSDT",
+    "USDT",
+    true
+   ],
+   [
+    "sETHUSDC.6",
+    "ETHUSDC",
+    "USDC",
+    true
+   ],
+   [
+    "sETHAED.6",
+    "ETHAED",
+    "AED",
+    true
+   ],
+   [
+    "sETHUSD.6",
+    "ETHUSD",
+    "USD",
+    true
+   ],
+   [
+    "sETHUSDE.6",
+    "ETHUSDE",
+    "USDE",
+    true
+   ],
+   [
+    "sETHUSD1.6",
+    "ETHUSD1",
+    "USD1",
+    true
+   ],
+   [
+    "sETHRLUSD.6",
+    "ETHRLUSD",
+    "RLUSD",
+    true
+   ]
+  ],
+  "spot/ETHUSDT/upbit": [],
+  "fut/ETHUSDT/bybit": [
+   [
+    "ETHUSDT.6",
+    "ETHUSDT",
+    "BASE_ASSET"
+   ]
+  ],
+  "fut/ETHUSDT/binance": [
+   [
+    "ETHUSDT_PERP.A",
+    "ETHUSDT",
+    "BASE_ASSET"
+   ]
+  ],
+  "fut/ETHUSDT/okx": [
+   [
+    "ETHUSDT_PERP.3",
+    "ETH-USDT-SWAP",
+    "BASE_ASSET"
+   ]
+  ]
+ }
+}
