@@ -10,6 +10,7 @@ Kolom:
   all_acc_ratio   rata-rata harian rasio long/short semua akun (count_long_short_ratio)
   taker_ratio     rata-rata harian rasio volume beli/jual agresif (sum_taker_long_short_vol_ratio)
 Kolom rasio kosong bila file metrics hari itu tidak memuatnya.
+Juga per jam: data/derived/hourly/<SIMBOL>_<YYYY>.csv (futures + spot Binance, lihat hourly()).
 Arsip diunduh oleh history/binance_public.py (cache GitHub Actions); dijalankan workflow "export".
 
     python history/export_daily.py
@@ -59,6 +60,51 @@ def ratios(sym):
     return pd.DataFrame(out)
 
 
+SPOT_BASE = "https://data.binance.vision/data/spot"
+
+
+def spot_hourly(sym):
+    """Candle 1 jam Binance SPOT (arsip publik): t, spot_close, spot_vol, spot_taker_buy. Diunduh ke .cache/binance/<SYM>/spot1h."""
+    import datetime as dt
+    d = os.path.join(bp.CACHE, sym, "spot1h"); os.makedirs(d, exist_ok=True)
+    today = dt.datetime.now(dt.timezone.utc).date(); first = today.replace(day=1)
+    jobs = []
+    for y, m in bp._months(bp.KLINES_FROM, first - dt.timedelta(days=1)):
+        n = f"{sym}-1h-{y}-{m:02d}.zip"; jobs.append((f"{SPOT_BASE}/monthly/klines/{sym}/1h/{n}", os.path.join(d, n)))
+    for day in bp._days((first - dt.timedelta(days=1)).replace(day=1), today - dt.timedelta(days=1)):
+        n = f"{sym}-1h-{day.isoformat()}.zip"; jobs.append((f"{SPOT_BASE}/daily/klines/{sym}/1h/{n}", os.path.join(d, n)))
+    for url, path in jobs:
+        bp._get(url, path)
+    fr = []
+    for f in sorted(os.listdir(d)):
+        if f.endswith(".zip"):
+            k = bp._read_zip_csv(os.path.join(d, f))
+            fr.append(pd.DataFrame({"t": (bp._ms(k.iloc[:, 0]) // 1000).astype("int64"), "spot_close": pd.to_numeric(k.iloc[:, 4], errors="coerce"),
+                                    "spot_vol": pd.to_numeric(k.iloc[:, 5], errors="coerce"), "spot_taker_buy": pd.to_numeric(k.iloc[:, 9], errors="coerce")}))
+    return pd.concat(fr).drop_duplicates("t").sort_values("t") if fr else pd.DataFrame(columns=["t", "spot_close", "spot_vol", "spot_taker_buy"])
+
+
+def hourly(sym, h, repo):
+    """Ringkasan per jam sejak 2020: futures perpetual (OHLC, volume, beli agresif, OI akhir jam, rasio long/short rata-rata)
+    + spot Binance. data/derived/hourly/<SIMBOL>_<YYYY>.csv"""
+    tail = repo[repo.t > h.t.max()][["t", "open", "high", "low", "close", "vol", "oi"]]
+    df = pd.concat([h, tail], ignore_index=True).drop_duplicates("t").sort_values("t").reset_index(drop=True)
+    df = df.merge(klines_taker(sym), on="t", how="left")
+    df["hour"] = df.t // 3600 * 3600
+    g = df.groupby("hour")
+    out = pd.DataFrame({"open": g.open.first(), "high": g.high.max(), "low": g.low.min(), "close": g.close.last(),
+                        "vol": g.vol.sum(), "taker_buy": g.tb.sum(min_count=1), "oi": g.oi.last(),
+                        "acc_lsr": g.acc_lsr.mean() if "acc_lsr" in df else np.nan,
+                        "top_lsr": g.top_lsr.mean() if "top_lsr" in df else np.nan})
+    out.index.name = "t"
+    out = out.reset_index().merge(spot_hourly(sym), on="t", how="left")
+    d = os.path.join(OUT, "hourly"); os.makedirs(d, exist_ok=True)
+    out["year"] = pd.to_datetime(out.t, unit="s").dt.year
+    for y, part in out.groupby("year"):
+        part.drop(columns="year").to_csv(os.path.join(d, f"{sym}_{y}.csv"), index=False, float_format="%.6g")
+    return len(out)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     for sym in bp.PAIRS:
@@ -80,6 +126,7 @@ def main():
         path = os.path.join(OUT, f"{sym}_1d.csv")
         out.to_csv(path, index=False, float_format="%.6g")
         print(sym, len(out), "hari", out.date.iat[0], "s/d", out.date.iat[-1], "| kolom", list(out.columns))
+        print(sym, "per jam:", hourly(sym, h, repo), "baris")
 
 
 if __name__ == "__main__":
