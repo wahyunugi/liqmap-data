@@ -97,6 +97,26 @@ def pack_premium(sym, t_start):
     return out or None
 
 
+def pack_spot(sym, t_start):
+    """Volume per 5 menit (koin) dan volume beli agresif (taker): spot AS (Coinbase), spot non-AS (Binance) dari
+    collector/spot.py, dan futures perpetual Binance (Coinalyze, kolom bv). Deret rapat sejak t_start, null = kosong."""
+    def series(df, vcol, bcol):
+        if not len(df):
+            return None
+        df = df[df.t >= t_start]
+        if not len(df):
+            return None
+        t0 = int(df.t.iat[0]); n = (int(df.t.iat[-1]) - t0) // 300 + 1
+        v = [None] * n; b = [None] * n
+        for t, x, y in zip(df.t.astype(int), df[vcol], df[bcol]):
+            i = (t - t0) // 300
+            v[i] = None if pd.isna(x) else round(float(x), 3); b[i] = None if pd.isna(y) else round(float(y), 3)
+        return dict(t0=t0, step=300, v=v, tb=b)
+    return dict(us=series(months(f"spot/5min/{sym}_coinbase_*.csv"), "v", "tb"),
+                nu=series(months(f"spot/5min/{sym}_binance_*.csv"), "v", "tb"),
+                fu=series(months(f"ohlcv/5min/{sym}_*.csv"), "v", "bv"))
+
+
 def pack_etf(coin):
     """Arus harian ETF spot AS (collector/etf.py), juta USD per ETF per hari bursa."""
     path = os.path.join(ROOT, "data", "etf", f"{coin}.csv")
@@ -133,6 +153,7 @@ def build():
             l5=pack_liq(months(f"liquidations/5min/{sym}_*.csv"), t0),
             l1=pack_liq(months(f"liquidations/1min/{sym}_*.csv"), c1.t.min()),
             prem=pack_premium(sym, int(c5.t.iat[0])),
+            spot=pack_spot(sym, int(c5.t.iat[0])),
         )
         print(f"{sym}: {len(c5)} candle 5m, {len(c1)} candle 1m, "
               f"{len(out[sym]['l5']['t'])} baris likuidasi 5m, data sampai {pd.to_datetime(t_end, unit='s')} UTC")

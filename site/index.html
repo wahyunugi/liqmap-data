@@ -49,7 +49,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .thr input{width:110px;accent-color:#fde725}
 .thr output{font:500 .8rem var(--font-num);color:var(--fg);width:2.6em}
 .scale{width:70px;height:8px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
-.chartbox{position:relative;height:min(92vh,1040px);min-height:700px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chartbox{position:relative;height:min(96vh,1140px);min-height:780px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #chart{position:absolute;inset:0}
 .legend{position:absolute;left:10px;top:8px;z-index:5;pointer-events:none;font:400 .78rem var(--font-num);display:grid;gap:3px;max-width:calc(100% - 90px);text-shadow:0 0 3px #000,0 0 6px #000}
 .legend .sym{font:600 .92rem var(--font-ui);letter-spacing:.02em}
@@ -95,7 +95,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .crowdtab table{min-width:640px}
 .cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
 @media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}}
-@media (max-width:640px){.chartbox{height:88vh;min-height:680px}.thr input{width:80px}.sep{display:none}}
+@media (max-width:640px){.chartbox{height:92vh;min-height:760px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -126,6 +126,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <div class="plabel" id="pl3"></div>
     <div class="plabel" id="pl4"></div>
     <div class="plabel" id="pl5"></div>
+    <div class="plabel" id="pl6"></div>
     <div class="loading" id="loading">Calculating heatmap…</div>
   </div>
 
@@ -200,6 +201,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
       <p><b>Volume</b>: coins traded per candle.</p>
       <p><b>Long vs short</b>: Binance accounts holding a long for every account holding a short (purple, all accounts), and the long/short ratio of Binance's top 20% accounts by margin balance measured by position size (yellow). 1.0 = even. See "Crowd positioning" below for what high values have meant historically.</p>
+      <p><b>Spot net buying</b>: who is pushing the spot price. For each candle, coins bought by market orders minus coins sold by market orders (the side that moves the price), on Coinbase (green: US buyers and sellers) and Binance spot (yellow: non-US). The lines are running totals that both start at zero where both venues have data (Coinbase is only counted from 1 Nov 2026), so they cover the same period: rising = buyers more aggressive, falling = sellers more aggressive. The label also shows the same figure for Binance perpetual futures, which usually trade several times more. Spot data: Binance from 60 days before 2 Nov 2026, Coinbase from 1 Nov 2026 (counted trade by trade).</p>
       <p><b>Coinbase premium</b>: how much higher (<span class="pp">above zero</span>) or lower (<span class="pn">below zero</span>) bitcoin or ether trades on Coinbase, where US buyers and most US institutions trade, than on Binance spot, in percent, averaged over the candle. Binance prices are in USDT, so they are converted to dollars with Coinbase's USDT price first; otherwise the gap mostly shows USDT trading slightly off $1. Above zero = US buyers are paying up; below zero = US sellers are more eager. It is a reading of behaviour, not a record of who traded. Data: 5-minute values for the last 60 days, daily averages since June 2021 on 1D/1W/1M.</p>
       <p><b>Per candle, on every interval</b>: volume and actual liquidations are totals over the candle; open interest is the value at the candle's close; the heatmap column and the liquidation map show the levels still open at the candle's close (not a sum over the candle).</p>
     </div>

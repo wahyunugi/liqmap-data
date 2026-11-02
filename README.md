@@ -90,6 +90,13 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   lima kelompok sama besar menurut rasio harian, lalu menampilkan perubahan harga 30 hari kemudian (median dan
   persentase naik), untuk seluruh periode dan sejak 2023. Dihitung di `site/build_history.py` (`crowd()`), ditulis ke
   `_site/hist/<SIMBOL>_crowd.json`.
+- **Pane "Spot net buying":** volume spot yang dibeli dengan market order dikurangi yang dijual dengan market order
+  (pihak yang menggerakkan harga), per candle, untuk spot AS (Coinbase BTC-USD/ETH-USD) dan non-AS (Binance spot
+  BTCUSDT/ETHUSDT), plus futures Binance (Coinalyze) di label. Garis = total berjalan, keduanya mulai dari nol pada
+  candle pertama yang punya data kedua bursa. Sumber: `collector/spot.py` -> `data/spot/5min/`. Binance dari kolom
+  beli taker di kline 5 menit (riwayat 60 hari). Coinbase dihitung per transaksi dari API publik (kolom `side` = sisi
+  maker, jadi `sell` = taker membeli; riwayat mulai 1 Nov 2026). Dicek 2 Nov 2026: volume 5 menit hasil hitungan
+  transaksi sama persis dengan candle resmi Coinbase (12 dari 12 candle).
 - **Status sumber tambahan:** `logs/sources_status.json` (berhasil/gagal terakhir per sumber, tanpa perlu membuka log GitHub).
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 
