@@ -32,8 +32,11 @@ STEP = {"5min": 300, "1hour": 3600, "daily": 86400}
 LOOKBACK = {"5min": 6 * 86400, "1hour": 60 * 86400}
 DAILY_FROM = int(datetime(2020, 1, 1, tzinfo=timezone.utc).timestamp())
 # bursa -> (kata kunci nama di Coinalyze, quote yang dipakai)
-SPOT = {"coinbase": ("coinbase", ["USD"]), "kraken": ("kraken", ["USD"]),
-        "binance": ("binance", ["USDT"]), "okx": ("okx", ["USDT"]), "bybit": ("bybit", ["USDT"]), "upbit": ("upbit", ["KRW"])}
+# AS: Coinbase, Kraken, Gemini. Non-AS: Binance, Bybit, OKX, Bithumb (Korea). Upbit tidak ada di Coinalyze; OKX spot juga
+# tidak ada (dicek 2 Nov 2026, data/markets/symbols.json); API langsung keduanya dicoba di probe() dan dicatat statusnya.
+SPOT = {"coinbase": ("coinbase", ["USD"]), "kraken": ("kraken", ["USD"]), "gemini": ("gemini", ["USD"]),
+        "binance": ("binance", ["USDT"]), "bybit": ("bybit", ["USDT"]), "okx": ("okx", ["USDT"]), "bithumb": ("bithumb", ["KRW"])}
+US_VENUES = ("coinbase", "kraken", "gemini")
 FUT = {"bybit": "bybit", "okx": "okx"}
 FUNDING = {"binance": "binance", "bybit": "bybit", "okx": "okx"}
 CME = {"BTCUSDT": [(8478, 5.0), (9024, 0.1)], "ETHUSDT": [(8995, 50.0), (10065, 0.1)]}   # product id, koin per kontrak
@@ -172,7 +175,21 @@ def cme(now):
     return out
 
 
+def probe():
+    """Apakah API publik OKX dan Upbit bisa diakses dari server ini (GitHub Actions di AS)? Hanya dicatat."""
+    for name, url in (("okx", "https://www.okx.com/api/v5/market/trades?instId=BTC-USDT&limit=5"),
+                      ("upbit", "https://api.upbit.com/v1/trades/ticks?market=KRW-BTC&count=5")):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "liqmap-data collector", "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                body = r.read(300)
+            status.record(f"probe_{name}", True, f"HTTP 200: {body[:120]!r}")
+        except Exception as e:
+            status.record(f"probe_{name}", False, repr(e))
+
+
 def main():
+    probe()
     now = int(time.time())
     key = os.environ.get("COINALYZE_API_KEY", "").strip()
     bad = 0
