@@ -108,20 +108,21 @@ function addPrem(coin, out, tf) { // per bar: Coinbase premium and Binance long/
     const M = DATA[coin].mk || {}, Hh = !!HIST[tf], S5 = M.spot5 || {}, SD = M.spotd || {}, F5 = M.fut5 || {}, FD = M.futd || {};
     r.sv = {}; r.us = r.nu = r.fu = r.oiX = r.lqL = r.lqS = null;
     if (tf !== 60) {           // spot and futures volumes are 5-minute values: not split further on 1m
-      for (const v of US_V.concat(NU_V)) { const x = volSum(Hh ? SD[v] : S5[v], a, b); if (x) r.sv[v] = x; }
+      // on 1D/1W/1M the newest (unfinished) day has no daily value yet: fall back to its 5-minute values
+      for (const v of US_V.concat(NU_V)) { const x = Hh ? (SD[v] ? volSum(SD[v], a, b) || volSum(S5[v], Math.max(a, SD[v].t0 + SD[v].step * SD[v].v.length), b) : null) : volSum(S5[v], a, b); if (x) r.sv[v] = x; }
       const grp = vs => { let v = 0, t = 0, n = 0; for (const k of vs) if (r.sv[k]) { v += r.sv[k][0]; t += r.sv[k][1]; n++; } return n ? [v, t] : null; };
       r.us = grp(US_V); r.nu = grp(NU_V);
       if (!Hh) { const parts = [volSum((DATA[coin].spot || {}).fu, a, b)].concat(FUT_V.map(v => volSum(F5[v], a, b))).filter(Boolean);
         r.fu = parts.length === 3 ? [parts.reduce((s, x) => s + x[0], 0), parts.reduce((s, x) => s + x[1], 0)] : null;
         const l = FUT_V.map(v => keySum(F5[v], "l", a, b)), sh = FUT_V.map(v => keySum(F5[v], "s", a, b));
         if (l.every(x => x != null)) { r.lqL = l[0] + l[1]; r.lqS = sh[0] + sh[1]; } }
-      const ois = FUT_V.map(v => lastVal(Hh ? FD[v] : F5[v], "oi", a, b));
+      const ois = FUT_V.map(v => Hh ? (lastVal(F5[v], "oi", a, b) ?? lastVal(FD[v], "oi", a, b)) : lastVal(F5[v], "oi", a, b));
       if (ois.every(x => x != null)) r.oiX = ois[0] + ois[1];
     }
-    r.fund = premAvg(Hh ? M.fundd : M.fund1h, a, b);
+    r.fund = Hh ? (premAvg(M.fundd, a, b) ?? premAvg(M.fund1h, a, b)) : premAvg(M.fund1h, a, b);
     if (r.fund == null && !Hh && M.fund1h) r.fund = lastVal(M.fund1h, "p", a - 3 * 3600, b);   // current hour not stored yet: last known
     if (!Hh) r.bas = premAvg(M.bas5, a, b);
-    else { const sc = lastVal(SD.binance, "c", a, b); r.bas = sc ? null : null; r.basSpot = sc; }
+    else { const sc = lastVal(SD.binance, "c", a, b); r.basSpot = sc; r.bas = sc ? null : premAvg(M.bas5, a, b); }
     if (!HIST[tf]) { r.lsr = premAvg(A, a, b); r.tpr = premAvg(T, a, b); } });
   return out;
 }
