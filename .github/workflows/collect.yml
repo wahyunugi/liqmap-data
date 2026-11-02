@@ -50,6 +50,13 @@ jobs:
         continue-on-error: true
         run: python collector/spot.py
 
+      - name: Spot multi-bursa, futures Bybit/OKX, funding rate (Coinalyze) dan CME harian (gagal tidak menghentikan pengumpulan)
+        if: always()
+        continue-on-error: true
+        env:
+          COINALYZE_API_KEY: ${{ secrets.COINALYZE_API_KEY }}
+        run: python collector/markets.py
+
       - name: Hitung heatmap replika (model v6) dan simpan level aktif
         if: always()
         run: |
