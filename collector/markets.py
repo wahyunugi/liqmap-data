@@ -205,7 +205,8 @@ def main():
                     ("open-interest-history", "fut_oi", "5min", fut, ["oi_usd"], {"convert_to_usd": "true"}),
                     ("liquidation-history", "fut_liq", "5min", fut, ["l", "s"], {"convert_to_usd": "true"}),
                     ("funding-rate-history", "funding", "1hour", fnd, ["c"], None)]
-            if datetime.fromtimestamp(now, timezone.utc).hour == 0 or not os.path.isdir(os.path.join(OUT, "spot", "daily")):
+            missing_daily = any(last_stored(c, "daily", n) is None for c, items in (("spot", spot), ("fut", fut), ("funding", fnd)) for n, _ in items)
+            if datetime.fromtimestamp(now, timezone.utc).hour == 0 or missing_daily:
                 jobs += [("ohlcv-history", "spot", "daily", spot, ["c", "v", "bv"], None),
                          ("ohlcv-history", "fut", "daily", fut, ["c", "v", "bv"], None),
                          ("open-interest-history", "fut_oi", "daily", fut, ["oi_usd"], {"convert_to_usd": "true"}),

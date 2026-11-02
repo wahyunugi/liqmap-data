@@ -155,6 +155,65 @@ def coinbase(sym, now):
     return n, pages, reached
 
 
+UPBIT = {"BTCUSDT": "KRW-BTC", "ETHUSDT": "KRW-ETH"}
+
+
+def okx(sym, now):
+    """OKX spot: statistik volume taker 5 menit semua pasangan spot koin itu (rubik taker-volume, ±2 hari ke belakang).
+    Kolom [ts, sellVol, buyVol]; ts = AKHIR candle (dicek 2 Nov 2026 terhadap transaksi BTC-USDT: angka ts cocok dengan
+    transaksi 5 menit SEBELUMNYA), jadi t = ts - 300."""
+    ccy = sym.replace("USDT", "")
+    j = get(f"https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy={ccy}&instType=SPOT&period=5m")
+    end = now - now % STEP
+    rows = {}
+    for r in j.get("data", []):
+        t = int(r[0]) // 1000 - STEP
+        if t + STEP <= end:
+            sell, buy = float(r[1]), float(r[2])
+            rows[t] = (f"{sell + buy:.6g}", f"{buy:.6g}")
+    return append(sym, "okx", rows, ("v", "tb"))
+
+
+def upbit(sym, now):
+    """Upbit (Korea, KRW): dihitung per transaksi. ask_bid = sisi taker (dicek 2 Nov 2026: transaksi BID lebih mahal dari
+    ASK di sebelahnya 451 kali, lebih murah 33 kali). Paging per hari (days_ago) karena kursor hanya berlaku dalam satu hari."""
+    mkt = UPBIT[sym]
+    lt = last_t(sym, "upbit")
+    cut = (now - CB_BACKFILL) if lt is None else lt + STEP
+    cut -= cut % STEP
+    end = now - now % STEP
+    agg, earliest, pages, start, reached = {}, None, 0, time.time(), False
+    for days_ago in (None, 1, 2):
+        cursor = None
+        while True:
+            q = f"https://api.upbit.com/v1/trades/ticks?market={mkt}&count=500" + (f"&cursor={cursor}" if cursor else "") + (f"&days_ago={days_ago}" if days_ago else "")
+            tr = get(q); pages += 1
+            if not tr:
+                break
+            for x in tr:
+                ts = x["timestamp"] / 1000
+                if ts < cut:
+                    reached = True; continue
+                b = int(ts) - int(ts) % STEP
+                if b >= end:
+                    continue
+                a = agg.setdefault(b, [0.0, 0.0, 0]); a[0] += x["trade_volume"]; a[2] += 1
+                if x["ask_bid"] == "BID":
+                    a[1] += x["trade_volume"]
+                earliest = ts if earliest is None else min(earliest, ts)
+            cursor = tr[-1]["sequential_id"]
+            if reached or time.time() - start > BUDGET_S:
+                break
+            time.sleep(0.12)
+        if reached or time.time() - start > BUDGET_S:
+            break
+    if not reached:
+        first_full = (int(earliest) - int(earliest) % STEP + STEP) if earliest else end
+        agg = {b: a for b, a in agg.items() if b >= first_full}
+    n = append(sym, "upbit", {b: (f"{a[0]:.6g}", f"{a[1]:.6g}", a[2]) for b, a in agg.items()}, ("v", "tb", "n"))
+    return n, pages, reached
+
+
 def main():
     now = int(time.time())
     bad = 0
@@ -172,6 +231,16 @@ def main():
             print(f"Coinbase {sym}: {msg}")
         except Exception as e:
             bad += 1; status.record(f"spot_coinbase_{sym}", False, repr(e)); print(f"Coinbase {sym}: GAGAL {e!r}", file=sys.stderr)
+        try:
+            n = okx(sym, now); status.record(f"spot_okx_{sym}", True, f"+{n} candle 5 menit"); print(f"OKX spot {sym}: +{n}")
+        except Exception as e:
+            bad += 1; status.record(f"spot_okx_{sym}", False, repr(e)); print(f"OKX {sym}: GAGAL {e!r}", file=sys.stderr)
+        try:
+            n, pages, reached = upbit(sym, now)
+            msg = f"+{n} candle 5 menit, {pages} halaman transaksi" + ("" if reached else " (BATAS WAKTU: ada lubang sebelum data ini)")
+            status.record(f"spot_upbit_{sym}", reached, msg); print(f"Upbit {sym}: {msg}")
+        except Exception as e:
+            bad += 1; status.record(f"spot_upbit_{sym}", False, repr(e)); print(f"Upbit {sym}: GAGAL {e!r}", file=sys.stderr)
     sys.exit(1 if bad else 0)
 
 

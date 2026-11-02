@@ -97,6 +97,79 @@ def pack_premium(sym, t_start):
     return out or None
 
 
+US_VENUES = ["coinbase", "kraken", "gemini"]
+NONUS_VENUES = ["binance", "bybit", "okx", "bithumb"]
+FUT_VENUES = ["bybit", "okx"]
+
+
+def regular(df, cols, step, t_start=None, nd=4):
+    """Deret rapat {t0, step, <kolom>: [...]} dari DataFrame berkolom t; null = tidak ada data."""
+    if df is None or not len(df):
+        return None
+    if t_start is not None:
+        df = df[df.t >= t_start]
+        if not len(df):
+            return None
+    df = df.sort_values("t")
+    t0 = int(df.t.iat[0]); n = (int(df.t.iat[-1]) - t0) // step + 1
+    out = dict(t0=t0, step=step)
+    idx = ((df.t.astype("int64") - t0) // step).to_numpy()
+    for k, c in cols.items():
+        arr = [None] * n
+        for i, v in zip(idx, df[c]):
+            if not pd.isna(v):
+                arr[int(i)] = round(float(v), nd)
+        out[k] = arr
+    return out
+
+
+def mk(cat, iv, name):
+    """data/markets/<cat>/<iv>/<name>*.csv (collector/markets.py)."""
+    if iv == "daily":
+        p = os.path.join(ROOT, "data", "markets", cat, "daily", f"{name}.csv")
+        return pd.read_csv(p) if os.path.exists(p) else pd.DataFrame()
+    return months(f"markets/{cat}/{iv}/{name}_*.csv")
+
+
+def pack_markets(sym, t_start, c5):
+    """Spot multi-bursa (AS / non-AS), futures Bybit + OKX, funding rate rata-rata, selisih futures vs spot."""
+    out = {"spot5": {}, "spotd": {}, "fut5": {}, "futd": {}}
+    for v in US_VENUES + NONUS_VENUES:
+        out["spot5"][v] = regular(mk("spot", "5min", f"{sym}_{v}"), {"v": "v", "tb": "bv"}, 300, t_start, 3)
+        out["spotd"][v] = regular(mk("spot", "daily", f"{sym}_{v}"), {"v": "v", "tb": "bv", "c": "c"}, 86400, None, 3)
+    for v in FUT_VENUES:
+        f = mk("fut", "5min", f"{sym}_{v}")
+        if len(f):
+            oi = mk("fut_oi", "5min", f"{sym}_{v}"); lq = mk("fut_liq", "5min", f"{sym}_{v}")
+            f = f.merge(oi, on="t", how="left") if len(oi) else f.assign(oi_usd=None)
+            f = f.merge(lq, on="t", how="left") if len(lq) else f.assign(l=None, s=None)
+            f["oi"] = pd.to_numeric(f.oi_usd, errors="coerce") / f.c          # USD -> koin dengan harga penutupan
+            out["fut5"][v] = regular(f, {"v": "v", "tb": "bv", "oi": "oi", "l": "l", "s": "s"}, 300, t_start, 3)
+        fd = mk("fut", "daily", f"{sym}_{v}")
+        if len(fd):
+            oid = mk("fut_oi", "daily", f"{sym}_{v}")
+            fd = fd.merge(oid, on="t", how="left") if len(oid) else fd.assign(oi_usd=None)
+            fd["oi"] = pd.to_numeric(fd.oi_usd, errors="coerce") / fd.c
+            out["futd"][v] = regular(fd, {"v": "v", "tb": "bv", "oi": "oi"}, 86400, None, 3)
+    # funding rate: rata-rata Binance, Bybit, OKX yang tersedia (persen per periode, biasanya 8 jam)
+    for iv, key, step, ts in (("1hour", "fund1h", 3600, t_start), ("daily", "fundd", 86400, None)):
+        fr = [mk("funding", iv, f"{sym}_{v}").rename(columns={"c": v}) for v in ("binance", "bybit", "okx")]
+        fr = [x for x in fr if len(x)]
+        if fr:
+            m = fr[0]
+            for x in fr[1:]:
+                m = m.merge(x, on="t", how="outer")
+            m["avg"] = m[[c for c in m.columns if c != "t"]].mean(axis=1)
+            out[key] = regular(m, {"p": "avg"}, step, ts, 5)
+    # selisih harga futures (Binance perpetual) vs spot (Binance), persen, per 5 menit
+    sp = months(f"premium/5min/{sym}_*.csv")
+    if len(sp):
+        b = c5[["t", "close"]].merge(sp[["t", "bn"]], on="t")
+        b["bas"] = (b.close / b.bn - 1) * 100
+        out["bas5"] = regular(b, {"p": "bas"}, 300, t_start, 4)
+    return out
+
+
 def pack_spot(sym, t_start):
     """Volume per 5 menit (koin) dan volume beli agresif (taker): spot AS (Coinbase), spot non-AS (Binance) dari
     collector/spot.py, dan futures perpetual Binance (Coinalyze, kolom bv). Deret rapat sejak t_start, null = kosong."""
@@ -154,6 +227,7 @@ def build():
             l1=pack_liq(months(f"liquidations/1min/{sym}_*.csv"), c1.t.min()),
             prem=pack_premium(sym, int(c5.t.iat[0])),
             spot=pack_spot(sym, int(c5.t.iat[0])),
+            mk=pack_markets(sym, int(c5.t.iat[0]), c5),
         )
         print(f"{sym}: {len(c5)} candle 5m, {len(c1)} candle 1m, "
               f"{len(out[sym]['l5']['t'])} baris likuidasi 5m, data sampai {pd.to_datetime(t_end, unit='s')} UTC")
