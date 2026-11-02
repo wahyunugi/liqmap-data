@@ -30,11 +30,6 @@
    "on_exchange": "BTC",
    "quote": "KRW"
   },
-  "fut/BTCUSDT/bybit": {
-   "symbol": "BTCUSDT.6",
-   "on_exchange": "BTCUSDT",
-   "denom": "BASE_ASSET"
-  },
   "fut/BTCUSDT/binance": {
    "symbol": "BTCUSDT_PERP.A",
    "on_exchange": "BTCUSDT",
@@ -43,6 +38,11 @@
   "fut/BTCUSDT/okx": {
    "symbol": "BTCUSDT_PERP.3",
    "on_exchange": "BTC-USDT-SWAP",
+   "denom": "BASE_ASSET"
+  },
+  "fut/BTCUSDT/bybit": {
+   "symbol": "BTCUSDT.6",
+   "on_exchange": "BTCUSDT",
    "denom": "BASE_ASSET"
   },
   "spot/ETHUSDT/coinbase": {
@@ -75,11 +75,6 @@
    "on_exchange": "ETH",
    "quote": "KRW"
   },
-  "fut/ETHUSDT/bybit": {
-   "symbol": "ETHUSDT.6",
-   "on_exchange": "ETHUSDT",
-   "denom": "BASE_ASSET"
-  },
   "fut/ETHUSDT/binance": {
    "symbol": "ETHUSDT_PERP.A",
    "on_exchange": "ETHUSDT",
@@ -88,6 +83,11 @@
   "fut/ETHUSDT/okx": {
    "symbol": "ETHUSDT_PERP.3",
    "on_exchange": "ETH-USDT-SWAP",
+   "denom": "BASE_ASSET"
+  },
+  "fut/ETHUSDT/bybit": {
+   "symbol": "ETHUSDT.6",
+   "on_exchange": "ETHUSDT",
    "denom": "BASE_ASSET"
   }
  },
@@ -525,13 +525,6 @@
     true
    ]
   ],
-  "fut/BTCUSDT/bybit": [
-   [
-    "BTCUSDT.6",
-    "BTCUSDT",
-    "BASE_ASSET"
-   ]
-  ],
   "fut/BTCUSDT/binance": [
    [
     "BTCUSDT_PERP.A",
@@ -543,6 +536,13 @@
    [
     "BTCUSDT_PERP.3",
     "BTC-USDT-SWAP",
+    "BASE_ASSET"
+   ]
+  ],
+  "fut/BTCUSDT/bybit": [
+   [
+    "BTCUSDT.6",
+    "BTCUSDT",
     "BASE_ASSET"
    ]
   ],
@@ -871,13 +871,6 @@
     true
    ]
   ],
-  "fut/ETHUSDT/bybit": [
-   [
-    "ETHUSDT.6",
-    "ETHUSDT",
-    "BASE_ASSET"
-   ]
-  ],
   "fut/ETHUSDT/binance": [
    [
     "ETHUSDT_PERP.A",
@@ -889,6 +882,13 @@
    [
     "ETHUSDT_PERP.3",
     "ETH-USDT-SWAP",
+    "BASE_ASSET"
+   ]
+  ],
+  "fut/ETHUSDT/bybit": [
+   [
+    "ETHUSDT.6",
+    "ETHUSDT",
     "BASE_ASSET"
    ]
   ]
