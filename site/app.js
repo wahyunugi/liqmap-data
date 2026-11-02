@@ -84,6 +84,19 @@ function volSum(S, a, b) { // [volume, taker-buy volume] summed over 5-minute va
   for (let i = i0; i < i1; i++) if (S.v[i] != null && S.tb[i] != null) { v += S.v[i]; tb += S.tb[i]; n++; }
   return n ? [v, tb] : null;
 }
+function lastVal(S, key, a, b) { // last non-null value of S[key] with open time in [a, b)
+  if (!S || !S[key]) return null;
+  for (let i = Math.min(S[key].length, Math.ceil((b - S.t0) / S.step)) - 1, i0 = Math.max(0, Math.ceil((a - S.t0) / S.step)); i >= i0; i--) if (S[key][i] != null) return S[key][i];
+  return null;
+}
+function keySum(S, key, a, b) {
+  if (!S || !S[key]) return null;
+  let i0 = Math.max(0, Math.ceil((a - S.t0) / S.step)), i1 = Math.min(S[key].length, Math.ceil((b - S.t0) / S.step)), s = 0, n = 0;
+  for (let i = i0; i < i1; i++) if (S[key][i] != null) { s += S[key][i]; n++; }
+  return n ? s : null;
+}
+const US_V = ["coinbase", "kraken", "gemini"], NU_V = ["binance", "bybit", "okx", "bithumb", "upbit"], FUT_V = ["bybit", "okx"];
+const VNAME = { coinbase: "Coinbase", kraken: "Kraken", gemini: "Gemini", binance: "Binance", bybit: "Bybit", okx: "OKX", bithumb: "Bithumb", upbit: "Upbit" };
 const CROWD = {};   // coin -> hist/<coin>_crowd.json (account long/short ratios + 30-day statistics), loaded at start
 function addPrem(coin, out, tf) { // per bar: Coinbase premium and Binance long/short ratios, averaged over the bar
   const P = DATA[coin].prem || {}, src = HIST[tf] ? P.d1 : P.m5, C = CROWD[coin] && CROWD[coin].m5;
@@ -91,8 +104,24 @@ function addPrem(coin, out, tf) { // per bar: Coinbase premium and Binance long/
   out.forEach((r, i) => { const end = i + 1 < out.length ? out[i + 1].b : r.b + (HIST[tf] ? Math.max(tf, 86400) : tf);
     const a = tf === 60 ? Math.floor(r.b / 300) * 300 : r.b, b = tf === 60 ? a + 300 : end;
     r.prem = premAvg(src, a, b);
-    const SP = DATA[coin].spot || {};   // spot volumes are 5-minute values: not split further on 1m
-    r.us = tf === 60 ? null : volSum(SP.us, a, b); r.nu = tf === 60 ? null : volSum(SP.nu, a, b); r.fu = tf === 60 ? null : volSum(SP.fu, a, b);
+    // other venues (collector/markets.py, collector/spot.py): 5-minute values below 1D, daily values on 1D/1W/1M
+    const M = DATA[coin].mk || {}, Hh = !!HIST[tf], S5 = M.spot5 || {}, SD = M.spotd || {}, F5 = M.fut5 || {}, FD = M.futd || {};
+    r.sv = {}; r.us = r.nu = r.fu = r.oiX = r.lqL = r.lqS = null;
+    if (tf !== 60) {           // spot and futures volumes are 5-minute values: not split further on 1m
+      for (const v of US_V.concat(NU_V)) { const x = volSum(Hh ? SD[v] : S5[v], a, b); if (x) r.sv[v] = x; }
+      const grp = vs => { let v = 0, t = 0, n = 0; for (const k of vs) if (r.sv[k]) { v += r.sv[k][0]; t += r.sv[k][1]; n++; } return n ? [v, t] : null; };
+      r.us = grp(US_V); r.nu = grp(NU_V);
+      if (!Hh) { const parts = [volSum((DATA[coin].spot || {}).fu, a, b)].concat(FUT_V.map(v => volSum(F5[v], a, b))).filter(Boolean);
+        r.fu = parts.length === 3 ? [parts.reduce((s, x) => s + x[0], 0), parts.reduce((s, x) => s + x[1], 0)] : null;
+        const l = FUT_V.map(v => keySum(F5[v], "l", a, b)), sh = FUT_V.map(v => keySum(F5[v], "s", a, b));
+        if (l.every(x => x != null)) { r.lqL = l[0] + l[1]; r.lqS = sh[0] + sh[1]; } }
+      const ois = FUT_V.map(v => lastVal(Hh ? FD[v] : F5[v], "oi", a, b));
+      if (ois.every(x => x != null)) r.oiX = ois[0] + ois[1];
+    }
+    r.fund = premAvg(Hh ? M.fundd : M.fund1h, a, b);
+    if (r.fund == null && !Hh && M.fund1h) r.fund = lastVal(M.fund1h, "p", a - 3 * 3600, b);   // current hour not stored yet: last known
+    if (!Hh) r.bas = premAvg(M.bas5, a, b);
+    else { const sc = lastVal(SD.binance, "c", a, b); r.bas = sc ? null : null; r.basSpot = sc; }
     if (!HIST[tf]) { r.lsr = premAvg(A, a, b); r.tpr = premAvg(T, a, b); } });
   return out;
 }
@@ -126,6 +155,7 @@ function buildBars(coin, tf) {
     r.liqL = q.sumL[i]; r.liqS = q.sumS[i]; r.hasLiq = i >= q.firstBar; r.time = r.b + WIB; });
   return addPrem(coin, out, tf);
 }
+function finishBas(bars) { bars.forEach(r => { if (r.basSpot) r.bas = (r.c / r.basSpot - 1) * 100; }); return bars; }
 
 // ---------- chart ----------
 const LC = LightweightCharts;
@@ -154,8 +184,11 @@ const fmtNet = v => (v > 0 ? "+" : v < 0 ? "−" : "") + qty(v);
 const cvdUS = chart.addSeries(LC.LineSeries, { color: css("--c1"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtNet, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 6);
 const cvdNU = chart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtNet, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 6);
 cvdUS.createPriceLine({ price: 0, color: "#3a4150", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+const fmtPct = d => v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d) + "%";
+const fundS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPct(4), minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 7);
+const basS = chart.addSeries(LC.LineSeries, { color: css("--fg"), lineWidth: 1.5, priceFormat: { type: "custom", formatter: fmtPct(3), minMove: 0.0001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 7);
 const panes = chart.panes();
-[5, 1.4, 1.1, 0.9, 1, 1, 1.1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
+[5, 1.3, 1.1, 0.8, 0.9, 0.9, 1.1, 1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
 
 // heatmap + liquidation-map primitive on the candle series
 const heat = {
@@ -275,24 +308,31 @@ function renderLegend() {
   legend.innerHTML = `<div class="row"><span class="sym">${c.replace("USDT", "")}/USDT Perp · Binance · ${tfName}</span><span class="k">${fmtT(r.time)} WIB</span></div>
     <div class="row"><span><span class="k">O</span> <span class="${cls}">${fmtP(r.o, c)}</span></span><span><span class="k">H</span> <span class="${cls}">${fmtP(r.h, c)}</span></span><span><span class="k">L</span> <span class="${cls}">${fmtP(r.l, c)}</span></span><span><span class="k">C</span> <span class="${cls}">${fmtP(r.c, c)}</span></span><span class="${cls}">${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%</span></div>${heatTxt}`;
   const lp = document.getElementById("pl1"), op = document.getElementById("pl2"), vp = document.getElementById("pl3");
-  lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span>` : `no data before ${fmtT(DATA[c][state.tf === 60 ? "l1" : "l5"].first + WIB)}`);
-  op.innerHTML = `<b>Open interest</b>${r.oi != null ? qty(r.oi) + " " + c.replace("USDT", "") + " ≈ " + usd(r.oi * r.c) : "–"}`;
+  lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span> <span class="k">Binance</span>` +
+    (r.lqL != null ? ` · <span class="k">+ Bybit & OKX: shorts ${usd(r.lqS)}, longs ${usd(r.lqL)}</span>` : "") : `no data before ${fmtT(DATA[c][state.tf === 60 ? "l1" : "l5"].first + WIB)}`);
+  op.innerHTML = `<b>Open interest</b>${r.oi != null ? "Binance " + qty(r.oi) + " " + c.replace("USDT", "") + " ≈ " + usd(r.oi * r.c) : "–"}` +
+    (r.oi != null && r.oiX != null ? ` <span class="k">· Binance + Bybit + OKX ${qty(r.oi + r.oiX)} ≈ ${usd((r.oi + r.oiX) * r.c)}</span>` : "");
   vp.innerHTML = `<b>Volume</b>${qty(r.v)} ${c.replace("USDT", "")}`;
   const share = v => Math.round(v / (1 + v) * 100);
   document.getElementById("pl5").innerHTML = `<b>Long vs short</b>` + (r.lsr != null || r.tpr != null ?
     (r.lsr != null ? `<span class="ca">all accounts ${r.lsr.toFixed(2)}</span> <span class="k">(${share(r.lsr)}% of accounts long)</span>` : "") +
     (r.tpr != null ? ` · <span class="cb">big accounts ${r.tpr.toFixed(2)}</span> <span class="k">(by position size)</span>` : "") : "no data for this candle");
-  const net = x => 2 * x[1] - x[0], cu = c.replace("USDT", "");
+  const net = x => 2 * x[1] - x[0], cu = c.replace("USDT", ""), vs = window.__venues || [];
   const part = (lab, x, cls) => x ? `<span class="${cls}">${lab} ${fmtNet(net(x))}</span> <span class="k">of ${qty(x[0])} (${Math.round(x[1] / x[0] * 100)}% buys)</span>` : `<span class="k">${lab} –</span>`;
+  const list = g => g.filter(v => vs.includes(v)).map(v => r.sv && r.sv[v] ? `${VNAME[v]} ${fmtNet(net(r.sv[v]))}` : `${VNAME[v]} –`).join(", ");
   document.getElementById("pl6").innerHTML = `<b>Spot net buying</b>` + (state.tf === 60 ? `<span class="k">5-minute data: use 5m or above</span>` :
-    part("US (Coinbase)", r.us, "pp") + " · " + part("non-US (Binance)", r.nu, "cb") + " · " + part("futures (Binance perp)", r.fu, "k") + ` <span class="k">(${cu}, this candle)</span>`);
+    part("US", r.us, "pp") + ` <span class="k">(${list(US_V)})</span> · ` + part("non-US", r.nu, "cb") + ` <span class="k">(${list(NU_V)})</span>` +
+    (r.fu ? " · " + part("futures, Binance+Bybit+OKX", r.fu, "k") : "") + ` <span class="k">${cu}, this candle</span>`);
+  document.getElementById("pl7").innerHTML = `<b>Futures vs spot · funding</b>` +
+    (r.bas != null ? `<span>futures ${fmtPct(3)(r.bas)} vs spot</span> <span class="k">(Binance)</span>` : `<span class="k">gap –</span>`) + " · " +
+    (r.fund != null ? `<span class="${r.fund >= 0 ? "cb" : "ca"}">funding ${fmtPct(4)(r.fund)}</span> <span class="k">per 8h, avg Binance/Bybit/OKX: ${r.fund >= 0 ? "longs pay shorts" : "shorts pay longs"}</span>` : `<span class="k">funding –</span>`);
   const pr = document.getElementById("pl4"), P = DATA[c].prem;
   pr.innerHTML = `<b>Coinbase premium</b>` + (r.prem != null ? `<span class="${r.prem >= 0 ? "pp" : "pn"}">${fmtPrem(r.prem)}</span> <span class="k">${r.prem >= 0 ? "Coinbase pricier: US buyers more eager" : "Coinbase cheaper: US sellers more eager"}</span>`
     : (() => { const S = P && P[HIST[state.tf] ? "d1" : "m5"]; return !S ? "no data" : r.b < S.t0 ? "no data before " + fmtT(S.t0 + WIB) : "not available for this candle yet"; })());
 }
 function placeLabels() {
-  let y = 0; const ids = ["pl1", "pl2", "pl3", "pl4", "pl5", "pl6"];
-  for (let p = 0; p < 7; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
+  let y = 0; const ids = ["pl1", "pl2", "pl3", "pl4", "pl5", "pl6", "pl7"];
+  for (let p = 0; p < 8; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
 }
 chart.subscribeCrosshairMove(p => {
   const i = (p && p.logical != null && p.point) ? Math.round(p.logical) : null;
@@ -304,7 +344,7 @@ chart.subscribeCrosshairMove(p => {
 // ---------- data loading / controls ----------
 function setData(keepRange) {
   const prev = keepRange ? chart.timeScale().getVisibleRange() : null;
-  bars = buildBars(state.coin, state.tf);
+  bars = finishBas(buildBars(state.coin, state.tf));
   const up = css("--up"), dn = css("--down");
   candles.applyOptions({ priceFormat: { type: "price", precision: dec(state.coin), minMove: state.coin === "ETHUSDT" ? 0.01 : 0.1 } });
   candles.setData(bars.map(r => ({ time: r.time, open: r.o, high: r.h, low: r.l, close: r.c })));
@@ -316,9 +356,15 @@ function setData(keepRange) {
   premS.setData(bars.map(r => r.prem != null ? { time: r.time, value: r.prem, color: r.prem >= 0 ? pPos : pNeg } : { time: r.time }));
   lsrA.setData(bars.map(r => r.lsr != null ? { time: r.time, value: r.lsr } : { time: r.time }));
   lsrT.setData(bars.map(r => r.tpr != null ? { time: r.time, value: r.tpr } : { time: r.time }));
-  // running total of net aggressive spot buying (taker buy minus taker sell). Both lines start at 0 on the first bar
-  // where BOTH venues have data, so the two totals cover the same period and can be compared directly.
-  const firstUS = bars.findIndex(r => r.us), firstNU = bars.findIndex(r => r.nu), from = firstUS < 0 || firstNU < 0 ? -1 : Math.max(firstUS, firstNU);
+  const fP = css("--c2"), fN = css("--c4");
+  fundS.setData(bars.map(r => r.fund != null ? { time: r.time, value: r.fund, color: r.fund >= 0 ? fP : fN } : { time: r.time }));
+  basS.setData(bars.map(r => r.bas != null ? { time: r.time, value: r.bas } : { time: r.time }));
+  // running total of net aggressive spot buying (taker buy minus taker sell), per group. Both lines start at 0 on the
+  // first bar where EVERY venue shown in this view has data, so the totals cover the same period and the same venues.
+  const venues = US_V.concat(NU_V).filter(v => bars.some(r => r.sv && r.sv[v]));
+  const from = venues.length ? Math.max(...venues.map(v => bars.findIndex(r => r.sv && r.sv[v]))) : -1;
+  bars.forEach(r => { r.us = r.sv ? (US_V.filter(v => venues.includes(v)).every(v => r.sv[v]) ? r.us : null) : null; r.nu = r.sv ? (NU_V.filter(v => venues.includes(v)).every(v => r.sv[v]) ? r.nu : null) : null; });
+  window.__venues = venues;
   let cu = 0, cn = 0;
   cvdUS.setData(bars.map((r, i) => { if (from < 0 || i < from || !r.us) return { time: r.time }; cu += 2 * r.us[1] - r.us[0]; return { time: r.time, value: cu }; }));
   cvdNU.setData(bars.map((r, i) => { if (from < 0 || i < from || !r.nu) return { time: r.time }; cn += 2 * r.nu[1] - r.nu[0]; return { time: r.time, value: cn }; }));

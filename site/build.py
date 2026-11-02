@@ -98,7 +98,8 @@ def pack_premium(sym, t_start):
 
 
 US_VENUES = ["coinbase", "kraken", "gemini"]
-NONUS_VENUES = ["binance", "bybit", "okx", "bithumb"]
+NONUS_VENUES = ["binance", "bybit", "okx", "bithumb", "upbit"]
+OWN_SPOT = {"okx", "upbit"}      # tidak ada di Coinalyze: dari collector/spot.py (data/spot/5min), tanpa riwayat harian
 FUT_VENUES = ["bybit", "okx"]
 
 
@@ -135,6 +136,9 @@ def pack_markets(sym, t_start, c5):
     """Spot multi-bursa (AS / non-AS), futures Bybit + OKX, funding rate rata-rata, selisih futures vs spot."""
     out = {"spot5": {}, "spotd": {}, "fut5": {}, "futd": {}}
     for v in US_VENUES + NONUS_VENUES:
+        if v in OWN_SPOT:
+            out["spot5"][v] = regular(months(f"spot/5min/{sym}_{v}_*.csv"), {"v": "v", "tb": "tb"}, 300, t_start, 3)
+            continue
         out["spot5"][v] = regular(mk("spot", "5min", f"{sym}_{v}"), {"v": "v", "tb": "bv"}, 300, t_start, 3)
         out["spotd"][v] = regular(mk("spot", "daily", f"{sym}_{v}"), {"v": "v", "tb": "bv", "c": "c"}, 86400, None, 3)
     for v in FUT_VENUES:

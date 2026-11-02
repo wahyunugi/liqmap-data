@@ -97,6 +97,16 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   beli taker di kline 5 menit (riwayat 60 hari). Coinbase dihitung per transaksi dari API publik (kolom `side` = sisi
   maker, jadi `sell` = taker membeli; riwayat mulai 1 Nov 2026). Dicek 2 Nov 2026: volume 5 menit hasil hitungan
   transaksi sama persis dengan candle resmi Coinbase (12 dari 12 candle).
+- **Bursa lain (2 Nov 2026):** `collector/markets.py` (Coinalyze, kunci yang sama) mengambil spot Coinbase, Kraken,
+  Gemini (kelompok AS) dan Binance, Bybit, Bithumb (non-AS), futures perpetual Bybit dan OKX (harga, volume, beli
+  agresif, open interest USD, likuidasi USD), serta funding rate Binance/Bybit/OKX; 5 menit/1 jam (Coinalyze hanya
+  menyimpan ±1.500-2.000 titik) dan harian sejak 2020. `collector/spot.py` menambah OKX spot (statistik taker 5 menit
+  OKX, `ts` = akhir candle, dicek terhadap transaksi BTC-USDT) dan Upbit (per transaksi, `ask_bid` = sisi taker, dicek
+  dari pantulan harga bid/ask). Data spot Coinalyze dicek 2 Nov 2026 terhadap hitungan transaksi sendiri: volume dan
+  beli agresif Coinbase dan Binance sama persis (299 dan 345 candle). Upbit dan OKX spot tidak tersedia di Coinalyze.
+  CME harian (CmeWS) ditolak (HTTP 403) dari server GitHub, jadi tidak dikumpulkan; posisi CME tetap dari laporan CFTC.
+- **Pane "Futures vs spot · funding":** garis = harga perpetual Binance vs spot Binance (persen), batang = funding rate
+  rata-rata Binance/Bybit/OKX (persen per 8 jam).
 - **Status sumber tambahan:** `logs/sources_status.json` (berhasil/gagal terakhir per sumber, tanpa perlu membuka log GitHub).
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 

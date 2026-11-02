@@ -49,7 +49,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .thr input{width:110px;accent-color:#fde725}
 .thr output{font:500 .8rem var(--font-num);color:var(--fg);width:2.6em}
 .scale{width:70px;height:8px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
-.chartbox{position:relative;height:min(96vh,1140px);min-height:780px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chartbox{position:relative;height:min(100vh,1260px);min-height:860px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #chart{position:absolute;inset:0}
 .legend{position:absolute;left:10px;top:8px;z-index:5;pointer-events:none;font:400 .78rem var(--font-num);display:grid;gap:3px;max-width:calc(100% - 90px);text-shadow:0 0 3px #000,0 0 6px #000}
 .legend .sym{font:600 .92rem var(--font-ui);letter-spacing:.02em}
@@ -58,7 +58,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .legend .pos{color:var(--up)} .legend .neg{color:var(--down)}
 .legend .lg{color:var(--long)} .legend .sh{color:var(--short)}
 .pp{color:var(--c1)} .pn{color:var(--c3)} .ca{color:var(--c4)} .cb{color:var(--c2)}
-.plabel{position:absolute;left:10px;z-index:5;pointer-events:none;font:400 .74rem var(--font-num);color:var(--muted);text-shadow:0 0 3px #000}
+.plabel{position:absolute;left:10px;max-width:calc(100% - 100px);z-index:5;pointer-events:none;font:400 .74rem var(--font-num);color:var(--muted);text-shadow:0 0 3px #000}
 .plabel b{font-family:var(--font-ui);font-weight:600;color:var(--fg);margin-right:8px}
 .loading[hidden]{display:none}
 .loading{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--panel) 80%,transparent);z-index:9;font-size:.95rem;color:var(--muted)}
@@ -95,7 +95,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .crowdtab table{min-width:640px}
 .cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
 @media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}}
-@media (max-width:640px){.chartbox{height:92vh;min-height:760px}.thr input{width:80px}.sep{display:none}}
+@media (max-width:640px){.chartbox{height:96vh;min-height:840px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -127,6 +127,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <div class="plabel" id="pl4"></div>
     <div class="plabel" id="pl5"></div>
     <div class="plabel" id="pl6"></div>
+    <div class="plabel" id="pl7"></div>
     <div class="loading" id="loading">Calculating heatmap…</div>
   </div>
 
@@ -200,8 +201,10 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
       <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
       <p><b>Volume</b>: coins traded per candle.</p>
+      <p><b>Futures vs spot · funding</b>: the line is how far Binance's perpetual futures price sits above (+) or below (−) Binance's spot price, in percent, averaged over the candle. When spot buyers lead a move up, futures lag and the gap falls; when futures traders lead, the gap rises. The bars are the funding rate, averaged over Binance, Bybit and OKX, in percent per 8-hour period: yellow (positive) = longs pay shorts, so longs are the crowded side; purple (negative) = shorts pay longs. Funding: hourly for 60 days, daily since 2020 (Coinalyze).</p>
+      <p><b>Other exchanges</b>: the actual-liquidations and open-interest labels add Bybit and OKX perpetual futures (Coinalyze). The spot pane adds Kraken and Gemini to the US group, and Bybit, OKX, Bithumb and Upbit (Korea) to the non-US group. Coinalyze provides Coinbase, Kraken, Gemini, Binance, Bybit and Bithumb (5-minute for about a week, daily since 2020); OKX comes from OKX's own 5-minute buy/sell statistics and Upbit is counted trade by trade, both from 2 Nov 2026. CME daily volume and open interest could not be collected: CME's website refuses requests from the GitHub servers that run the updates.</p>
       <p><b>Long vs short</b>: Binance accounts holding a long for every account holding a short (purple, all accounts), and the long/short ratio of Binance's top 20% accounts by margin balance measured by position size (yellow). 1.0 = even. See "Crowd positioning" below for what high values have meant historically.</p>
-      <p><b>Spot net buying</b>: who is pushing the spot price. For each candle, coins bought by market orders minus coins sold by market orders (the side that moves the price), on Coinbase (green: US buyers and sellers) and Binance spot (yellow: non-US). The lines are running totals that both start at zero where both venues have data (Coinbase is only counted from 1 Nov 2026), so they cover the same period: rising = buyers more aggressive, falling = sellers more aggressive. The label also shows the same figure for Binance perpetual futures, which usually trade several times more. Spot data: Binance from 60 days before 2 Nov 2026, Coinbase from 1 Nov 2026 (counted trade by trade).</p>
+      <p><b>Spot net buying</b>: who is pushing the spot price. For each candle, coins bought by market orders minus coins sold by market orders (the side that moves the price), on Coinbase (green: US buyers and sellers) and Binance spot (yellow: non-US). The lines are running totals that both start at zero where both venues have data (Coinbase is only counted from 1 Nov 2026), so they cover the same period: rising = buyers more aggressive, falling = sellers more aggressive. The label also shows the same figure for Binance perpetual futures, which usually trade several times more. Both lines start where every venue shown has data. On 1D/1W/1M the lines use daily data and leave out OKX and Upbit, which have no daily history.</p>
       <p><b>Coinbase premium</b>: how much higher (<span class="pp">above zero</span>) or lower (<span class="pn">below zero</span>) bitcoin or ether trades on Coinbase, where US buyers and most US institutions trade, than on Binance spot, in percent, averaged over the candle. Binance prices are in USDT, so they are converted to dollars with Coinbase's USDT price first; otherwise the gap mostly shows USDT trading slightly off $1. Above zero = US buyers are paying up; below zero = US sellers are more eager. It is a reading of behaviour, not a record of who traded. Data: 5-minute values for the last 60 days, daily averages since June 2021 on 1D/1W/1M.</p>
       <p><b>Per candle, on every interval</b>: volume and actual liquidations are totals over the candle; open interest is the value at the candle's close; the heatmap column and the liquidation map show the levels still open at the candle's close (not a sum over the candle).</p>
     </div>
