@@ -30,6 +30,11 @@
    "on_exchange": "BTC",
    "quote": "KRW"
   },
+  "fut/BTCUSDT/okx": {
+   "symbol": "BTCUSDT_PERP.3",
+   "on_exchange": "BTC-USDT-SWAP",
+   "denom": "BASE_ASSET"
+  },
   "fut/BTCUSDT/binance": {
    "symbol": "BTCUSDT_PERP.A",
    "on_exchange": "BTCUSDT",
@@ -38,11 +43,6 @@
   "fut/BTCUSDT/bybit": {
    "symbol": "BTCUSDT.6",
    "on_exchange": "BTCUSDT",
-   "denom": "BASE_ASSET"
-  },
-  "fut/BTCUSDT/okx": {
-   "symbol": "BTCUSDT_PERP.3",
-   "on_exchange": "BTC-USDT-SWAP",
    "denom": "BASE_ASSET"
   },
   "spot/ETHUSDT/coinbase": {
@@ -75,6 +75,11 @@
    "on_exchange": "ETH",
    "quote": "KRW"
   },
+  "fut/ETHUSDT/okx": {
+   "symbol": "ETHUSDT_PERP.3",
+   "on_exchange": "ETH-USDT-SWAP",
+   "denom": "BASE_ASSET"
+  },
   "fut/ETHUSDT/binance": {
    "symbol": "ETHUSDT_PERP.A",
    "on_exchange": "ETHUSDT",
@@ -83,11 +88,6 @@
   "fut/ETHUSDT/bybit": {
    "symbol": "ETHUSDT.6",
    "on_exchange": "ETHUSDT",
-   "denom": "BASE_ASSET"
-  },
-  "fut/ETHUSDT/okx": {
-   "symbol": "ETHUSDT_PERP.3",
-   "on_exchange": "ETH-USDT-SWAP",
    "denom": "BASE_ASSET"
   }
  },
@@ -330,6 +330,12 @@
     true
    ],
    [
+    "BTCEURCV.K",
+    "XBT/EURCV",
+    "EURCV",
+    true
+   ],
+   [
     "BTCAUSD.K",
     "XBT/AUSD",
     "AUSD",
@@ -525,6 +531,13 @@
     true
    ]
   ],
+  "fut/BTCUSDT/okx": [
+   [
+    "BTCUSDT_PERP.3",
+    "BTC-USDT-SWAP",
+    "BASE_ASSET"
+   ]
+  ],
   "fut/BTCUSDT/binance": [
    [
     "BTCUSDT_PERP.A",
@@ -536,13 +549,6 @@
    [
     "BTCUSDT.6",
     "BTCUSDT",
-    "BASE_ASSET"
-   ]
-  ],
-  "fut/BTCUSDT/okx": [
-   [
-    "BTCUSDT_PERP.3",
-    "BTC-USDT-SWAP",
     "BASE_ASSET"
    ]
   ],
@@ -673,6 +679,12 @@
     "ETHEUROP.K",
     "ETH/EUROP",
     "EUROP",
+    true
+   ],
+   [
+    "ETHEURCV.K",
+    "ETH/EURCV",
+    "EURCV",
     true
    ],
    [
@@ -871,6 +883,13 @@
     true
    ]
   ],
+  "fut/ETHUSDT/okx": [
+   [
+    "ETHUSDT_PERP.3",
+    "ETH-USDT-SWAP",
+    "BASE_ASSET"
+   ]
+  ],
   "fut/ETHUSDT/binance": [
    [
     "ETHUSDT_PERP.A",
@@ -882,13 +901,6 @@
    [
     "ETHUSDT.6",
     "ETHUSDT",
-    "BASE_ASSET"
-   ]
-  ],
-  "fut/ETHUSDT/okx": [
-   [
-    "ETHUSDT_PERP.3",
-    "ETH-USDT-SWAP",
     "BASE_ASSET"
    ]
   ]
