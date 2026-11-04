@@ -554,6 +554,62 @@ cotChart.subscribeCrosshairMove(p => {
 });
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setCot);
 
+// ---------- Stablecoin supply (data/stablecoins/daily.csv from DefiLlama, collected by collector/stablecoins.py) ----------
+// Same for every coin: total of all US-dollar stablecoins, USDT and USDC, in billions of US$, plus the 30-day change of the total.
+const ST = DATA.stable;
+const stableBox = document.getElementById("stable");
+const fmtB = v => v == null ? "–" : "$" + v.toFixed(Math.abs(v) >= 100 ? 1 : 2) + "B";
+const fmtBd = v => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + "$" + Math.abs(v).toFixed(Math.abs(v) >= 100 ? 0 : 1) + "B";
+const stableChart = LC.createChart(document.getElementById("stablechart"), {
+  autoSize: true,
+  layout: { background: { type: "solid", color: css("--panel") }, textColor: css("--muted"), fontFamily: css("--font-ui"), fontSize: 11, panes: { separatorColor: css("--line") } },
+  grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
+  crosshair: { mode: LC.CrosshairMode.Magnet, vertLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" }, horzLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" } },
+  rightPriceScale: { borderColor: css("--line") },
+  timeScale: { borderColor: css("--line"), timeVisible: false, rightOffset: 2 },
+  localization: { timeFormatter: t => fmtD(t) },
+});
+const stLine = (tok, w) => stableChart.addSeries(LC.LineSeries, { color: css(tok), lineWidth: w, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3, priceFormat: { type: "custom", formatter: fmtB, minMove: 0.01 } }, 0);
+const stTot = stLine("--fg", 2), stUsdt = stLine("--c2", 1.5), stUsdc = stLine("--c4", 1.5);
+const stChg = stableChart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtBd, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, base: 0 }, 1);
+{ const p = stableChart.panes(); if (p[0]) p[0].setStretchFactor(2.2); if (p[1]) p[1].setStretchFactor(1); }
+let stableRange = 365;
+const stBack = (arr, i, days) => { // value `days` calendar days before index i (daily rows, may have gaps)
+  if (!ST || arr[i] == null) return null;
+  const want = ST.t[i] - days * 86400; let j = i;
+  while (j > 0 && ST.t[j] > want) j--;
+  return ST.t[j] <= want && arr[j] != null ? arr[i] - arr[j] : null;
+};
+const stPct = (arr, i, days) => { const d = stBack(arr, i, days); const base = d == null ? null : arr[i] - d; return d == null || !base ? null : 100 * d / base; };
+function stableTable(i) {
+  if (!ST) return;
+  const n = ST.t.length; if (i == null || i < 0 || i >= n) i = n - 1;
+  document.getElementById("stableweek").textContent = `Supply on ${fmtD(ST.t[i])}` + (i === n - 1 ? " (latest, today so far)" : "") + " · US$";
+  const cell = (arr, d) => { const v = stBack(arr, i, d), p = stPct(arr, i, d); return `<td class="${v > 0 ? "pp" : v < 0 ? "pn" : ""}">${fmtBd(v)}${p == null ? "" : `<br><small>${p > 0 ? "+" : p < 0 ? "−" : ""}${Math.abs(p).toFixed(1)}%</small>`}</td>`; };
+  const row = (name, tok, arr) => `<tr><th scope="row"><span class="sw" style="background:var(${tok})"></span>${name}</th><td class="strong">${fmtB(arr[i])}</td>${cell(arr, 7)}${cell(arr, 30)}${cell(arr, 365)}</tr>`;
+  document.getElementById("stablebody").innerHTML = row("All dollar stablecoins", "--fg", ST.total) + row("USDT (Tether)", "--c2", ST.usdt) + row("USDC (Circle)", "--c4", ST.usdc);
+  let pk = 0; for (let j = 0; j <= i; j++) if (ST.total[j] != null && ST.total[j] > (ST.total[pk] ?? -1)) pk = j;
+  document.getElementById("stablefoot").textContent = `Highest total up to this day: ${fmtB(ST.total[pk])} on ${fmtD(ST.t[pk])}` + (pk === i ? " (this day)" : `, now ${(100 * (ST.total[i] / ST.total[pk] - 1)).toFixed(1)}% below`);
+}
+function stableApplyRange() {
+  if (!ST) return;
+  const n = ST.t.length, last = ST.t[n - 1];
+  let from = 0; if (stableRange) while (from < n - 1 && ST.t[from] < last - stableRange * 86400) from++;
+  requestAnimationFrame(() => stableChart.timeScale().setVisibleLogicalRange({ from: from - 0.5, to: n - 1 + 2 }));
+  for (const b of document.querySelectorAll("#stableranges .btn")) b.setAttribute("aria-pressed", +b.dataset.d === stableRange);
+}
+function setStable() {
+  stableBox.hidden = !(ST && ST.t && ST.t.length); if (stableBox.hidden) return;
+  const ln = arr => ST.t.map((t, j) => arr[j] != null ? { time: t, value: arr[j] } : { time: t });
+  stTot.setData(ln(ST.total)); stUsdt.setData(ln(ST.usdt)); stUsdc.setData(ln(ST.usdc));
+  const pos = css("--c1"), neg = css("--c3");
+  stChg.setData(ST.t.map((t, j) => { const v = stBack(ST.total, j, 30); return v == null ? { time: t } : { time: t, value: v, color: v >= 0 ? pos : neg }; }));
+  document.getElementById("stableasof").textContent = `Daily (UTC) · latest: ${fmtD(ST.t[ST.t.length - 1])} · same for BTC and ETH`;
+  stableApplyRange(); stableTable();
+}
+for (const b of document.querySelectorAll("#stableranges .btn")) b.onclick = () => { stableRange = +b.dataset.d; stableApplyRange(); };
+stableChart.subscribeCrosshairMove(p => { if (!ST) return; stableTable(p && p.time != null ? ST.t.indexOf(p.time) : null); });
+
 const B5 = DATA.BTCUSDT, last5 = Math.max(B5.c5.t[B5.c5.t.length - 1] + 300, B5.c1.t[B5.c1.t.length - 1] + 60);
 document.getElementById("asof").textContent = "Data to " + fmtT(last5 + WIB) + " WIB · built " + fmtT(DATA.built + WIB) + " WIB";
 document.getElementById("days").textContent = Math.round((B5.c5.t[B5.c5.t.length - 1] - B5.c5.t[0]) / 86400);
@@ -562,6 +618,7 @@ if (!DATA[state.coin]) state.coin = "BTCUSDT";
 if (!TFS.some(x => x[1] === state.tf)) state.tf = 900;
 pressed();
 setEtf();
+setStable();
 setCot();
 refresh(false, () => applyRange(HIST[state.tf] ? 365 : 3));
 new ResizeObserver(() => requestAnimationFrame(placeLabels)).observe(document.getElementById("chart"));

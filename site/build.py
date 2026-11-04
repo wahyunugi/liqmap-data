@@ -206,8 +206,26 @@ def pack_etf(coin):
                 cols=cols, v={c: nn(df[c]) for c in cols})
 
 
+STABLE_FROM = "2019-01-01"   # sebelum ini data DefiLlama belum lengkap (sebagian rantai/penerbit belum tercatat)
+
+
+def pack_stable():
+    """Pasokan stablecoin berpatok USD per hari (collector/stablecoins.py), miliar USD: total, USDT, USDC."""
+    path = os.path.join(ROOT, "data", "stablecoins", "daily.csv")
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path)
+    df = df[df.date >= STABLE_FROM].reset_index(drop=True)
+    if not len(df):
+        return None
+    nb = lambda s: [None if pd.isna(v) else round(float(v) / 1e9, 3) for v in s]
+    return dict(t=[int(pd.Timestamp(d, tz="UTC").timestamp()) for d in df.date],
+                total=nb(df.total), usdt=nb(df.usdt), usdc=nb(df.usdc))
+
+
 def build():
     out = {"built": int(time.time()), "days": DAYS}
+    out["stable"] = pack_stable()
     out["cftc"] = pack_cftc()
     out["etf"] = {sym: pack_etf(sym.replace("USDT", "")) for sym in PAIRS}
     for sym, nd in PAIRS.items():

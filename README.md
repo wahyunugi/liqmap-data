@@ -26,11 +26,12 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 ## Isi repository
 | Folder | Isi |
 |---|---|
-| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
+| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `stablecoins.py` pasokan stablecoin; `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
 | `heatmap/` | `model.py` aturan model (PARAMS_V6 dipakai); `inputs.py` penggabung sumber data; `snapshot.py` penghitung heatmap |
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
 | `data/liquidations/` | likuidasi nyata dari Coinalyze, 1 dan 5 menit |
+| `data/stablecoins/` | pasokan harian stablecoin berpatok USD (total, USDT, USDC; dolar), dari DefiLlama, sejak Nov 2017 (situs menampilkan sejak 2019) |
 | `data/etf/` | arus harian ETF spot BTC & ETH di AS (juta USD per ETF), dari Farside, sejak Jan 2024 (BTC) / Jul 2024 (ETH) |
 | `data/premium/` | Coinbase premium per 5 menit (sejak 60 hari sebelum 30 Okt 2026) dan per jam (sejak Jun 2021) |
 | `data/cftc/` | laporan mingguan CFTC untuk futures Bitcoin & Ether di CME (`cme_tff.csv`), daftar pasar yang ditemukan (`markets.json`) |
@@ -82,6 +83,13 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
   Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
   tanggal yang sama dengan angka terbaru.
+- **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
+  perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
+  7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
+  (`stablecoins.llama.fi/stablecoincharts/all`, `?stablecoin=1` USDT, `?stablecoin=2` USDC; gratis tanpa kunci),
+  seluruh riwayat diambil ulang `collector/stablecoins.py` tiap jalan `collect` karena DefiLlama merevisi angka; baris
+  hari ini terus berubah sampai hari berganti (UTC). Dicek 4 Nov 2026: USDT $178,1 miliar dan USDC $70,9 miliar sama dengan daftar
+  `stablecoins.llama.fi/stablecoins`. Ditampilkan sejak 2019 karena catatan sebelumnya belum lengkap.
 - **Pane "Long vs short" + panel "Crowd positioning":** rasio akun long/short Binance (semua akun, jumlah akun) dan rasio
   long/short top trader (20% akun dengan saldo margin terbesar, menurut ukuran posisi). Sumber: arsip publik Binance
   (file metrics 5 menit, `count_long_short_ratio` dan `sum_toptrader_long_short_ratio`, sampai kemarin) dan Coinalyze

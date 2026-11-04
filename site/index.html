@@ -73,7 +73,8 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .cothead .asof{margin-right:auto}
 .cotgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
 .cotchartbox{position:relative;height:340px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-#cotchart,#etfchart{position:absolute;inset:0}
+#cotchart,#etfchart,#stablechart{position:absolute;inset:0}
+.cotchartbox.tall{height:400px}
 .cottab{display:grid;gap:6px;min-width:0}
 .cottab .wk{font:500 .8rem var(--font-num);color:var(--fg)}
 .cottab table{width:100%;border-collapse:collapse;font:400 .8rem var(--font-num)}
@@ -94,7 +95,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .crowdtab{overflow-x:auto}
 .crowdtab table{min-width:640px}
 .cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
-@media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}}
+@media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}.cotchartbox.tall{height:340px}}
 @media (max-width:640px){.chartbox{height:96vh;min-height:840px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -166,6 +167,26 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       </div>
     </div>
     <p class="cotnote">Net money into (<span class="pp">above zero</span>) or out of (<span class="pn">below zero</span>) the US spot ETFs each trading day, all funds added together. Spot ETFs (BlackRock IBIT, Fidelity FBTC, and others) must hold real coins, so an inflow means the funds bought that much and an outflow means they sold. Hover the chart to see any day by fund. Source: Farside Investors daily recap, checked hourly. Not every inflow is a bet on price rising: hedge funds often buy the ETF while shorting CME futures to earn the price gap (a basis trade), which is why ETF inflows and the hedge-fund short in the CFTC panel below often grow together.</p>
+  </section>
+
+  <section class="cot" id="stable" aria-labelledby="stable-h" hidden>
+    <div class="cothead">
+      <h2 id="stable-h">Stablecoin supply · dollars inside crypto</h2>
+      <span class="asof" id="stableasof"></span>
+      <div class="grp" role="group" aria-label="Stablecoin range" id="stableranges"><span class="lbl">Range</span><button class="btn" data-d="365">1Y</button><button class="btn" data-d="1095">3Y</button><button class="btn" data-d="0">All</button></div>
+    </div>
+    <div class="cotgrid etfgrid">
+      <div class="cotchartbox tall" aria-label="Stablecoin supply and its 30-day change"><div id="stablechart"></div></div>
+      <div class="cottab">
+        <div class="wk" id="stableweek"></div>
+        <table>
+          <thead><tr><th scope="col" style="text-align:left">Coin</th><th scope="col">Supply</th><th scope="col">7 days</th><th scope="col">30 days</th><th scope="col">1 year</th></tr></thead>
+          <tbody id="stablebody"></tbody>
+        </table>
+        <div class="foot" id="stablefoot"></div>
+      </div>
+    </div>
+    <p class="cotnote">Stablecoins are tokens pegged to one US dollar (USDT from Tether, USDC from Circle, and others). They are the cash traders use inside crypto. When someone deposits dollars with the issuer, new tokens are created and supply rises: fresh money has entered crypto and is ready to buy. When tokens are redeemed for dollars they are destroyed and supply falls: money has left. Top pane: supply in billions of US$ (<span class="sw" style="background:var(--fg)"></span>all dollar stablecoins, <span class="sw" style="background:var(--c2)"></span>USDT, <span class="sw" style="background:var(--c4)"></span>USDC). Bottom pane: change in total supply over the previous 30 days (<span class="pp">growing</span> / <span class="pn">shrinking</span>). Hover the chart to see any day in the table. Rising supply does not guarantee buying: the new tokens can sit idle or go to other coins, but over the years falling supply has usually matched weak crypto markets. Source: DefiLlama, checked hourly; today's figure keeps updating until the day ends (UTC). Shown from 2019, because earlier records are incomplete.</p>
   </section>
 
   <section class="cot" id="cot" aria-labelledby="cot-h" hidden>
