@@ -589,7 +589,7 @@ function stableTable(i) {
   const row = (name, tok, arr) => `<tr><th scope="row"><span class="sw" style="background:var(${tok})"></span>${name}</th><td class="strong">${fmtB(arr[i])}</td>${cell(arr, 7)}${cell(arr, 30)}${cell(arr, 365)}</tr>`;
   document.getElementById("stablebody").innerHTML = row("All dollar stablecoins", "--fg", ST.total) + row("USDT (Tether)", "--c2", ST.usdt) + row("USDC (Circle)", "--c4", ST.usdc);
   let pk = 0; for (let j = 0; j <= i; j++) if (ST.total[j] != null && ST.total[j] > (ST.total[pk] ?? -1)) pk = j;
-  document.getElementById("stablefoot").textContent = `Highest total up to this day: ${fmtB(ST.total[pk])} on ${fmtD(ST.t[pk])}` + (pk === i ? " (this day)" : `, now ${(100 * (ST.total[i] / ST.total[pk] - 1)).toFixed(1)}% below`);
+  document.getElementById("stablefoot").textContent = `Highest total up to this day: ${fmtB(ST.total[pk])} on ${fmtD(ST.t[pk])}` + (pk === i ? " (this day)" : `, this day ${(100 * (1 - ST.total[i] / ST.total[pk])).toFixed(1)}% below it`);
 }
 function stableApplyRange() {
   if (!ST) return;
