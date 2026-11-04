@@ -40,6 +40,11 @@ jobs:
         continue-on-error: true
         run: python collector/etf.py
 
+      - name: Ambil pasokan stablecoin harian (DefiLlama; gagal tidak menghentikan pengumpulan)
+        if: always()
+        continue-on-error: true
+        run: python collector/stablecoins.py
+
       - name: Hitung Coinbase premium (Coinbase vs Binance spot; gagal tidak menghentikan pengumpulan)
         if: always()
         continue-on-error: true
