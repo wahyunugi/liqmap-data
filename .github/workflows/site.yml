@@ -89,7 +89,7 @@ jobs:
             echo "::notice::GitHub Pages belum aktif (Settings -> Pages -> Source: GitHub Actions). Website dibangun tetapi tidak diterbitkan."
           fi
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: steps.pages.outputs.enabled == 'true'
         with:
           path: _site
