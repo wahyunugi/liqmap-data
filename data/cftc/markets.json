@@ -3,9 +3,9 @@
   "code": "133741",
   "market": "BITCOIN - CHICAGO MERCANTILE EXCHANGE",
   "units_text": "(5 Bitcoins)",
-  "rows": 447,
+  "rows": 448,
   "first": "2018-04-10",
-  "last": "2026-10-27",
+  "last": "2026-11-03",
   "used": true,
   "units": 5.0
  },
@@ -13,9 +13,9 @@
   "code": "146021",
   "market": "ETHER CASH SETTLED - CHICAGO MERCANTILE EXCHANGE",
   "units_text": "(50 Index Points)",
-  "rows": 291,
+  "rows": 292,
   "first": "2021-04-06",
-  "last": "2026-10-27",
+  "last": "2026-11-03",
   "used": true,
   "units": 50.0
  },
@@ -23,9 +23,9 @@
   "code": "133742",
   "market": "MICRO BITCOIN - CHICAGO MERCANTILE EXCHANGE",
   "units_text": "(Bitcoin X $0.10)",
-  "rows": 287,
+  "rows": 288,
   "first": "2021-05-04",
-  "last": "2026-10-27",
+  "last": "2026-11-03",
   "used": true,
   "units": 0.1
  },
@@ -33,9 +33,9 @@
   "code": "146022",
   "market": "MICRO ETHER  - CHICAGO MERCANTILE EXCHANGE",
   "units_text": "(0.1 Index Points)",
-  "rows": 255,
+  "rows": 256,
   "first": "2021-12-14",
-  "last": "2026-10-27",
+  "last": "2026-11-03",
   "used": true,
   "units": 0.1
  }
