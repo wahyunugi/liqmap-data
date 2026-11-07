@@ -30,9 +30,9 @@
    "on_exchange": "BTC",
    "quote": "KRW"
   },
-  "fut/BTCUSDT/binance": {
-   "symbol": "BTCUSDT_PERP.A",
-   "on_exchange": "BTCUSDT",
+  "fut/BTCUSDT/okx": {
+   "symbol": "BTCUSDT_PERP.3",
+   "on_exchange": "BTC-USDT-SWAP",
    "denom": "BASE_ASSET"
   },
   "fut/BTCUSDT/bybit": {
@@ -40,9 +40,9 @@
    "on_exchange": "BTCUSDT",
    "denom": "BASE_ASSET"
   },
-  "fut/BTCUSDT/okx": {
-   "symbol": "BTCUSDT_PERP.3",
-   "on_exchange": "BTC-USDT-SWAP",
+  "fut/BTCUSDT/binance": {
+   "symbol": "BTCUSDT_PERP.A",
+   "on_exchange": "BTCUSDT",
    "denom": "BASE_ASSET"
   },
   "spot/ETHUSDT/coinbase": {
@@ -75,9 +75,9 @@
    "on_exchange": "ETH",
    "quote": "KRW"
   },
-  "fut/ETHUSDT/binance": {
-   "symbol": "ETHUSDT_PERP.A",
-   "on_exchange": "ETHUSDT",
+  "fut/ETHUSDT/okx": {
+   "symbol": "ETHUSDT_PERP.3",
+   "on_exchange": "ETH-USDT-SWAP",
    "denom": "BASE_ASSET"
   },
   "fut/ETHUSDT/bybit": {
@@ -85,9 +85,9 @@
    "on_exchange": "ETHUSDT",
    "denom": "BASE_ASSET"
   },
-  "fut/ETHUSDT/okx": {
-   "symbol": "ETHUSDT_PERP.3",
-   "on_exchange": "ETH-USDT-SWAP",
+  "fut/ETHUSDT/binance": {
+   "symbol": "ETHUSDT_PERP.A",
+   "on_exchange": "ETHUSDT",
    "denom": "BASE_ASSET"
   }
  },
@@ -527,10 +527,10 @@
     true
    ]
   ],
-  "fut/BTCUSDT/binance": [
+  "fut/BTCUSDT/okx": [
    [
-    "BTCUSDT_PERP.A",
-    "BTCUSDT",
+    "BTCUSDT_PERP.3",
+    "BTC-USDT-SWAP",
     "BASE_ASSET"
    ]
   ],
@@ -541,10 +541,10 @@
     "BASE_ASSET"
    ]
   ],
-  "fut/BTCUSDT/okx": [
+  "fut/BTCUSDT/binance": [
    [
-    "BTCUSDT_PERP.3",
-    "BTC-USDT-SWAP",
+    "BTCUSDT_PERP.A",
+    "BTCUSDT",
     "BASE_ASSET"
    ]
   ],
@@ -879,10 +879,10 @@
     true
    ]
   ],
-  "fut/ETHUSDT/binance": [
+  "fut/ETHUSDT/okx": [
    [
-    "ETHUSDT_PERP.A",
-    "ETHUSDT",
+    "ETHUSDT_PERP.3",
+    "ETH-USDT-SWAP",
     "BASE_ASSET"
    ]
   ],
@@ -893,10 +893,10 @@
     "BASE_ASSET"
    ]
   ],
-  "fut/ETHUSDT/okx": [
+  "fut/ETHUSDT/binance": [
    [
-    "ETHUSDT_PERP.3",
-    "ETH-USDT-SWAP",
+    "ETHUSDT_PERP.A",
+    "ETHUSDT",
     "BASE_ASSET"
    ]
   ]
