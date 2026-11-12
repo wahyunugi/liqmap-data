@@ -1,3 +1,3 @@
-BTCUSDT: 5373 menit | korelasi(l, return) = -0.33, korelasi(s, return) = +0.20 | porsi l di menit turun = 90%, porsi s di menit naik = 85%
-ETHUSDT: 5421 menit | korelasi(l, return) = -0.37, korelasi(s, return) = +0.23 | porsi l di menit turun = 93%, porsi s di menit naik = 84%
+BTCUSDT: 5393 menit | korelasi(l, return) = -0.32, korelasi(s, return) = +0.20 | porsi l di menit turun = 90%, porsi s di menit naik = 85%
+ETHUSDT: 5434 menit | korelasi(l, return) = -0.37, korelasi(s, return) = +0.23 | porsi l di menit turun = 93%, porsi s di menit naik = 84%
 Kesimpulan: jika korelasi l negatif dan s positif, maka l = likuidasi LONG dan s = likuidasi SHORT.
