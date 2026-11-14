@@ -223,9 +223,39 @@ def pack_stable():
                 total=nb(df.total), usdt=nb(df.usdt), usdc=nb(df.usdc))
 
 
+def pack_hl():
+    """Posisi Hyperliquid (collector/hyperliquid.py): profil terbaru per koin + deret per jam (pangsa long)."""
+    d = os.path.join(ROOT, "data", "hyperliquid")
+    files = sorted(glob.glob(os.path.join(d, "summary", "*.csv")))
+    if not files:
+        return None
+    df = pd.concat([pd.read_csv(f) for f in files]).drop_duplicates(["t", "coin"]).sort_values("t")
+    out = {}
+    pct = lambda a, b: [None if (pd.isna(x) or pd.isna(y) or x + y <= 0) else round(100 * x / (x + y), 2) for x, y in zip(a, b)]
+    for coin in ("BTC", "ETH"):
+        g = df[df.coin == coin].reset_index(drop=True)
+        prof_path = os.path.join(d, "profile", coin + ".json")
+        if not len(g) or not os.path.exists(prof_path):
+            continue
+        g["day"] = g.t // 86400 * 86400
+        sm = g.groupby("day")[["sm_nL", "sm_nS"]].sum()
+        sm = sm[(sm.sm_nL + sm.sm_nS) >= 30]                # hari dengan cukup posisi di sampel akun kecil
+        last = g.iloc[-1]
+        num = lambda v: None if pd.isna(v) else float(v)
+        out[coin + "USDT"] = dict(
+            t=[int(x) for x in g.t], ls=pct(g.szL, g.szS), big=pct(g.big_szL, g.big_szS),
+            cover=[None if not o else round(100 * (a + b) / 2 / o, 1) for a, b, o in zip(g.szL, g.szS, g.oi)],
+            smt=[int(x) for x in sm.index], sm=pct(sm.sm_nL, sm.sm_nS), smn=[int(a + b) for a, b in zip(sm.sm_nL, sm.sm_nS)],
+            last={k: num(last[k]) for k in ("t", "mark", "oi", "queried", "nL", "nS", "szL", "szS", "avgL", "avgS", "lossL", "lossS",
+                                             "big_nL", "big_nS", "big_szL", "big_szS")},
+            prof=json.load(open(prof_path)))
+    return out or None
+
+
 def build():
     out = {"built": int(time.time()), "days": DAYS}
     out["stable"] = pack_stable()
+    out["hl"] = pack_hl()
     out["cftc"] = pack_cftc()
     out["etf"] = {sym: pack_etf(sym.replace("USDT", "")) for sym in PAIRS}
     for sym, nd in PAIRS.items():

@@ -26,11 +26,12 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 ## Isi repository
 | Folder | Isi |
 |---|---|
-| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `stablecoins.py` pasokan stablecoin; `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
+| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `stablecoins.py` pasokan stablecoin; `hyperliquid.py` posisi long/short Hyperliquid; `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
 | `heatmap/` | `model.py` aturan model (PARAMS_V6 dipakai); `inputs.py` penggabung sumber data; `snapshot.py` penghitung heatmap |
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
 | `data/liquidations/` | likuidasi nyata dari Coinalyze, 1 dan 5 menit |
+| `data/hyperliquid/` | posisi BTC/ETH akun Hyperliquid yang dilacak: `summary/<YYYY-MM>.csv` (ringkasan per jam) dan `profile/<KOIN>.json` (snapshot terakhir per kotak harga masuk dan harga likuidasi); hanya Hyperliquid, bukan Binance |
 | `data/stablecoins/` | pasokan harian stablecoin berpatok USD (total, USDT, USDC; dolar), dari DefiLlama, sejak Nov 2017 (situs menampilkan sejak 2019) |
 | `data/etf/` | arus harian ETF spot BTC & ETH di AS (juta USD per ETF), dari Farside, sejak Jan 2024 (BTC) / Jul 2024 (ETH) |
 | `data/premium/` | Coinbase premium per 5 menit (sejak 60 hari sebelum 30 Okt 2026) dan per jam (sejak Jun 2021) |
@@ -83,6 +84,21 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
   Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
   tanggal yang sama dengan angka terbaru.
+- **Panel "Hyperliquid positions":** posisi long dan short NYATA (bukan perkiraan) milik akun Hyperliquid yang dilacak,
+  per harga masuk atau harga likuidasi, plus pangsa long dari waktu ke waktu. Di Binance posisi tiap akun tidak terlihat,
+  jadi harga masuk long dan short tidak bisa dipisahkan (metode klasifikasi transaksi Lee dan Ready 1991 / bulk volume
+  classification yang digabung perubahan open interest sudah diuji pada data repo dan gagal: di pasar turun hampir semua
+  posisi baru terbaca short dan buku long habis dalam beberapa minggu). Hyperliquid mempublikasikan posisi setiap akun
+  (API `info`, tipe `clearinghouseState`). `collector/hyperliquid.py` tiap jam (maks 7 menit) membaca kira-kira 7.000
+  akun terbesar/teraktif dari leaderboard publik (4.000 nilai akun terbesar + 3.000 volume 30 hari terbesar, dibangun
+  ulang tiap hari UTC): semua akun pemegang posisi BTC/ETH ditanya ulang tiap jam, sisanya bergiliran (seluruh semesta
+  terputar kira-kira tiap 6 jam), plus 300 akun kecil acak per jam sebagai pembanding. Daftar pemegang posisi disimpan di
+  cache GitHub Actions (`.cache/hyperliquid`), bukan di repo. Cakupan 14 Nov 2026: sekitar 30 sampai 40% kontrak terbuka
+  Hyperliquid. **Ini data Hyperliquid saja.** Uji satu snapshot 14 Nov 2026: akun kecil sama-sama condong long di kedua
+  bursa (Hyperliquid 67% BTC / 60% ETH per jumlah posisi vs Binance 76% / 79% per akun), tetapi akun besar berlawanan
+  arah (Hyperliquid 43% / 49% long per ukuran vs "top trader" Binance 68% / 66%), dan funding 90 hari kedua bursa hanya
+  berkorelasi 0,25 (BTC) / 0,45 (ETH). Riwayat per jam ini akan diuji terhadap rasio Binance setelah 2 sampai 4 minggu;
+  sampai saat itu jangan dipakai sebagai wakil Binance.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama

@@ -45,6 +45,27 @@ jobs:
         continue-on-error: true
         run: python collector/stablecoins.py
 
+      - name: Ambil status Hyperliquid (daftar akun pemegang posisi) dari cache
+        if: always()
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/hyperliquid
+          key: hyperliquid-${{ github.run_id }}
+          restore-keys: hyperliquid-
+
+      - name: Posisi long/short BTC dan ETH di Hyperliquid (maks 7 menit; gagal tidak menghentikan pengumpulan)
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 9
+        run: python collector/hyperliquid.py
+
+      - name: Simpan status Hyperliquid ke cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/hyperliquid
+          key: hyperliquid-${{ github.run_id }}
+
       - name: Hitung Coinbase premium (Coinbase vs Binance spot; gagal tidak menghentikan pengumpulan)
         if: always()
         continue-on-error: true

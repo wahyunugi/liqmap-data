@@ -73,7 +73,10 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .cothead .asof{margin-right:auto}
 .cotgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
 .cotchartbox{position:relative;height:340px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-#cotchart,#etfchart,#stablechart{position:absolute;inset:0}
+#cotchart,#etfchart,#stablechart,#hlchart{position:absolute;inset:0}
+.hlprofbox{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 4px;min-height:200px}
+.hlprofbox svg{display:block;width:100%;height:auto}
+.hlprofbox text{font-family:var(--font-ui);font-size:10.5px;fill:var(--muted)}
 .cotchartbox.tall{height:400px}
 .cottab{display:grid;gap:6px;min-width:0}
 .cottab .wk{font:500 .8rem var(--font-num);color:var(--fg)}
@@ -148,6 +151,27 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       </table>
     </div>
     <p class="cotnote">The ratio is the number of Binance accounts holding a long position for every account holding a short one (Binance's "long/short account ratio", all accounts). It counts accounts, not money: a $100 account counts the same as a $10 million one. Every contract has a buyer and a seller, so when 70% of accounts are long, the 30% that are short hold on average more than twice as much each; a high ratio means many small accounts long against fewer, bigger accounts short. The chart pane "Long vs short" shows it per candle (purple), next to the same ratio for Binance's top 20% accounts by margin balance, measured by position size (yellow). The table splits every day since the data starts into five equal groups by the day's average ratio, then looks at the price 30 days later. The 30-day windows overlap, so neighbouring days are not independent results, and each group holds only around a dozen truly separate 30-day periods. Read it as how things have tended to go, not as a forecast. Source: Binance public archive (5-minute values, up to yesterday) and Coinalyze (today).</p>
+  </section>
+
+  <section class="cot" id="hl" aria-labelledby="hl-h" hidden>
+    <div class="cothead">
+      <h2 id="hl-h">Hyperliquid positions · real longs vs shorts (this exchange only)</h2>
+      <span class="asof" id="hlasof"></span>
+      <div class="grp" role="group" aria-label="Price shown" id="hlmode"><span class="lbl">Show</span><button class="btn" data-m="entry" aria-pressed="true">Entry price</button><button class="btn" data-m="liq">Liquidation price</button></div>
+    </div>
+    <div class="cotgrid etfgrid">
+      <div class="hlprofbox" id="hlprof" aria-label="Long and short positions by price"></div>
+      <div class="cottab">
+        <div class="wk" id="hlwk"></div>
+        <table>
+          <thead><tr><th scope="col" style="text-align:left"></th><th scope="col"><span class="sw" style="background:var(--c1)"></span>Longs</th><th scope="col"><span class="sw" style="background:var(--c3)"></span>Shorts</th></tr></thead>
+          <tbody id="hlbody"></tbody>
+        </table>
+        <div class="foot" id="hlfoot"></div>
+      </div>
+    </div>
+    <div class="cotchartbox" style="height:220px;margin-top:12px" aria-label="Share of position size that is long, over time"><div id="hlchart"></div></div>
+    <p class="cotnote">On Binance the positions of individual accounts are hidden, so where longs and shorts entered cannot be measured there. Hyperliquid, an exchange that runs on its own blockchain, publishes every account's position: side, size, average entry price and liquidation price. Each hour this site reads the BTC and ETH positions of about 7,000 of its largest and most active accounts (rebuilt daily from Hyperliquid's public leaderboard), which hold roughly a third of Hyperliquid's open contracts. Top: tracked positions by price (<span class="sw" style="background:var(--c1)"></span>longs to the right, <span class="sw" style="background:var(--c3)"></span>shorts to the left; the dashed line is the current price). An account that added to its position in steps shows up once, at its average entry. Liquidation prices of accounts on cross margin depend on the whole account and move as its other positions change. Bottom: share of tracked position size that is long (<span class="sw" style="background:var(--fg)"></span>all tracked accounts, <span class="sw" style="background:var(--c2)"></span>accounts worth $1 million or more) and share of positions that are long among a random sample of 300 smaller accounts per hour, averaged per day (<span class="sw" style="background:var(--c4)"></span>; shown when a day has at least 30 positions). <b>This is Hyperliquid only, not Binance.</b> A first check on 14 Nov 2026 found small accounts leaning long on both exchanges, but large Hyperliquid accounts net short while Binance's top traders were net long, and the two exchanges' funding rates moved together only weakly. The hourly history collected here will be tested against Binance after two to four weeks. Source: Hyperliquid public API.</p>
   </section>
 
   <section class="cot" id="etf" aria-labelledby="etf-h" hidden>

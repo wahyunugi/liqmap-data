@@ -617,8 +617,94 @@ document.getElementById("cover").textContent = `Coverage: 1D/1W/1M from the Bina
 if (!DATA[state.coin]) state.coin = "BTCUSDT";
 if (!TFS.some(x => x[1] === state.tf)) state.tf = 900;
 pressed();
+// ---------- Hyperliquid positions (data/hyperliquid from collector/hyperliquid.py) ----------
+// Real long and short positions of tracked Hyperliquid accounts, by entry price or liquidation price. Hyperliquid only.
+const HL = DATA.hl || {};
+const hlBox = document.getElementById("hl");
+let hlMode = "entry";
+const hlChart = LC.createChart(document.getElementById("hlchart"), {
+  autoSize: true,
+  layout: { background: { type: "solid", color: css("--panel") }, textColor: css("--muted"), fontFamily: css("--font-ui"), fontSize: 11 },
+  grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
+  crosshair: { mode: LC.CrosshairMode.Magnet, vertLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" }, horzLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" } },
+  rightPriceScale: { borderColor: css("--line") },
+  timeScale: { borderColor: css("--line"), timeVisible: true, rightOffset: 2 },
+  localization: { timeFormatter: t => fmtT(t + WIB) + " WIB" },
+});
+const hlPct = { type: "custom", formatter: v => v.toFixed(0) + "%", minMove: 0.1 };
+const hlAll = hlChart.addSeries(LC.LineSeries, { color: css("--fg"), lineWidth: 2, priceLineVisible: false, priceFormat: hlPct });
+const hlBig = hlChart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 1.5, priceLineVisible: false, priceFormat: hlPct });
+const hlSmall = hlChart.addSeries(LC.LineSeries, { color: css("--c4"), lineWidth: 1.5, priceLineVisible: false, priceFormat: hlPct, lineStyle: 0, pointMarkersVisible: true });
+hlAll.createPriceLine({ price: 50, color: "#3a4150", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+const svgEl = (tag, attrs, text) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+function hlProfile(H) {
+  const P = H.prof, coin = state.coin.replace("USDT", ""), step = P.step, mark = P.mark;
+  const L = hlMode === "entry" ? P.entryL : P.liqL, S = hlMode === "entry" ? P.entryS : P.liqS;
+  const span = hlMode === "entry" ? 0.3 : 0.4;                      // rows within +-30% (entry) or +-40% (liquidation) of price
+  const v = (o, k) => +(o[String(k)] || 0);
+  let lo = Math.floor(mark * (1 - span) / step) * step, hi = Math.floor(mark * (1 + span) / step) * step;
+  const has = Object.keys(L).concat(Object.keys(S)).map(Number).filter(k => k >= lo && k <= hi && (v(L, k) > 0 || v(S, k) > 0));
+  if (has.length) {                                                 // trim empty rows, keep a little room around the price
+    const m0 = Math.floor(mark / step) * step;
+    lo = Math.min(Math.min(...has), m0 - 2 * step); hi = Math.max(Math.max(...has), m0 + 2 * step);
+  }
+  const rows = []; for (let k = hi; k >= lo; k -= step) rows.push(k);
+  let mx = 0; for (const k of rows) mx = Math.max(mx, v(L, k), v(S, k));
+  const box = document.getElementById("hlprof"); box.innerHTML = "";
+  if (!mx) { box.textContent = "No tracked positions in this range yet."; return; }
+  const rh = 13, W = Math.max(300, Math.min(700, (box.clientWidth || 600) - 8)), lab = 66, cx = lab + (W - lab) / 2, half = (W - lab) / 2 - 4, H2 = rows.length * rh + 22;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H2}`, role: "img", "aria-label": `${coin} long and short positions by ${hlMode === "entry" ? "entry" : "liquidation"} price` });
+  const cL = css("--c1"), cS = css("--c3"), dec = step < 1 ? 2 : 0;
+  svg.appendChild(svgEl("text", { x: cx + 6, y: 11 }, "Longs →"));
+  svg.appendChild(svgEl("text", { x: cx - 6, y: 11, "text-anchor": "end" }, "← Shorts"));
+  rows.forEach((k, j) => {
+    const y = 18 + j * rh, l = v(L, k), s = v(S, k);
+    if (j % Math.max(1, Math.round(rows.length / 18)) === 0) svg.appendChild(svgEl("text", { x: lab - 6, y: y + rh - 3, "text-anchor": "end" }, "$" + k.toLocaleString("en-US", { maximumFractionDigits: dec })));
+    const tip = (side, q) => `${side} ${hlMode === "entry" ? "entered" : "liquidated"} at $${k.toLocaleString("en-US")}–${(k + step).toLocaleString("en-US")}: ${qty(q)} ${coin} ($${(q * mark / 1e6).toFixed(1)}M at today's price)`;
+    if (l > 0) { const r = svgEl("rect", { x: cx, y: y + 1, width: Math.max(1, half * l / mx), height: rh - 2, fill: cL, rx: 1 }); r.appendChild(svgEl("title", {}, tip("Longs", l))); svg.appendChild(r); }
+    if (s > 0) { const w = Math.max(1, half * s / mx); const r = svgEl("rect", { x: cx - w, y: y + 1, width: w, height: rh - 2, fill: cS, rx: 1 }); r.appendChild(svgEl("title", {}, tip("Shorts", s))); svg.appendChild(r); }
+  });
+  svg.appendChild(svgEl("line", { x1: cx, x2: cx, y1: 16, y2: H2 - 2, stroke: css("--line") }));
+  const ym = 18 + (hi - mark) / step * rh + rh / 2;
+  svg.appendChild(svgEl("line", { x1: lab, x2: W, y1: ym, y2: ym, stroke: css("--fg"), "stroke-dasharray": "4 3", "stroke-width": 1 }));
+  svg.appendChild(svgEl("text", { x: W - 2, y: ym - 3, "text-anchor": "end", style: "fill:var(--fg)" }, `now $${mark.toLocaleString("en-US", { maximumFractionDigits: dec })}`));
+  box.appendChild(svg);
+}
+function hlTable(H) {
+  const s = H.last, coin = state.coin.replace("USDT", ""), mark = s.mark, n = H.t.length;
+  const usd = q => "$" + (q * mark / 1e6).toFixed(0) + "M";
+  const pctv = x => x == null ? "–" : (100 * x).toFixed(0) + "%";
+  const money = x => x == null ? "–" : "$" + x.toLocaleString("en-US", { maximumFractionDigits: x < 100 ? 2 : 0 });
+  const bigShare = s.big_szL + s.big_szS > 0 ? 100 * s.big_szL / (s.big_szL + s.big_szS) : null;
+  const sm = H.sm.length ? H.sm[H.sm.length - 1] : null;
+  document.getElementById("hlwk").textContent = `Tracked accounts on ${fmtT(s.t + WIB)} WIB · ${coin}`;
+  const row = (name, a, b, cls = "") => `<tr><th scope="row">${name}</th><td class="${cls}">${a}</td><td class="${cls}">${b}</td></tr>`;
+  document.getElementById("hlbody").innerHTML =
+    row("Accounts", s.nL.toLocaleString("en-US"), s.nS.toLocaleString("en-US")) +
+    row(`Position size<small>${coin} (US$ at today's price)</small>`, `${qty(s.szL)} (${usd(s.szL)})`, `${qty(s.szS)} (${usd(s.szS)})`, "strong") +
+    row("Average entry price", money(s.avgL), money(s.avgS)) +
+    row("Share of size in loss", pctv(s.lossL), pctv(s.lossS)) +
+    row(`Accounts worth $1M or more<small>share of their size</small>`, bigShare == null ? "–" : bigShare.toFixed(0) + "%", bigShare == null ? "–" : (100 - bigShare).toFixed(0) + "%") +
+    (sm == null ? "" : row(`Smaller accounts, random sample<small>share of positions, ${fmtD(H.smt[H.smt.length - 1])} (${H.smn[H.smn.length - 1]} positions)</small>`, sm.toFixed(0) + "%", (100 - sm).toFixed(0) + "%"));
+  document.getElementById("hlfoot").textContent = `Tracked: about ${H.cover[n - 1] == null ? "–" : H.cover[n - 1].toFixed(0) + "%"} of Hyperliquid's ${qty(s.oi)} ${coin} open contracts · ${s.queried.toLocaleString("en-US")} accounts checked this hour`;
+}
+function setHl() {
+  const H = HL[state.coin];
+  hlBox.hidden = !H; if (!H) return;
+  const ln = (t, a) => t.map((x, j) => a[j] != null ? { time: x, value: a[j] } : { time: x });
+  hlAll.setData(ln(H.t, H.ls)); hlBig.setData(ln(H.t, H.big)); hlSmall.setData(ln(H.smt, H.sm));
+  requestAnimationFrame(() => hlChart.timeScale().fitContent());
+  document.getElementById("hlasof").textContent = `Hourly · started 14 Nov 2026 · ${H.t.length} snapshot${H.t.length === 1 ? "" : "s"} so far`;
+  for (const b of document.querySelectorAll("#hlmode .btn")) b.setAttribute("aria-pressed", b.dataset.m === hlMode);
+  hlProfile(H); hlTable(H);
+}
+for (const b of document.querySelectorAll("#hlmode .btn")) b.onclick = () => { hlMode = b.dataset.m; setHl(); };
+{ let hlRs = null; window.addEventListener("resize", () => { clearTimeout(hlRs); hlRs = setTimeout(() => { const H = HL[state.coin]; if (H && !hlBox.hidden) hlProfile(H); }, 200); }); }
+for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setHl);
+
 setEtf();
 setStable();
+setHl();
 setCot();
 refresh(false, () => applyRange(HIST[state.tf] ? 365 : 3));
 new ResizeObserver(() => requestAnimationFrame(placeLabels)).observe(document.getElementById("chart"));
