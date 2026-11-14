@@ -47,7 +47,7 @@ jobs:
 
       - name: Ambil status Hyperliquid (daftar akun pemegang posisi) dari cache
         if: always()
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .cache/hyperliquid
           key: hyperliquid-${{ github.run_id }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: Simpan status Hyperliquid ke cache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .cache/hyperliquid
           key: hyperliquid-${{ github.run_id }}

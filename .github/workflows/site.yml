@@ -43,7 +43,7 @@ jobs:
 
       - name: Ambil arsip Binance dari cache
         id: bcache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .cache/binance
           key: binance-${{ steps.day.outputs.day }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: Simpan arsip Binance ke cache (sekali sehari)
         if: steps.bcache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .cache/binance
           key: binance-${{ steps.day.outputs.day }}
