@@ -49,7 +49,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .thr input{width:110px;accent-color:#fde725}
 .thr output{font:500 .8rem var(--font-num);color:var(--fg);width:2.6em}
 .scale{width:70px;height:8px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)}
-.chartbox{position:relative;height:min(100vh,1260px);min-height:860px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chartbox{position:relative;height:min(100vh,1380px);min-height:940px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
 #chart{position:absolute;inset:0}
 .legend{position:absolute;left:10px;top:8px;z-index:5;pointer-events:none;font:400 .78rem var(--font-num);display:grid;gap:3px;max-width:calc(100% - 90px);text-shadow:0 0 3px #000,0 0 6px #000}
 .legend .sym{font:600 .92rem var(--font-ui);letter-spacing:.02em}
@@ -125,6 +125,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
   <div class="chartbox">
     <div id="chart"></div>
     <div class="legend" id="legend"></div>
+    <div class="plabel" id="plR"></div>
     <div class="plabel" id="pl1"></div>
     <div class="plabel" id="pl2"></div>
     <div class="plabel" id="pl3"></div>
@@ -243,6 +244,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     </div>
     <div>
       <h2>Lower panes</h2>
+      <p><b>RSI 14</b>: the Relative Strength Index (J. Welles Wilder, 1978) of the candles shown, over 14 candles: 70 or more means strong recent buying ("overbought"), 30 or less strong recent selling ("oversold"). Arrows and lines mark regular divergences, found with the same rules as TradingView's built-in "RSI Divergence Indicator": an RSI turning point (lower or higher than the 5 candles on each side) is compared with the previous one 5 to 60 candles earlier. <span class="pp">Bullish</span>: price makes a lower low but RSI a higher low, so the selling is losing force. <span class="pn">Bearish</span>: price makes a higher high but RSI a lower high. Solid line on the RSI pane, dashed line on the price. A turning point is only known 5 candles later, so each divergence appears 5 candles after the low or high. A divergence shows momentum fading, not that the trend has turned: in a strong trend several can appear in a row before price reverses, and some never lead to one.</p>
       <p><b>Actual liquidations</b>: recorded on Binance (Coinalyze feed). Shorts liquidated plot upward, longs liquidated downward. Undercounts the real total, because Binance publishes only the largest liquidation per coin per second.</p>
       <p><b>Open interest</b>: the total size of futures positions still open on Binance, in coins (each contract has a buyer and a seller and is counted once). Rising = new positions opening; falling = positions closing or being liquidated. The heatmap is built from its increases.</p>
       <p><b>Volume</b>: coins traded per candle.</p>

@@ -84,6 +84,13 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
   Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
   tanggal yang sama dengan angka terbaru.
+- **Pane "RSI 14"** (tepat di bawah harga): RSI 14 candle (Wilder 1978, perataan Wilder) dari candle yang sedang
+  ditampilkan, garis 70/50/30, dan divergensi reguler dengan aturan yang sama seperti indikator bawaan TradingView "RSI
+  Divergence Indicator": titik balik RSI = lebih rendah/tinggi dari 5 candle di kiri dan kanan, dibandingkan dengan titik
+  balik sebelumnya 5 sampai 60 candle sebelumnya. Bullish = harga lower low tetapi RSI higher low; bearish = harga higher
+  high tetapi RSI lower high. Panah + garis di pane RSI, garis putus-putus di harga (40 divergensi terakhir). Muncul 5
+  candle terlambat karena titik balik baru pasti setelah 5 candle. Dihitung di browser (`site/app.js`, `rsiCalc`,
+  `rsiDivergences`); RSI dicek sama persis (selisih 0) dengan perhitungan Wilder di Python pada 400 hari data BTC.
 - **Panel "Hyperliquid positions":** posisi long dan short NYATA (bukan perkiraan) milik akun Hyperliquid yang dilacak,
   per harga masuk atau harga likuidasi, plus pangsa long dari waktu ke waktu. Di Binance posisi tiap akun tidak terlihat,
   jadi harga masuk long dan short tidak bisa dipisahkan (metode klasifikasi transaksi Lee dan Ready 1991 / bulk volume

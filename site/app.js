@@ -170,26 +170,31 @@ const chart = LC.createChart(document.getElementById("chart"), {
   localization: { timeFormatter: t => fmtT(t) + " WIB" },
 });
 const candles = chart.addSeries(LC.CandlestickSeries, { upColor: css("--up"), downColor: css("--down"), borderUpColor: css("--up"), borderDownColor: css("--down"), wickUpColor: css("--up"), wickDownColor: css("--down"), priceLineColor: "#9aa3b5", priceLineStyle: 2 }, 0);
+// RSI pane (pane 1): 14-period RSI (Wilder) of the shown candles, with regular divergences marked
+const rsiS = chart.addSeries(LC.LineSeries, { color: css("--c4"), lineWidth: 1.5, priceFormat: { type: "custom", formatter: v => v.toFixed(1), minMove: 0.1 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 100 } }) }, 1);
+for (const [v, st] of [[70, 2], [30, 2], [50, 3]]) rsiS.createPriceLine({ price: v, color: "#3a4150", lineWidth: 1, lineStyle: st, axisLabelVisible: false });
+rsiS.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.04 } });
+const rsiMarks = LC.createSeriesMarkers(rsiS, []);
 const fmtUsd = { type: "custom", formatter: v => usd(v), minMove: 1 };
-const liqS = chart.addSeries(LC.HistogramSeries, { color: css("--short"), priceFormat: fmtUsd, lastValueVisible: false, priceLineVisible: false, base: 0 }, 1);
-const liqL = chart.addSeries(LC.HistogramSeries, { color: css("--long"), priceFormat: fmtUsd, lastValueVisible: false, priceLineVisible: false, base: 0 }, 1);
-const oiS = chart.addSeries(LC.LineSeries, { color: css("--oi"), lineWidth: 2, priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 2);
-const volS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: false, priceLineVisible: false }, 3);
+const liqS = chart.addSeries(LC.HistogramSeries, { color: css("--short"), priceFormat: fmtUsd, lastValueVisible: false, priceLineVisible: false, base: 0 }, 2);
+const liqL = chart.addSeries(LC.HistogramSeries, { color: css("--long"), priceFormat: fmtUsd, lastValueVisible: false, priceLineVisible: false, base: 0 }, 2);
+const oiS = chart.addSeries(LC.LineSeries, { color: css("--oi"), lineWidth: 2, priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 3);
+const volS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: qty, minMove: 0.001 }, lastValueVisible: false, priceLineVisible: false }, 4);
 const fmtPrem = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(3) + "%";
-const premS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPrem, minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 4);
+const premS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPrem, minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 5);
 const fmtR = v => v.toFixed(2);
-const lsrA = chart.addSeries(LC.LineSeries, { color: css("--c4"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtR, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 5);
-const lsrT = chart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtR, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 5);
+const lsrA = chart.addSeries(LC.LineSeries, { color: css("--c4"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtR, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 6);
+const lsrT = chart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtR, minMove: 0.001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 6);
 lsrA.createPriceLine({ price: 1, color: "#3a4150", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 const fmtNet = v => (v > 0 ? "+" : v < 0 ? "−" : "") + qty(v);
-const cvdUS = chart.addSeries(LC.LineSeries, { color: css("--c1"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtNet, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 6);
-const cvdNU = chart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtNet, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 6);
+const cvdUS = chart.addSeries(LC.LineSeries, { color: css("--c1"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtNet, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 7);
+const cvdNU = chart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceFormat: { type: "custom", formatter: fmtNet, minMove: 0.01 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 7);
 cvdUS.createPriceLine({ price: 0, color: "#3a4150", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 const fmtPct = d => v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d) + "%";
-const fundS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPct(4), minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 7);
-const basS = chart.addSeries(LC.LineSeries, { color: css("--fg"), lineWidth: 1.5, priceFormat: { type: "custom", formatter: fmtPct(3), minMove: 0.0001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 7);
+const fundS = chart.addSeries(LC.HistogramSeries, { priceFormat: { type: "custom", formatter: fmtPct(4), minMove: 0.0001 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 8);
+const basS = chart.addSeries(LC.LineSeries, { color: css("--fg"), lineWidth: 1.5, priceFormat: { type: "custom", formatter: fmtPct(3), minMove: 0.0001 }, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3 }, 8);
 const panes = chart.panes();
-[5, 1.3, 1.1, 0.8, 0.9, 0.9, 1.1, 1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
+[5, 1.25, 1.3, 1.1, 0.8, 0.9, 0.9, 1.1, 1].forEach((f, i) => panes[i] && panes[i].setStretchFactor(f));
 
 // heatmap + liquidation-map primitive on the candle series
 const heat = {
@@ -327,13 +332,14 @@ function renderLegend() {
   document.getElementById("pl7").innerHTML = `<b>Futures vs spot · funding</b>` +
     (r.bas != null ? `<span>futures ${fmtPct(3)(r.bas)} vs spot</span> <span class="k">(Binance)</span>` : `<span class="k">gap –</span>`) + " · " +
     (r.fund != null ? `<span class="${r.fund >= 0 ? "cb" : "ca"}">funding ${fmtPct(4)(r.fund)}</span> <span class="k">per 8h, avg Binance/Bybit/OKX: ${r.fund >= 0 ? "longs pay shorts" : "shorts pay longs"}</span>` : `<span class="k">funding –</span>`);
+  rsiLabel(i);
   const pr = document.getElementById("pl4"), P = DATA[c].prem;
   pr.innerHTML = `<b>Coinbase premium</b>` + (r.prem != null ? `<span class="${r.prem >= 0 ? "pp" : "pn"}">${fmtPrem(r.prem)}</span> <span class="k">${r.prem >= 0 ? "Coinbase pricier: US buyers more eager" : "Coinbase cheaper: US sellers more eager"}</span>`
     : (() => { const S = P && P[HIST[state.tf] ? "d1" : "m5"]; return !S ? "no data" : r.b < S.t0 ? "no data before " + fmtT(S.t0 + WIB) : "not available for this candle yet"; })());
 }
 function placeLabels() {
-  let y = 0; const ids = ["pl1", "pl2", "pl3", "pl4", "pl5", "pl6", "pl7"];
-  for (let p = 0; p < 8; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
+  let y = 0; const ids = ["plR", "pl1", "pl2", "pl3", "pl4", "pl5", "pl6", "pl7"];
+  for (let p = 0; p < 9; p++) { const h = chart.paneSize(p).height; if (p > 0) document.getElementById(ids[p - 1]).style.top = (y + 5) + "px"; y += h + 1; }
 }
 chart.subscribeCrosshairMove(p => {
   const i = (p && p.logical != null && p.point) ? Math.round(p.logical) : null;
@@ -341,6 +347,87 @@ chart.subscribeCrosshairMove(p => {
   state.hoverPrice = (state.hover != null && p.paneIndex === 0 && p.point) ? candles.coordinateToPrice(p.point.y) : null;
   renderLegend(); if (state.map) heat.update();
 });
+
+// ---------- RSI and divergences ----------
+// RSI = Relative Strength Index (J. Welles Wilder, 1978), 14 candles, Wilder smoothing, on the candles shown.
+// 70 or more = strong recent buying ("overbought"), 30 or less = strong recent selling ("oversold").
+// Divergence, same rules as TradingView's built-in "RSI Divergence Indicator": an RSI turning point is a low (high) below
+// (above) the 5 candles on each side; it is compared with the previous turning point 5 to 60 candles earlier.
+//   bullish: price makes a lower low but RSI makes a higher low  -> selling is losing force
+//   bearish: price makes a higher high but RSI makes a lower high -> buying is losing force
+// A turning point is only known 5 candles after it happens, so each divergence appears 5 candles late.
+const RSI_N = 14, PIV = 5, DIV_MIN = 5, DIV_MAX = 60, DIV_LINES = 40;
+function rsiCalc(c) {
+  const n = c.length, out = new Array(n).fill(null); if (n <= RSI_N) return out;
+  let g = 0, l = 0;
+  for (let i = 1; i <= RSI_N; i++) { const d = c[i] - c[i - 1]; if (d > 0) g += d; else l -= d; }
+  g /= RSI_N; l /= RSI_N; out[RSI_N] = l === 0 ? 100 : 100 - 100 / (1 + g / l);
+  for (let i = RSI_N + 1; i < n; i++) {
+    const d = c[i] - c[i - 1];
+    g = (g * (RSI_N - 1) + Math.max(d, 0)) / RSI_N; l = (l * (RSI_N - 1) + Math.max(-d, 0)) / RSI_N;
+    out[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l);
+  }
+  return out;
+}
+function rsiDivergences(B, r) { // -> [{type, i1, i2, conf}] ; conf = candle index where it becomes known (i2 + PIV)
+  const pivot = (i, lowSide) => {
+    if (r[i] == null || i < PIV || i + PIV >= r.length) return false;
+    for (let k = 1; k <= PIV; k++) {
+      const a = r[i - k], b = r[i + k]; if (a == null || b == null) return false;
+      if (lowSide ? (a <= r[i] || b < r[i]) : (a >= r[i] || b > r[i])) return false;
+    }
+    return true;
+  };
+  const out = []; let pl = null, ph = null;
+  for (let i = 0; i < r.length; i++) {
+    if (pivot(i, true)) {
+      if (pl != null && i - pl >= DIV_MIN && i - pl <= DIV_MAX && B[i].l < B[pl].l && r[i] > r[pl]) out.push({ type: "bull", i1: pl, i2: i, conf: i + PIV });
+      pl = i;
+    }
+    if (pivot(i, false)) {
+      if (ph != null && i - ph >= DIV_MIN && i - ph <= DIV_MAX && B[i].h > B[ph].h && r[i] < r[ph]) out.push({ type: "bear", i1: ph, i2: i, conf: i + PIV });
+      ph = i;
+    }
+  }
+  return out;
+}
+const divPool = []; // pairs of 2-point line series (RSI pane + price pane) reused across redraws
+function divLine(k) {
+  if (!divPool[k]) {
+    const o = { lineWidth: 1.5, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, pointMarkersVisible: false, autoscaleInfoProvider: () => null };
+    divPool[k] = [chart.addSeries(LC.LineSeries, o, 1), chart.addSeries(LC.LineSeries, { ...o, lineStyle: 2 }, 0)];
+  }
+  return divPool[k];
+}
+let rsiVals = [], rsiDivs = [];
+function drawRsi() {
+  rsiVals = rsiCalc(bars.map(r => r.c));
+  rsiS.setData(bars.map((r, i) => rsiVals[i] != null ? { time: r.time, value: rsiVals[i] } : { time: r.time }));
+  rsiDivs = rsiDivergences(bars, rsiVals).filter(d => d.conf < bars.length);
+  const bull = css("--c1"), bear = css("--c3");
+  rsiMarks.setMarkers(rsiDivs.map(d => ({ time: bars[d.i2].time, position: d.type === "bull" ? "belowBar" : "aboveBar",
+    color: d.type === "bull" ? bull : bear, shape: d.type === "bull" ? "arrowUp" : "arrowDown", size: 0.6 })));
+  const recent = rsiDivs.slice(-DIV_LINES);
+  for (let k = 0; k < Math.max(divPool.length, recent.length); k++) {
+    const [lr, lp] = divLine(k), d = recent[k];
+    if (!d) { lr.setData([]); lp.setData([]); continue; }
+    const col = d.type === "bull" ? bull : bear, a = bars[d.i1], b = bars[d.i2];
+    lr.applyOptions({ color: col }); lp.applyOptions({ color: col });
+    lr.setData([{ time: a.time, value: rsiVals[d.i1] }, { time: b.time, value: rsiVals[d.i2] }]);
+    lp.setData(d.type === "bull" ? [{ time: a.time, value: a.l }, { time: b.time, value: b.l }] : [{ time: a.time, value: a.h }, { time: b.time, value: b.h }]);
+  }
+}
+function rsiLabel(i) {
+  const v = rsiVals[i], c = state.coin;
+  let last = null; for (let k = rsiDivs.length - 1; k >= 0; k--) if (rsiDivs[k].conf <= i) { last = rsiDivs[k]; break; }
+  const zone = v == null ? "" : v >= 70 ? ` <span class="k">(70+: strong recent buying)</span>` : v <= 30 ? ` <span class="k">(30 or less: strong recent selling)</span>` : "";
+  let dtxt = `<span class="k">no divergence yet in this view</span>`;
+  if (last) {
+    const a = bars[last.i1], b = bars[last.i2], bu = last.type === "bull", ago = i - last.i2;
+    dtxt = `<span class="${bu ? "pp" : "pn"}">${bu ? "bullish" : "bearish"} divergence</span> <span class="k">at ${fmtT(b.time)} WIB (${ago} candle${ago === 1 ? "" : "s"} ago): price ${bu ? "low" : "high"} ${fmtP(bu ? a.l : a.h, c)} → ${fmtP(bu ? b.l : b.h, c)}, RSI ${rsiVals[last.i1].toFixed(1)} → ${rsiVals[last.i2].toFixed(1)}</span>`;
+  }
+  document.getElementById("plR").innerHTML = `<b>RSI 14</b>${v == null ? "–" : v.toFixed(1)}${zone} · ${dtxt}`;
+}
 
 // ---------- data loading / controls ----------
 function setData(keepRange) {
@@ -360,6 +447,7 @@ function setData(keepRange) {
   const fP = css("--c2"), fN = css("--c4");
   fundS.setData(bars.map(r => r.fund != null ? { time: r.time, value: r.fund, color: r.fund >= 0 ? fP : fN } : { time: r.time }));
   basS.setData(bars.map(r => r.bas != null ? { time: r.time, value: r.bas } : { time: r.time }));
+  drawRsi();
   // running total of net aggressive spot buying (taker buy minus taker sell), per group. Both lines start at 0 on the
   // first bar where EVERY venue shown in this view has data, so the totals cover the same period and the same venues.
   const venues = US_V.concat(NU_V).filter(v => bars.some(r => r.sv && r.sv[v]));
