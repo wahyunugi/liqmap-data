@@ -572,8 +572,23 @@ function renderCrowd() {
   document.getElementById("crowdhdr2").textContent = `${C.recent_from.slice(0, 4)}–now`;
 }
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", renderCrowd);
+// Principles section: live Binance account ratio for both coins under principle 1
+function renderRuleNow() {
+  const el = document.getElementById("rulenow"); if (!el) return;
+  const parts = [];
+  for (const c of COINS) {
+    const C = CROWD[c]; if (!C) continue;
+    let v = null; const m = C.m5;
+    if (m) for (let i = m.acc.length - 1; i >= 0; i--) if (m.acc[i] != null) { v = m.acc[i]; break; }
+    if (v == null) v = C.latest_lsr;
+    if (v == null) continue;
+    const zone = v >= 2.5 ? ["pn", "crowd still heavily long"] : v >= 2.0 ? ["cb", "in between"] : ["pp", "crowd has backed off"];
+    parts.push(`${c.replace("USDT", "")} <b>${v.toFixed(2)}</b> <span class="${zone[0]}">(${zone[1]})</span>`);
+  }
+  el.innerHTML = parts.length ? "Now: " + parts.join(" · ") : "";
+}
 Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))
-  .then(() => { renderCrowd(); if (bars.length) setData(true); });
+  .then(() => { renderCrowd(); renderRuleNow(); if (bars.length) setData(true); });
 
 // ---------- CME institutions: CFTC weekly report (data/cftc/cme_tff.csv, collected by collector/cftc.py) ----------
 // Positions in coins, all CME contracts of the coin added together (big + micro). Net = long - short; spread positions

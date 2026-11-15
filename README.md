@@ -84,6 +84,11 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
   Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
   tanggal yang sama dengan angka terbaru.
+- **Panel "Principles":** tujuh temuan yang lolos uji ketat (rasio akun Binance sebagai sinyal utama, ETH = BTC dengan
+  risiko turun lebih besar, uang nyata mengonfirmasi bukan mendahului, dst.) dan daftar hal yang terbukti tidak bekerja.
+  Teks statis di `site/index.html` (ditinjau 15 Nov 2026); baris "Now" di prinsip 1 hidup, dari rasio akun terbaru
+  (`renderRuleNow` di `site/app.js`). Uji: entri 24 jam setelah low bertahan, menang = +15% sebelum -10% dalam 60 hari,
+  dicek per periode 2020-21, 2022-23, 2024-26. Perbarui teks bila uji ulang (mis. dengan koin lain) mengubah angkanya.
 - **Pane "RSI 14"** (tepat di bawah harga): RSI 14 candle (Wilder 1978, perataan Wilder) dari candle yang sedang
   ditampilkan, garis 70/50/30, dan divergensi reguler dengan aturan yang sama seperti indikator bawaan TradingView "RSI
   Divergence Indicator": titik balik RSI = lebih rendah/tinggi dari 5 candle di kiri dan kanan, dibandingkan dengan titik
