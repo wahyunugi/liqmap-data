@@ -1,0 +1,29 @@
+name: research-data
+
+# Mengunduh data riset tambahan (koin lain per jam dari arsip Binance + data makro FRED) ke research/data. Jalan manual.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unduh dan ringkas
+        run: |
+          pip install --quiet -r requirements.txt
+          python research/fetch_alts.py
+      - name: Simpan hasil
+        run: |
+          git config user.name "liqmap-bot"
+          git config user.email "liqmap-bot@users.noreply.github.com"
+          git add research/data
+          if git diff --cached --quiet; then echo "tidak ada perubahan"; else
+            git commit -m "research: data koin lain per jam + makro $(date -u +%Y-%m-%d)"; git pull --rebase; git push; fi
