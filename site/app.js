@@ -575,17 +575,20 @@ for (const k of COINS) document.getElementById("coin-" + k).addEventListener("cl
 // Principles section: live Binance account ratio for both coins under principle 1
 function renderRuleNow() {
   const el = document.getElementById("rulenow"); if (!el) return;
+  const lastOf = arr => { if (arr) for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]; return null; };
   const parts = [];
   for (const c of COINS) {
     const C = CROWD[c]; if (!C) continue;
-    let v = null; const m = C.m5;
-    if (m) for (let i = m.acc.length - 1; i >= 0; i--) if (m.acc[i] != null) { v = m.acc[i]; break; }
-    if (v == null) v = C.latest_lsr;
-    if (v == null) continue;
-    const zone = v >= 2.5 ? ["pn", "crowd still heavily long"] : v >= 2.0 ? ["cb", "in between"] : ["pp", "crowd has backed off"];
-    parts.push(`${c.replace("USDT", "")} <b>${v.toFixed(2)}</b> <span class="${zone[0]}">(${zone[1]})</span>`);
+    const m = C.m5 || {};
+    const acc = lastOf(m.acc) ?? C.latest_lsr, top = lastOf(m.top) ?? C.latest_tpr;
+    if (acc == null && top == null) continue;
+    const z = (v, lo, hi) => v >= hi ? "pn" : v >= lo ? "cb" : "pp";
+    let t = c.replace("USDT", "") + ": ";
+    if (acc != null) t += `accounts <b class="${z(acc, 2.0, 2.5)}">${acc.toFixed(2)}</b>`;
+    if (top != null) t += `${acc != null ? ", " : ""}top traders <b class="${z(top, 1.2, 1.9)}">${top.toFixed(2)}</b>`;
+    parts.push(t);
   }
-  el.innerHTML = parts.length ? "Now: " + parts.join(" · ") : "";
+  el.innerHTML = parts.length ? "Now (long per short): " + parts.join(" · ") + ` <span style="color:var(--muted)">green = low, yellow = in between, pink = heavily long; top-trader figure can lag by a day</span>` : "";
 }
 Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))
   .then(() => { renderCrowd(); renderRuleNow(); if (bars.length) setData(true); });

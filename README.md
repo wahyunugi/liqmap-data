@@ -84,11 +84,14 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Dicek 30 Okt 2026: jumlah seluruh hari BTC = $57.691,3 jt, sama dengan baris Total Farside ($57.691 jt).
   Angka satu hari terbit setelah pasar AS tutup (±04.00 WIB) dan bisa direvisi esok harinya; tiap jalan menimpa
   tanggal yang sama dengan angka terbaru.
-- **Panel "Principles":** tujuh temuan yang lolos uji ketat (rasio akun Binance sebagai sinyal utama, ETH = BTC dengan
-  risiko turun lebih besar, uang nyata mengonfirmasi bukan mendahului, dst.) dan daftar hal yang terbukti tidak bekerja.
-  Teks statis di `site/index.html` (ditinjau 15 Nov 2026); baris "Now" di prinsip 1 hidup, dari rasio akun terbaru
-  (`renderRuleNow` di `site/app.js`). Uji: entri 24 jam setelah low bertahan, menang = +15% sebelum -10% dalam 60 hari,
-  dicek per periode 2020-21, 2022-23, 2024-26. Perbarui teks bila uji ulang (mis. dengan koin lain) mengubah angkanya.
+- **Panel "Principles":** temuan yang lolos uji ketat dan daftar hal yang terbukti tidak bekerja. Teks statis di
+  `site/index.html` (ditinjau 16 Nov 2026); baris "Now" di prinsip 1 hidup (`renderRuleNow` di `site/app.js`: rasio akun
+  dan rasio top trader terbaru). Uji ulang 16 Nov 2026 di 8 koin (BTC, ETH, SOL, BNB, XRP, DOGE, ADA, LINK; data per jam
+  dari arsip Binance lewat workflow `research-data` -> `research/data/hourly`, makro FRED -> `research/data/macro.csv`):
+  `research/turning_points.py`. Aturan: low/high 10 hari yang berjarak >= 3 ayunan mingguan normal dari high/low 60 hari,
+  entri 24 jam setelah bertahan, menang = 2,25 ayunan searah sebelum 1,5 melawan dalam 60 hari. Hasil: rasio akun
+  (skor 0,58, sama arah 2022-23 dan 2024-26, p blok-minggu 0,03) dan rasio top trader (0,65, p 0,006) bertahan; besar
+  pantulan, kecepatan turunnya rasio, dan variabel makro tidak. Perbarui teks dan tanggal bila uji ulang mengubah angka.
 - **Pane "RSI 14"** (tepat di bawah harga): RSI 14 candle (Wilder 1978, perataan Wilder) dari candle yang sedang
   ditampilkan, garis 70/50/30, dan divergensi reguler dengan aturan yang sama seperti indikator bawaan TradingView "RSI
   Divergence Indicator": titik balik RSI = lebih rendah/tinggi dari 5 candle di kiri dan kanan, dibandingkan dengan titik
