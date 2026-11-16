@@ -32,7 +32,7 @@ const fmtP = (v, s) => v.toLocaleString("en-US", { minimumFractionDigits: dec(s)
 const fmtT = t => { const d = new Date(t * 1000); const p = n => String(n).padStart(2, "0");
   return `${p(d.getUTCDate())} ${d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; };
 
-const state = { coin: "BTCUSDT", tf: 900, heat: true, map: true, thr: 0.6, hover: null, hoverPrice: null };
+const state = { coin: "BTCUSDT", tf: 900, heat: true, map: true, fib: true, thr: 0.6, hover: null, hoverPrice: null };
 try { const s = JSON.parse(localStorage.getItem("liqmap-ui") || "{}"); Object.assign(state, s); } catch (e) {}
 const COINS = ["BTCUSDT", "ETHUSDT"];
 const stores = {};
@@ -312,7 +312,7 @@ function renderLegend() {
   if (state.hoverPrice != null && r.snap >= 0) { const h = binAt(i, state.hoverPrice);
     if (h) heatTxt = `<div class="row"><span><span class="k">Heat ${fmtP(h.low, c)}–${fmtP(h.high, c)}</span> ${usd(h.l + h.s)}</span>${h.l > 0 ? `<span class="lg">long ${usd(h.l)}</span>` : ""}${h.s > 0 ? `<span class="sh">short ${usd(h.s)}</span>` : ""}</div>`; }
   legend.innerHTML = `<div class="row"><span class="sym">${c.replace("USDT", "")}/USDT Perp · Binance · ${tfName}</span><span class="k">${fmtT(r.time)} WIB</span></div>
-    <div class="row"><span><span class="k">O</span> <span class="${cls}">${fmtP(r.o, c)}</span></span><span><span class="k">H</span> <span class="${cls}">${fmtP(r.h, c)}</span></span><span><span class="k">L</span> <span class="${cls}">${fmtP(r.l, c)}</span></span><span><span class="k">C</span> <span class="${cls}">${fmtP(r.c, c)}</span></span><span class="${cls}">${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%</span></div>${heatTxt}`;
+    <div class="row"><span><span class="k">O</span> <span class="${cls}">${fmtP(r.o, c)}</span></span><span><span class="k">H</span> <span class="${cls}">${fmtP(r.h, c)}</span></span><span><span class="k">L</span> <span class="${cls}">${fmtP(r.l, c)}</span></span><span><span class="k">C</span> <span class="${cls}">${fmtP(r.c, c)}</span></span><span class="${cls}">${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%</span></div>${heatTxt}${fibText()}`;
   const lp = document.getElementById("pl1"), op = document.getElementById("pl2"), vp = document.getElementById("pl3");
   lp.innerHTML = `<b>Actual liquidations</b>` + (r.hasLiq ? `<span class="sh">shorts ${usd(r.liqS)}</span> · <span class="lg">longs ${usd(r.liqL)}</span> <span class="k">Binance</span>` +
     (r.lqL != null ? ` · <span class="k">+ Bybit & OKX: shorts ${usd(r.lqS)}, longs ${usd(r.lqL)}</span>` : "") : `no data before ${fmtT(DATA[c][state.tf === 60 ? "l1" : "l5"].first + WIB)}`);
@@ -429,6 +429,45 @@ function rsiLabel(i) {
   document.getElementById("plR").innerHTML = `<b>RSI 14</b>${v == null ? "–" : v.toFixed(1)}${zone} · ${dtxt}`;
 }
 
+// ---------- Fibonacci retracement of the swing in view ----------
+// Takes the highest high and the lowest low among the candles in view. If the low came first the swing is up and the
+// levels show how much of that rise has been given back (0 = the high, 1 = the low); if the high came first the swing is
+// down and the levels show how much of the fall has been recovered (0 = the low, 1 = the high). Levels are spaced on a
+// log scale (equal percentage steps), the same way as the 0.618 check in the Principles section. They follow the view:
+// zoom or scroll to choose another swing. Tested on this data, 0.618 held no better than 0.5 or 0.7 (see Principles).
+const FIB = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+let fibLines = [], fibInfo = null, fibTimer = null;
+function fibCalc() {
+  const vr = chart.timeScale().getVisibleLogicalRange(); if (!vr || !bars.length) return null;
+  const i0 = Math.max(0, Math.ceil(vr.from)), i1 = Math.min(bars.length - 1, Math.floor(vr.to));
+  if (i1 - i0 < 10) return null;
+  let hi = i0, lo = i0;
+  for (let i = i0; i <= i1; i++) { if (bars[i].h > bars[hi].h) hi = i; if (bars[i].l < bars[lo].l) lo = i; }
+  if (hi === lo) return null;
+  const H = bars[hi].h, L = bars[lo].l, up = lo < hi, k = Math.log(H / L);
+  return { hi, lo, H, L, up, lv: FIB.map(r => ({ r, p: up ? H * Math.exp(-r * k) : L * Math.exp(r * k) })) };
+}
+function drawFib() {
+  fibInfo = state.fib ? fibCalc() : null;
+  if (!fibInfo) { fibLines.forEach(l => candles.removePriceLine(l)); fibLines = []; renderLegend(); return; }
+  fibInfo.lv.forEach((x, j) => {
+    const end = x.r === 0 || x.r === 1;
+    const o = { price: x.p, color: end ? "#6b7385" : x.r === 0.618 ? "#e0a21a" : "rgba(201,133,0,0.55)", lineWidth: 1, lineStyle: end ? 0 : 2, axisLabelVisible: true, axisLabelColor: "#2b3240", axisLabelTextColor: "#e6e9ef", title: "fib " + x.r };
+    if (fibLines[j]) fibLines[j].applyOptions(o); else fibLines[j] = candles.createPriceLine(o);
+  });
+  renderLegend();
+}
+function fibText() {
+  if (!fibInfo) return "";
+  const c = state.coin, f = fibInfo, a = f.up ? f.lo : f.hi, b = f.up ? f.hi : f.lo, px = bars[bars.length - 1].c;
+  const day = i => fmtT(bars[i].time).slice(0, HIST[state.tf] ? 6 : 12);
+  // where the latest price sits between two neighbouring levels
+  const s = f.lv.slice().sort((x, y) => x.p - y.p); let pos = px < s[0].p ? `below ${s[0].r}` : px > s[s.length - 1].p ? `above ${s[s.length - 1].r}` : "";
+  for (let j = 0; !pos && j + 1 < s.length; j++) if (px >= s[j].p && px <= s[j + 1].p) pos = `between ${s[j].r} and ${s[j + 1].r}`;
+  return `<div class="row"><span><span class="k">Fib of the swing in view:</span> ${f.up ? "low" : "high"} ${fmtP(f.up ? f.L : f.H, c)} <span class="k">(${day(a)})</span> → ${f.up ? "high" : "low"} ${fmtP(f.up ? f.H : f.L, c)} <span class="k">(${day(b)})</span></span><span class="k">latest price ${pos}</span></div>`;
+}
+chart.timeScale().subscribeVisibleLogicalRangeChange(() => { clearTimeout(fibTimer); fibTimer = setTimeout(drawFib, 120); });
+
 // ---------- data loading / controls ----------
 function setData(keepRange) {
   const prev = keepRange ? chart.timeScale().getVisibleRange() : null;
@@ -458,7 +497,7 @@ function setData(keepRange) {
   cvdUS.setData(bars.map((r, i) => { if (from < 0 || i < from || !r.us) return { time: r.time }; cu += 2 * r.us[1] - r.us[0]; return { time: r.time, value: cu }; }));
   cvdNU.setData(bars.map((r, i) => { if (from < 0 || i < from || !r.nu) return { time: r.time }; cn += 2 * r.nu[1] - r.nu[0]; return { time: r.time, value: cn }; }));
   if (prev) { try { chart.timeScale().setVisibleRange(prev); } catch (e) { applyRange(3); } }
-  renderLegend(); heat.update(); requestAnimationFrame(placeLabels);
+  drawFib(); heat.update(); requestAnimationFrame(placeLabels);
 }
 function applyRange(days) {
   const ts = chart.timeScale(); if (!bars.length) return;
@@ -467,7 +506,7 @@ function applyRange(days) {
   const from = Math.max(bars[0].time, last - days * 86400);
   ts.setVisibleRange({ from, to: last });
 }
-function save() { try { localStorage.setItem("liqmap-ui", JSON.stringify({ coin: state.coin, tf: state.tf, heat: state.heat, map: state.map, thr: state.thr })); } catch (e) {} }
+function save() { try { localStorage.setItem("liqmap-ui", JSON.stringify({ coin: state.coin, tf: state.tf, heat: state.heat, map: state.map, fib: state.fib, thr: state.thr })); } catch (e) {} }
 function pressed() {
   for (const k of COINS) document.getElementById("coin-" + k).setAttribute("aria-pressed", k === state.coin);
   for (const [n, s] of TFS) document.getElementById("tf-" + n).setAttribute("aria-pressed", s === state.tf);
@@ -486,6 +525,8 @@ const optHeat = document.getElementById("optHeat"), optMap = document.getElement
 optHeat.checked = state.heat; optMap.checked = state.map; thr.value = state.thr; thrv.textContent = (+state.thr).toFixed(2);
 optHeat.onchange = () => { state.heat = optHeat.checked; save(); heat.update(); };
 optMap.onchange = () => { state.map = optMap.checked; save(); heat.update(); };
+const optFib = document.getElementById("optFib"); optFib.checked = state.fib;
+optFib.onchange = () => { state.fib = optFib.checked; save(); drawFib(); };
 thr.oninput = () => { state.thr = +thr.value; thrv.textContent = state.thr.toFixed(2); save(); heat.update(); };
 let busy = 0;
 function refresh(keepRange, after) { // load what the interval needs (history file or browser calculation), then draw
@@ -602,8 +643,61 @@ function renderRuleNow() {
   el.innerHTML = parts.length ? "Now (long per short): " + parts.join(" · ") + ` <span style="color:var(--muted)">green = low, yellow = in between, pink = heavily long; top-trader figure can lag by a day</span>` : "";
   if (card) { card.hidden = !rows.length; document.getElementById("rulecardbody").innerHTML = rows.join(""); }
 }
+// ---------- Big-move risk: which way big moves went in the past under today's conditions (research/big_moves.py) ----------
+// A big move = 6-hour price change of at least 3 x the normal 6-hour swing (standard deviation of hourly changes over the
+// last 720 hours x sqrt(6)). Table: BTC + ETH, Sep 2020 to Nov 2026, moves at least 24 hours apart: [moves up, all moves].
+// Rows: account ratio under 1.5, 1.5 to 2.5, above 2.5. Columns: more long liquidations within 2% below price, more
+// short liquidations within 2% above price (untouched levels on the 24-hour liquidation map), either.
+const RISK = [[[73, 105], [59, 98], [132, 204]], [[50, 91], [39, 101], [91, 195]], [[19, 45], [8, 53], [27, 103]]];
+const RISK_PILE = [[142, 242], [106, 255], [250, 502]];
+const RISK_ROWS = ["Accounts long per short under 1.5", "1.5 to 2.5", "Above 2.5"];
+function riskNow(coin) { // -> { thr, acc, L, S } for the latest closed 5-minute candle
+  const c5 = DATA[coin].c5, n = c5.t.length, px = c5.c[n - 1];
+  const hc = []; for (let i = n - 1; i >= 0 && hc.length < 721; i--) if ((c5.t[i] + 300) % 3600 === 0) hc.push(c5.c[i]);
+  let thr = null;
+  if (hc.length === 721) { const r = []; for (let i = 0; i < 720; i++) r.push(hc[i] / hc[i + 1] - 1);
+    const m = r.reduce((a, b) => a + b, 0) / r.length, sd = Math.sqrt(r.reduce((a, b) => a + (b - m) * (b - m), 0) / (r.length - 1));
+    thr = 3 * sd * Math.sqrt(6) * 100; }
+  const st = getStore(coin), s = st.n - 1, B = st.B; let L = 0, S = 0;
+  for (let q = st.start[s]; q < st.start[s + 1]; q++) { const d = (B.off - B.dx + (st.bins[q] + 0.5) * B.w) / px - 1;
+    if (d < 0 && d >= -0.02) L += st.lv[q]; else if (d > 0 && d <= 0.02) S += st.sv[q]; }
+  const m = (CROWD[coin] || {}).m5 || {}; let acc = null;
+  if (m.acc) for (let i = m.acc.length - 1; i >= 0; i--) if (m.acc[i] != null) { acc = m.acc[i]; break; }
+  if (acc == null && CROWD[coin]) acc = CROWD[coin].latest_lsr ?? null;
+  return { thr, acc, L, S, px, t: c5.t[n - 1] + 300 };
+}
+function renderRisk() {
+  const box = document.getElementById("risk"); if (!box) return;
+  const share = ([u, n]) => 100 * u / n, cls = p => p >= 58 ? "pp" : p <= 42 ? "pn" : "";
+  const here = {}, rows = []; let asof = null;
+  for (const c of COINS) {
+    let R; try { R = riskNow(c); } catch (e) { continue; }
+    const name = c.replace("USDT", ""); asof = R.t;
+    const i = R.acc == null ? null : R.acc < 1.5 ? 0 : R.acc <= 2.5 ? 1 : 2, j = R.L + R.S <= 0 || Math.abs(R.L - R.S) / (R.L + R.S) < 0.05 ? null : R.S > R.L ? 1 : 0;   // within 5% = about even
+    const cell = i != null ? RISK[i][j == null ? 2 : j] : j != null ? RISK_PILE[j] : null;
+    if (i != null) (here[i + "|" + (j == null ? 2 : j)] ||= []).push(name);
+    const p = cell ? share(cell) : null;
+    rows.push(`<tr><th scope="row">${name}</th><td>${R.thr == null ? "–" : `${R.thr.toFixed(1)}% or more in 6 hours<br><small style="color:var(--muted)">about ${usd(R.px * R.thr / 100)} at ${fmtP(R.px, c)}</small>`}</td>` +
+      `<td>${R.acc == null ? "–" : R.acc.toFixed(2)}</td>` +
+      `<td>${R.L + R.S <= 0 ? "–" : `<span class="sh">shorts above ${usd(R.S)}</span> · <span class="lg">longs below ${usd(R.L)}</span><br><small style="color:var(--muted)">${j == null ? "about even" : j ? "more short liquidations above" : "more long liquidations below"}</small>`}</td>` +
+      `<td>${cell ? `<b class="${cls(p)}">${p.toFixed(0)}% went up</b>, ${(100 - p).toFixed(0)}% down<br><small style="color:var(--muted)">${cell[0]} up of ${cell[1]} moves</small>` : "–"}</td></tr>`);
+  }
+  box.hidden = !rows.length; if (!rows.length) return;
+  document.getElementById("risknow").innerHTML = rows.join("");
+  const td = (cell, key) => { const p = share(cell), h = here[key]; return `<td class="${h ? "here" : ""}"><b class="${cls(p)}">${p.toFixed(0)}%</b> <span style="color:var(--muted)">${cell[0]} of ${cell[1]}</span>${h ? h.map(x => ` <span class="tag">${x} now</span>`).join("") : ""}</td>`; };
+  document.getElementById("riskgrid").innerHTML = RISK.map((r, i) => `<tr><th scope="row">${RISK_ROWS[i]}</th>${r.map((cell, j) => td(cell, i + "|" + j)).join("")}</tr>`).join("") +
+    `<tr class="sum"><th scope="row">Any account ratio (moves since 2020 where the map has data, 497)</th>${RISK_PILE.slice(0, 2).map(cell => td(cell, "x")).join("")}<td>–</td></tr>`;
+  document.getElementById("riskasof").textContent = `BTC and ETH · conditions at ${fmtT(asof + WIB)} WIB · past moves: Sep 2020 to Nov 2026`;
+  const cal = (DATA.cal || []).filter(e => e.t > Date.now() / 1000 - 3600), el = document.getElementById("riskcal");
+  const nm = { cpi: "US inflation report (CPI)", fomc: "Fed rate decision" }, seen = {}, parts = [];
+  for (const e of cal) { if (seen[e.k]) continue; seen[e.k] = 1;
+    const d = new Date((e.t + WIB) * 1000), hrs = (e.t - Date.now() / 1000) / 3600;
+    const when = d.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) + " " + String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0") + " WIB";
+    parts.push(`${nm[e.k]}: <b>${when}</b> (${hrs < 0 ? "now" : hrs < 48 ? "in " + Math.max(1, Math.round(hrs)) + " hours" : "in " + Math.round(hrs / 24) + " days"})`); }
+  el.hidden = !parts.length; el.innerHTML = "Next hours when a big hourly move is more likely: " + parts.join(" · ");
+}
 Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))
-  .then(() => { renderCrowd(); renderRuleNow(); if (bars.length) setData(true); });
+  .then(() => { renderCrowd(); renderRuleNow(); if (bars.length) setData(true); setTimeout(renderRisk, 50); });
 
 // ---------- CME institutions: CFTC weekly report (data/cftc/cme_tff.csv, collected by collector/cftc.py) ----------
 // Positions in coins, all CME contracts of the coin added together (big + micro). Net = long - short; spread positions
@@ -806,6 +900,41 @@ function hlTable(H) {
     (sm == null ? "" : row(`Smaller accounts, random sample<small>share of positions, ${fmtD(H.smt[H.smt.length - 1])} (${H.smn[H.smn.length - 1]} positions)</small>`, sm.toFixed(0) + "%", (100 - sm).toFixed(0) + "%"));
   document.getElementById("hlfoot").textContent = `Tracked: about ${H.cover[n - 1] == null ? "–" : H.cover[n - 1].toFixed(0) + "%"} of Hyperliquid's ${qty(s.oi)} ${coin} open contracts · ${s.queried.toLocaleString("en-US")} accounts checked this hour`;
 }
+// Largest tracked positions and big position changes (data/hyperliquid/whales, collector/hyperliquid.py)
+function hlWhales(H) {
+  const W = H.wh, box = document.getElementById("whbox"), note = document.getElementById("whnote");
+  box.hidden = note.hidden = !(W && W.top && W.top.length); if (box.hidden) return;
+  const coin = state.coin.replace("USDT", ""), mark = W.mark, c = state.coin;
+  const acct = a => `<a href="https://app.hyperliquid.xyz/explorer/address/${a}" target="_blank" rel="noopener" title="${a}">${a.slice(0, 6)}…${a.slice(-4)}</a>`;
+  const m = v => (v < 0 ? "−" : "") + "$" + (Math.abs(v) >= 1e9 ? (Math.abs(v) / 1e9).toFixed(2) + "B" : Math.abs(v) >= 1e6 ? (Math.abs(v) / 1e6).toFixed(1) + "M" : (Math.abs(v) / 1e3).toFixed(0) + "K");
+  const sg = v => (v > 0 ? "+" : v < 0 ? "−" : "");
+  let nl = 0, ns = 0, ul = 0, us = 0; for (const p of W.top) { if (p.sz > 0) { nl++; ul += p.sz * mark; } else { ns++; us -= p.sz * mark; } }
+  document.getElementById("whwk").innerHTML = `${W.top.length} largest tracked ${coin} positions on ${fmtT(W.t + WIB)} WIB · price then ${fmtP(mark, c)} · <span class="pp">${nl} long (${m(ul)})</span> · <span class="pn">${ns} short (${m(us)})</span>`;
+  document.getElementById("whbody").innerHTML = W.top.map(p => {
+    const long = p.sz > 0, q = Math.abs(p.sz), fav = (long ? mark / p.e - 1 : 1 - mark / p.e) * 100, pnl = (mark - p.e) * p.sz;
+    const lq = p.lq == null ? "–" : `${fmtP(p.lq, c)}<br><small>${sg(p.lq - mark)}${Math.abs((p.lq / mark - 1) * 100).toFixed(1)}% from price</small>`;
+    return `<tr><th scope="row">${acct(p.a)}</th><td class="${long ? "pp" : "pn"}">${long ? "long" : "short"}${p.lev ? `<br><small>${p.lev}x</small>` : ""}</td>` +
+      `<td class="strong">${qty(q)} ${coin}<br><small>${m(q * mark)}</small></td><td>${fmtP(p.e, c)}</td>` +
+      `<td class="${fav >= 0 ? "pp" : "pn"}">${sg(fav)}${Math.abs(fav).toFixed(1)}%<br><small>${sg(pnl)}${m(Math.abs(pnl))}</small></td><td>${lq}</td><td>${m(p.av)}</td>` +
+      `<td>${p.since ? fmtT(p.since + WIB) : "before tracking"}</td></tr>`;
+  }).join("");
+  const sideOf = s => s > 0 ? "long" : "short", n = s => qty(Math.abs(s));
+  const text = e => {
+    const d = Math.abs(e.s1 - e.s0) * e.m;
+    if (e.k === "open") return [e.s1 > 0, `opened ${sideOf(e.s1)} ${n(e.s1)} ${coin} (${m(d)})`];
+    if (e.k === "close") return [e.s0 < 0, `closed ${sideOf(e.s0)} ${n(e.s0)} ${coin} (${m(d)})`];
+    if (e.k === "flip") return [e.s1 > 0, `switched ${sideOf(e.s0)} ${n(e.s0)} → ${sideOf(e.s1)} ${n(e.s1)} ${coin}`];
+    if (e.k === "add") return [e.s1 > 0, `added to ${sideOf(e.s1)}: ${n(e.s0)} → ${n(e.s1)} ${coin} (+${m(d)})`];
+    return [e.s1 < 0, `cut ${sideOf(e.s1)}: ${n(e.s0)} → ${n(e.s1)} ${coin} (−${m(d)})`];
+  };
+  const ev = W.ev || [];
+  document.getElementById("whevwk").textContent = `Changes of $5 million or more · last 7 days · ${coin}`;
+  document.getElementById("whevbody").innerHTML = ev.length ? ev.map(e => { const [bull, t] = text(e);
+    return `<tr><th scope="row" style="white-space:nowrap">${fmtT(e.t + WIB)}</th><td>${acct(e.a)} <span class="${bull ? "pp" : "pn"}">${t}</span> <small>at ${fmtP(e.m, c)}</small></td></tr>`; }).join("")
+    : `<tr><th scope="row">–</th><td>No change of $5 million or more recorded yet.</td></tr>`;
+  let b = 0, s = 0; for (const e of ev) { const d = Math.abs(e.s1 - e.s0) * e.m; if (text(e)[0]) b += d; else s += d; }
+  document.getElementById("whfoot").innerHTML = ev.length ? `Shown: <span class="pp">${m(b)} towards long</span> (opened or added longs, closed or cut shorts) · <span class="pn">${m(s)} towards short</span>. Logged since 16 Nov 2026; time is the hourly check, not the trade.` : "Logged since 16 Nov 2026, one check per hour.";
+}
 function setHl() {
   const H = HL[state.coin];
   hlBox.hidden = !H; if (!H) return;
@@ -814,7 +943,7 @@ function setHl() {
   requestAnimationFrame(() => hlChart.timeScale().fitContent());
   document.getElementById("hlasof").textContent = `Hourly · started 14 Nov 2026 · ${H.t.length} snapshot${H.t.length === 1 ? "" : "s"} so far`;
   for (const b of document.querySelectorAll("#hlmode .btn")) b.setAttribute("aria-pressed", b.dataset.m === hlMode);
-  hlProfile(H); hlTable(H);
+  hlProfile(H); hlTable(H); hlWhales(H);
 }
 for (const b of document.querySelectorAll("#hlmode .btn")) b.onclick = () => { hlMode = b.dataset.m; setHl(); };
 { let hlRs = null; window.addEventListener("resize", () => { clearTimeout(hlRs); hlRs = setTimeout(() => { const H = HL[state.coin]; if (H && !hlBox.hidden) hlProfile(H); }, 200); }); }

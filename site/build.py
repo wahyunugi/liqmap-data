@@ -249,13 +249,55 @@ def pack_hl():
             last={k: num(last[k]) for k in ("t", "mark", "oi", "queried", "nL", "nS", "szL", "szS", "avgL", "avgS", "lossL", "lossS",
                                              "big_nL", "big_nS", "big_szL", "big_szS")},
             prof=json.load(open(prof_path)))
+        wh = pack_whales(coin)
+        if wh:
+            out[coin + "USDT"]["wh"] = wh
     return out or None
+
+
+WH_SHOW, WH_EV_DAYS, WH_EV_MAX = 15, 7, 40
+
+
+def pack_whales(coin):
+    """Posisi terbesar (snapshot terakhir) + perubahan besar WH_EV_DAYS hari terakhir, terbaru dulu (collector/hyperliquid.py)."""
+    d = os.path.join(ROOT, "data", "hyperliquid", "whales")
+    path = os.path.join(d, coin + ".json")
+    if not os.path.exists(path):
+        return None
+    w = json.load(open(path))
+    ev = []
+    files = sorted(glob.glob(os.path.join(d, "events_*.csv")))
+    if files:
+        e = pd.concat([pd.read_csv(f) for f in files[-2:]])
+        e = e[(e.coin == coin) & (e.t >= w["t"] - WH_EV_DAYS * 86400)].sort_values("t", ascending=False).head(WH_EV_MAX)
+        ev = [dict(t=int(r.t), a=r.addr, k=r.kind, s0=float(r.sz0), s1=float(r.sz1), m=float(r.mark)) for r in e.itertuples()]
+    return dict(t=w["t"], mark=w["mark"], top=w["top"][:WH_SHOW], ev=ev)
+
+
+def pack_calendar(now):
+    """Jadwal rilis AS berikutnya (site/calendar.csv, diisi tangan dari federalreserve.gov dan bls.gov): keputusan suku
+    bunga Fed (14:00 waktu New York) dan laporan inflasi CPI (08:30 waktu New York) -> waktu UTC."""
+    from zoneinfo import ZoneInfo
+    path = os.path.join(HERE, "calendar.csv")
+    if not os.path.exists(path):
+        return []
+    hhmm = {"fomc": (14, 0), "cpi": (8, 30)}
+    out = []
+    for r in pd.read_csv(path).itertuples():
+        if r.kind not in hhmm:
+            continue
+        h, m = hhmm[r.kind]
+        t = int(pd.Timestamp(r.date).replace(hour=h, minute=m).tz_localize(ZoneInfo("America/New_York")).timestamp())
+        if t >= now - 3600:
+            out.append(dict(t=t, k=r.kind))
+    return sorted(out, key=lambda x: x["t"])[:6]
 
 
 def build():
     out = {"built": int(time.time()), "days": DAYS}
     out["stable"] = pack_stable()
     out["hl"] = pack_hl()
+    out["cal"] = pack_calendar(out["built"])
     out["cftc"] = pack_cftc()
     out["etf"] = {sym: pack_etf(sym.replace("USDT", "")) for sym in PAIRS}
     for sym, nd in PAIRS.items():

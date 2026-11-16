@@ -201,7 +201,8 @@ def whales(coin, mark, res, st, t):
             events.append(dict(t=t, coin=coin, addr=a, kind=kind, sz0=s0, sz1=s1, mark=mark, av=av))
         if s1 != 0:
             prev[a] = s1
-            cur[a] = dict(a=a, sz=round(s1, 5), e=p[2], lq=p[3], lev=p[4] if len(p) > 4 else None, av=round(av), since=since.get(a))
+            cur[a] = dict(a=a, sz=round(s1, 5), e=p[2], lq=None if p[3] is None else round(p[3], 2),
+                          lev=p[4] if len(p) > 4 else None, av=round(av), since=since.get(a))
         else:
             prev.pop(a, None)
     top = sorted(cur.values(), key=lambda x: abs(x["sz"]), reverse=True)[:WH_TOP]
@@ -294,8 +295,9 @@ def run(now=None, fetch=None, lb_rows=None, ctx=None):
         with open(os.path.join(OUT, "profile", coin + ".json.tmp"), "w") as f:
             json.dump(pr, f, separators=(",", ":"))
         os.replace(os.path.join(OUT, "profile", coin + ".json.tmp"), os.path.join(OUT, "profile", coin + ".json"))
-        top, evs = whales(coin, mark, res, st, t)
-        write_whales(coin, mark, t, top, len(res)); wh_events += evs
+        tw = int(now.timestamp())                                  # waktu pengecekan sebenarnya (bukan awal jam)
+        top, evs = whales(coin, mark, res, st, tw)
+        write_whales(coin, mark, tw, top, len(res)); wh_events += evs
     st["wh_seen"] = sorted(set(st.get("wh_seen") or []) | set(res))    # akun yang sudah pernah dicek
     st["wh_started"] = True
     save_state(st)

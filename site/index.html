@@ -102,7 +102,14 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .rules b{color:var(--fg)} .rules li{color:#c3c8d2}
 .rulecard{margin:0 0 12px;max-width:110ch;overflow-x:auto}.rulecard table{width:100%;border-collapse:collapse;font:400 .82rem var(--font-num)}.rulecard th,.rulecard td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}.rulecard thead th{color:var(--muted);font-weight:400;white-space:normal}.rulecard tbody th{text-align:left;color:var(--fg)}.rulecard .foot{color:var(--muted);font-size:.76rem;margin-top:6px;line-height:1.45}
 .rulenow{display:block;margin-top:3px;font:400 .8rem var(--font-num);color:var(--fg)}
-@media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}.cotchartbox.tall{height:340px}}
+.cottab a{color:inherit;text-decoration:underline dotted;text-underline-offset:2px}
+.cottab a:hover{color:var(--fg)}
+.whgrid{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);margin-top:12px}
+.whgrid .crowdtab table{min-width:720px}
+.whev td:last-child{white-space:normal;text-align:left}
+.riskgrid table{min-width:560px}
+.riskgrid td.here{background:var(--raise);color:var(--fg)}
+@media (max-width:900px){.cotgrid,.whgrid{grid-template-columns:1fr}.cotchartbox{height:280px}.cotchartbox.tall{height:340px}}
 @media (max-width:640px){.chartbox{height:96vh;min-height:840px}.thr input{width:80px}.sep{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -123,6 +130,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     <span class="sep"></span>
     <label class="chk"><input type="checkbox" id="optHeat" checked><span class="box"></span><span class="t">Heatmap</span></label>
     <label class="chk"><input type="checkbox" id="optMap" checked><span class="box"></span><span class="t">Liquidation map</span></label>
+    <label class="chk" title="Fibonacci retracement levels of the biggest swing in the part of the chart you are looking at. Zoom or scroll to choose the swing."><input type="checkbox" id="optFib" checked><span class="box"></span><span class="t">Fibonacci</span></label>
     <label class="thr" for="thr" title="Colour scale: yellow = this share of the brightest cell in view. Lower = brighter. 1.0 matches the CoinGlass reference screenshots.">Threshold <span class="scale"></span><input type="range" id="thr" min="0.1" max="1" step="0.05" value="0.6"><output id="thrv">0.60</output></label>
   </div>
 
@@ -143,7 +151,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
   <section class="cot" id="rules" aria-labelledby="rules-h">
     <div class="cothead">
       <h2 id="rules-h">Principles · what the data has shown so far</h2>
-      <span class="asof">Tested on Binance data for 8 coins, 2020 to Nov 2026 · last reviewed 16 Nov 2026 (two-ratio table added)</span>
+      <span class="asof">Tested on Binance data for 8 coins, 2020 to Nov 2026 · last reviewed 16 Nov 2026 (big-move figures recalculated with a fixed, published rule)</span>
     </div>
     <div class="rulecard" id="rulecard" hidden>
       <table>
@@ -154,16 +162,37 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
     </div>
     <ol class="rules">
       <li><b>Watch who is already long, small accounts and big ones.</b> At 411 lows across 8 coins, the more Binance accounts were long, the less often the low worked: under 1.5 long accounts per short account 69% won, 1.5 to 2.0 56%, 2.0 to 2.5 49%, 2.5 to 3.0 45%, 3.0 to 4.0 41%, above 4.0 37%. The top-trader ratio (the largest accounts, by position size) is the stronger signal: lowest two fifths (ratio under about 1.2) won 62% to 69%, the highest fifth (above about 1.9) won 28%. For a long entry, wait for both to come down. <span class="rulenow" id="rulenow"></span></li>
-      <li><b>The same ratios warn at highs and set the direction of big moves.</b> At 589 highs across 8 coins, a real top followed 51% of the time when the top-trader ratio was in its highest fifth (above about 2.45), against 23% in the lowest fifth. Of 1,407 big moves (3 times normal size within 6 hours, 8 coins), 67% were up when the account ratio was under 1.5, 56% at 2.0 to 2.5, and 39% when it was above 4.0. Same direction in 2020 to 2023 and 2024 to 2026. BTC is the most extreme: with the ratio at 3 or more, only 18% of its big moves were up.</li>
+      <li><b>The same ratios warn at highs and set the direction of big moves.</b> At 589 highs across 8 coins, a real top followed 51% of the time when the top-trader ratio was in its highest fifth (above about 2.45), against 23% in the lowest fifth. Of 1,672 big moves (3 times the normal 6-hour swing, at least a day apart, 8 coins), 66% were up when the account ratio was under 1.5, 56% at 2.0 to 2.5, and 37% when it was above 4.0. Same direction in 2020 to 2023 and 2024 to 2026. BTC is the most extreme: with the ratio at 3 or more, only 3 of its 14 big moves were up. The "Big-move risk" panel below shows where BTC and ETH stand now.</li>
       <li><b>ETH is BTC with extra downside.</b> Daily correlation is 0.82 (0.91 in 2026). On days BTC fell 5% or more, ETH fell more 71% of the time. On days BTC rose 5% or more, ETH rose more only 39% of the time. They bottom together (26 of 33 BTC bottoms had an ETH bottom within 3 days) and neither leads the other by an hour. Read BTC's signals even for an ETH trade.</li>
       <li><b>Real money confirms, it does not lead.</b> Spot traders and ETFs were still selling at nearly every real bottom. ETF inflows came in the week after: 63% of reversals against 29% of failed lows. Do not wait for inflows before a bottom, but treat a low as suspect if they do not come after it.</li>
-      <li><b>Big moves go away from the bigger untouched liquidation pile.</b> With more short liquidations stacked above price than long liquidations below, big moves went up only 32% of the time. For ordinary moves the liquidation map shows nothing (50/50).</li>
+      <li><b>Big moves go away from the bigger untouched liquidation pile, most of all when the crowd is long.</b> Of 497 big moves in BTC and ETH since 2020, 42% went up when more short liquidations were stacked within 2% above price than long liquidations within 2% below, against 59% the other way round. With the account ratio also above 2.5, only 8 of 53 went up (15%). For ordinary moves the liquidation map shows nothing (50/50).</li>
       <li><b>Fed decisions and US inflation reports shake the hour, not the day, and the direction is not predictable.</b> In the hours of a Fed rate decision, a big hourly move in BTC was about 5 times more likely than in the same hours on other weekdays (11.6% against 2.2%). In the hours of the monthly US inflation report (CPI, the consumer price index) it was 3 times more likely (11.4% against 3.8%). The monthly jobs report barely mattered (5.3% against 4.1%). The full day was no more likely to be a big day (about 16% either way), and the following week was up no more often than usual. Tested on 56 Fed decisions, 82 inflation reports and 82 jobs reports since 2020.</li>
       <li><b>The 4-year cycle keeps its timing but shrinks in size.</b> The last three tops came 526 to 548 days after the halving. Gains and crashes got smaller each cycle. Only 3 to 4 cycles exist, so this is weak evidence.</li>
     </ol>
     <p class="cotnote"><b>Stops and targets at lows (BTC and ETH, entries since 2020, before fees and funding):</b> with the account ratio under 2.5, a 10% stop with a 15% target won 58% for BTC (average +4.6% per trade, 49 trades) and 47% for ETH (+1.7%, 33 trades). With the ratio at 2.5 or more, every stop and target tested lost money on average. A tight 5% stop did worse than a 10% stop.</p>
     <p class="cotnote"><b>Tested and found not to work on their own:</b> RSI oversold (a coin flip) · TD-9 count (a small one-week bounce at best, worse together with oversold RSI) · Fibonacci 0.618 (no better than 0.5 or 0.7) · the 200-week average as a floor (failed in 2022 and Nov 2026) · long wick, high volume or falling open interest at a low (no edge once measured from a real entry price) · how far price has already bounced from the low · how fast the crowd ratio is falling (the level matters, not the speed) · stock market, dollar and bond-yield trends · "liquidate the longs first, then up" · predicting a strong week from an ordinary day · combining many indicators (worse than the single best one on unseen data).</p>
     <p class="cotnote">How these were tested: each idea was checked on past data with a fixed rule, in separate periods, and kept only if it pointed the same way in each. Lows and highs are 10-day extremes at least three normal weekly swings away from the 60-day high or low, on Binance futures for BTC, ETH, SOL, BNB, XRP, DOGE, ADA and LINK (ratios available since Dec 2021, BTC since Sep 2020). Entry is 24 hours after the low or high has held. A "win" means price then moved 2.25 normal weekly swings in the trade's favour before 1.5 against (for BTC roughly +15% before -10%) within 60 days. Events in the same week are not independent, so the real sample is about 100 to 200 separate weeks: these are odds, not certainties. Not financial advice.</p>
+  </section>
+
+  <section class="cot" id="risk" aria-labelledby="risk-h" hidden>
+    <div class="cothead">
+      <h2 id="risk-h">Big-move risk · if a big move comes, which way</h2>
+      <span class="asof" id="riskasof"></span>
+    </div>
+    <div class="rulecard">
+      <table>
+        <thead><tr><th scope="col" style="text-align:left">Conditions now</th><th scope="col">A big move now means</th><th scope="col">Accounts long per short</th><th scope="col">Untouched liquidations within 2% of price</th><th scope="col">Past big moves in this situation</th></tr></thead>
+        <tbody id="risknow"></tbody>
+      </table>
+    </div>
+    <div class="cottab crowdtab riskgrid">
+      <table>
+        <thead><tr><th scope="col" style="text-align:left">Share of past big moves that went up</th><th scope="col">More long liquidations below price</th><th scope="col">More short liquidations above price</th><th scope="col">Either</th></tr></thead>
+        <tbody id="riskgrid"></tbody>
+      </table>
+    </div>
+    <p class="crowdnow" id="riskcal" hidden></p>
+    <p class="cotnote">This panel does not say whether a big move is coming. It says which way big moves have gone in the past when conditions looked like they do now. A "big move" is a price change over 6 hours of at least 3 times the normal 6-hour swing of the last 30 days; BTC and ETH each had about 3 to 4 a month. The table counts 502 such moves in BTC and ETH from Sep 2020 to Nov 2026, at least a day apart, read from conditions in the hour before the move began. Two readings are used. First, the Binance account ratio (accounts long per account short). Second, which side has more untouched liquidation levels within 2% of price on this site's liquidation map: long liquidations below price or short liquidations above. The map is this site's estimate from open-interest changes, not real positions. The lean towards "down" when many accounts are long held in each of 2020 to 2022, 2023 to 2024 and 2025 to 2026 (about 25% to 29% up). The other rows were less steady from period to period. The moves fall in about 205 separate weeks, so these are odds, not certainties. The dates below the table come from principle 6: in the hour of a Fed decision or a US inflation report, a big hourly move was 3 to 5 times more likely than usual, in either direction. Method and code: <code>research/big_moves.py</code>. Not financial advice.</p>
   </section>
 
   <section class="cot" id="crowd" aria-labelledby="crowd-h" hidden>
@@ -202,7 +231,25 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       </div>
     </div>
     <div class="cotchartbox" style="height:220px;margin-top:12px" aria-label="Share of position size that is long, over time"><div id="hlchart"></div></div>
+    <div class="cotgrid whgrid" id="whbox" hidden>
+      <div class="cottab crowdtab">
+        <div class="wk" id="whwk"></div>
+        <table>
+          <thead><tr><th scope="col" style="text-align:left">Account</th><th scope="col">Side</th><th scope="col">Size</th><th scope="col">Entry price</th><th scope="col" title="Price change in the position's favour since its average entry, and the profit or loss in US$ at the current price">Result so far</th><th scope="col">Liquidation price</th><th scope="col">Account value</th><th scope="col">Held since</th></tr></thead>
+          <tbody id="whbody"></tbody>
+        </table>
+      </div>
+      <div class="cottab whev">
+        <div class="wk" id="whevwk"></div>
+        <table>
+          <thead><tr><th scope="col" style="text-align:left">When (WIB)</th><th scope="col" style="text-align:left">Change</th></tr></thead>
+          <tbody id="whevbody"></tbody>
+        </table>
+        <div class="foot" id="whfoot"></div>
+      </div>
+    </div>
     <p class="cotnote">On Binance the positions of individual accounts are hidden, so where longs and shorts entered cannot be measured there. Hyperliquid, an exchange that runs on its own blockchain, publishes every account's position: side, size, average entry price and liquidation price. Each hour this site reads the BTC and ETH positions of about 7,000 of its largest and most active accounts (rebuilt daily from Hyperliquid's public leaderboard), which hold roughly a third of Hyperliquid's open contracts. Top: tracked positions by price (<span class="sw" style="background:var(--c1)"></span>longs to the right, <span class="sw" style="background:var(--c3)"></span>shorts to the left; the dashed line is the current price). An account that added to its position in steps shows up once, at its average entry. Liquidation prices of accounts on cross margin depend on the whole account and move as its other positions change. Bottom: share of tracked position size that is long (<span class="sw" style="background:var(--fg)"></span>all tracked accounts, <span class="sw" style="background:var(--c2)"></span>accounts worth $1 million or more) and share of positions that are long among a random sample of 300 smaller accounts per hour, averaged per day (<span class="sw" style="background:var(--c4)"></span>; shown when a day has at least 30 positions). <b>This is Hyperliquid only, not Binance.</b> A first check on 14 Nov 2026 found small accounts leaning long on both exchanges, but large Hyperliquid accounts net short while Binance's top traders were net long, and the two exchanges' funding rates moved together only weakly. The hourly history collected here will be tested against Binance after two to four weeks. Source: Hyperliquid public API.</p>
+    <p class="cotnote" id="whnote" hidden><b>Largest positions and big changes.</b> Left: the largest BTC or ETH positions among the tracked accounts at the latest hourly check. "Result so far" is the price change in the position's favour since its average entry, with the profit or loss in US$ at the current price, before fees and funding. Right: every change of $5 million or more in one account's position between two checks (opened, closed, added, cut, or switched side), logged since 16 Nov 2026. An account is a blockchain address, shown shortened; the link opens it on Hyperliquid's own explorer. Limits: positions are read once an hour, so a position opened and closed within the hour is not seen, and the time shown is the check, not the trade. An account that held no BTC or ETH before is re-checked only about every 6 hours, so its first position can appear late. Some of the largest accounts are market makers or one leg of a hedge (for example short here against coins held elsewhere), so a large short is not always a bet on price falling. This has not been tested as a signal.</p>
   </section>
 
   <section class="cot" id="etf" aria-labelledby="etf-h" hidden>

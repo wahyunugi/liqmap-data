@@ -31,7 +31,7 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
 | `data/liquidations/` | likuidasi nyata dari Coinalyze, 1 dan 5 menit |
-| `data/hyperliquid/` | posisi BTC/ETH akun Hyperliquid yang dilacak: `summary/<YYYY-MM>.csv` (ringkasan per jam) dan `profile/<KOIN>.json` (snapshot terakhir per kotak harga masuk dan harga likuidasi); hanya Hyperliquid, bukan Binance |
+| `data/hyperliquid/` | posisi BTC/ETH akun Hyperliquid yang dilacak: `summary/<YYYY-MM>.csv` (ringkasan per jam), `profile/<KOIN>.json` (snapshot terakhir per kotak harga masuk dan harga likuidasi), `whales/` (posisi terbesar dan perubahan besar); hanya Hyperliquid, bukan Binance |
 | `data/stablecoins/` | pasokan harian stablecoin berpatok USD (total, USDT, USDC; dolar), dari DefiLlama, sejak Nov 2017 (situs menampilkan sejak 2019) |
 | `data/etf/` | arus harian ETF spot BTC & ETH di AS (juta USD per ETF), dari Farside, sejak Jan 2024 (BTC) / Jul 2024 (ETH) |
 | `data/premium/` | Coinbase premium per 5 menit (sejak 60 hari sebelum 30 Okt 2026) dan per jam (sejak Jun 2021) |
@@ -95,8 +95,10 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Tabel "Conditions now" (16 Nov 2026): zona rasio akun (<2, 2-3, >3) x rasio top trader (<1,2, 1,2-1,9, >1,9) saat ini per
   koin dan hasil masa lalu di zona itu (konstanta `RULE_LOWS` / `RULE_HIGHS` di `site/app.js`, dari
   `research/turning_points.py`). Dua rasio bersama diuji dengan melatih di 7 koin dan menguji di koin ke-8 bergantian:
-  skor 0,65 (low) dan 0,62 (high). Arah gerakan besar 6 jam di 8 koin (1.407 gerakan): naik 67% saat rasio akun < 1,5,
-  39% saat > 4. Bila uji diulang, perbarui konstanta dan teks bersama-sama.
+  skor 0,65 (low) dan 0,62 (high). Arah gerakan besar 6 jam di 8 koin: dihitung ulang 16 Nov 2026 dengan aturan tetap di
+  `research/big_moves.py` (1.672 gerakan berjarak >= 24 jam: naik 66% saat rasio akun < 1,5, 37% saat > 4; angka lama
+  1.407 / 67% / 39% memakai jarak antar-kejadian yang tidak tercatat dan diganti). Bila uji diulang, perbarui konstanta
+  dan teks bersama-sama.
   Hari rilis (16 Nov 2026): tanggal laporan inflasi (CPI) dan tenaga kerja AS diambil dari daftar "vintage" ALFRED
   (alfred.stlouisfed.org, seri CPIAUCSL dan PAYEMS; vintage revisi tahunan Februari dan koreksi 11 Mei 2020 dibuang),
   tanggal keputusan Fed diketik manual dan dicocokkan dengan perubahan DFEDTARU: `research/data/events.csv`.
@@ -122,6 +124,37 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   arah (Hyperliquid 43% / 49% long per ukuran vs "top trader" Binance 68% / 66%), dan funding 90 hari kedua bursa hanya
   berkorelasi 0,25 (BTC) / 0,45 (ETH). Riwayat per jam ini akan diuji terhadap rasio Binance setelah 2 sampai 4 minggu;
   sampai saat itu jangan dipakai sebagai wakil Binance.
+- **Panel "Big-move risk"** (16 Nov 2026): TIDAK meramal apakah gerakan besar akan terjadi; menunjukkan ke arah mana
+  gerakan besar di masa lalu pergi saat kondisi seperti sekarang. Gerakan besar = perubahan harga 6 jam >= 3 x ayunan
+  6 jam normal (simpangan baku perubahan per jam 720 jam terakhir x akar 6). Dua bacaan: rasio akun Binance (<1,5,
+  1,5-2,5, >2,5) dan sisi tumpukan likuidasi yang lebih besar dalam 2% dari harga di peta likuidasi 24 jam (long di
+  bawah vs short di atas; selisih < 5% dianggap seimbang). Tabel = BTC + ETH, Sep 2020 - Nov 2026, 502 gerakan
+  (konstanta `RISK` / `RISK_PILE` di `site/app.js`, dari `python research/big_moves.py`, yang juga mencetak hasil per
+  periode). Paling stabil: rasio > 2,5 -> hanya 25-29% naik di tiga periode. Prinsip 5 dikoreksi dengan uji yang sama:
+  42% naik bila short di atas lebih besar vs 59% bila long di bawah lebih besar (angka lama 32% tidak bisa direproduksi
+  dengan aturan tetap). Tumpukan dihitung di browser dari kotak harga (selisih beberapa persen dari model Python yang
+  memakai harga level persis). Baris jadwal: keputusan Fed dan rilis CPI berikutnya dari `site/calendar.csv` (diketik
+  tangan dari federalreserve.gov dan bls.gov/schedule/news_release/cpi.htm; jadwal 2027 masih tentatif, PERBARUI tiap
+  akhir tahun), diubah ke WIB oleh `pack_calendar` di `site/build.py`.
+- **Garis Fibonacci** (kotak centang "Fibonacci", 16 Nov 2026): retracement 0,236 / 0,382 / 0,5 / 0,618 / 0,786 dari
+  ayunan terbesar di bagian grafik yang sedang terlihat (high tertinggi dan low terendah; yang lebih dulu menentukan
+  arah), skala log (langkah persen sama), dihitung ulang saat grafik digeser atau diperbesar (`fibCalc` di
+  `site/app.js`). Catatan: di uji Principles, 0,618 tidak lebih baik dari 0,5 atau 0,7; garis ini alat bantu baca, bukan
+  sinyal teruji.
+- **Posisi terbesar dan perubahan besar Hyperliquid** (di dalam panel Hyperliquid, 16 Nov 2026): 15 posisi BTC/ETH
+  terbesar di antara akun yang dilacak (alamat, sisi, ukuran, harga masuk, hasil sejauh ini, harga likuidasi, nilai akun)
+  dan daftar perubahan posisi >= $5 juta antara dua pengecekan (buka, tutup, tambah, kurangi, ganti sisi) 7 hari
+  terakhir. Data: `data/hyperliquid/whales/<KOIN>.json` (60 posisi terbesar, ditimpa tiap jam) dan
+  `events_<YYYY-MM>.csv`. Posisi terakhir tiap akun disimpan di cache Actions (`.cache/hyperliquid/state.json`); bila
+  cache hilang, satu jam pertama tidak mencatat kejadian. Batas: dibaca sejam sekali (waktu = waktu cek, bukan waktu
+  transaksi), akun yang sebelumnya tidak punya posisi dicek ulang kira-kira tiap 6 jam, sebagian akun terbesar adalah
+  market maker atau satu kaki lindung nilai. Belum diuji sebagai sinyal.
+- **CVDD tidak ditampilkan** (dicek 16 Nov 2026): satu-satunya sumber gratis yang ditemukan, API BGeometrics
+  (bitcoin-data.com/v1/cvdd), memberi $14.105 pada 15 Nov 2026 dan $4.699 pada 21 Nov 2022, sedangkan angka yang
+  dikutip analis (grafik Axel Adler Jr., CryptoQuant) $46.985 pada 15 Nov 2026 dan dasar 2022 berada di sekitar harga
+  $15.500. Rasio kedua deret juga tidak tetap (3,33 kali di Nov 2026, 3,56 kali di Jan 2026), jadi tidak bisa
+  disetarakan dengan satu faktor. Menampilkan deret yang tidak cocok dengan definisi yang dipakai umum akan menyesatkan.
+  Jalan keluar bila diinginkan: hitung sendiri dari Coin Days Destroyed harian (butuh sumber data on-chain).
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
