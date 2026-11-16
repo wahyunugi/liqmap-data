@@ -652,6 +652,9 @@ function renderRuleNow() {
 const RISK = [[[73, 105], [59, 98], [132, 204]], [[50, 91], [39, 101], [91, 195]], [[19, 45], [8, 53], [27, 103]]];
 const RISK_PILE = [[142, 242], [106, 255], [250, 502]];
 const RISK_ROWS = ["Accounts long per short under 1.5", "1.5 to 2.5", "Above 2.5"];
+// Share of days with a big move starting in the next 24 hours, by time since the last big move ended: under 1 day, 1 to 3,
+// 3 to 7, 7 to 14, over 14 days (research/exp2_clustering.py, 8 coins since 2020; average day 13.0%).
+const RISK_WHEN = [28.7, 14.0, 11.6, 7.9, 9.8];
 function riskNow(coin) { // -> { thr, acc, L, S } for the latest closed 5-minute candle
   const c5 = DATA[coin].c5, n = c5.t.length, px = c5.c[n - 1];
   const hc = []; for (let i = n - 1; i >= 0 && hc.length < 721; i--) if ((c5.t[i] + 300) % 3600 === 0) hc.push(c5.c[i]);
@@ -659,13 +662,22 @@ function riskNow(coin) { // -> { thr, acc, L, S } for the latest closed 5-minute
   if (hc.length === 721) { const r = []; for (let i = 0; i < 720; i++) r.push(hc[i] / hc[i + 1] - 1);
     const m = r.reduce((a, b) => a + b, 0) / r.length, sd = Math.sqrt(r.reduce((a, b) => a + (b - m) * (b - m), 0) / (r.length - 1));
     thr = 3 * sd * Math.sqrt(6) * 100; }
+  // time since the last big move ended (research/exp2_clustering.py): hourly closes, rolling 720-hour swing
+  let since = null, lastUp = null;
+  { const H = []; for (let i = 0; i < n; i++) if ((c5.t[i] + 300) % 3600 === 0) H.push(c5.c[i]);
+    const m = H.length, r = new Float64Array(m); for (let i = 1; i < m; i++) r[i] = H[i] / H[i - 1] - 1;
+    let s1 = 0, s2 = 0; const sd = new Float64Array(m).fill(NaN);
+    for (let i = 1; i < m; i++) { s1 += r[i]; s2 += r[i] * r[i]; if (i > 720) { s1 -= r[i - 720]; s2 -= r[i - 720] * r[i - 720]; }
+      if (i >= 720) sd[i] = Math.sqrt(Math.max(0, (s2 - s1 * s1 / 720) / 719)); }
+    for (let i = m - 7; i >= 720; i--) { const mv = H[i + 6] / H[i] - 1; if (Math.abs(mv) >= 3 * sd[i] * Math.sqrt(6)) { since = m - 1 - (i + 6); lastUp = mv > 0; break; } }
+    if (since == null && m > 720 + 24 * 14) since = Infinity; }           // none in the data on hand (over 14 days)
   const st = getStore(coin), s = st.n - 1, B = st.B; let L = 0, S = 0;
   for (let q = st.start[s]; q < st.start[s + 1]; q++) { const d = (B.off - B.dx + (st.bins[q] + 0.5) * B.w) / px - 1;
     if (d < 0 && d >= -0.02) L += st.lv[q]; else if (d > 0 && d <= 0.02) S += st.sv[q]; }
   const m = (CROWD[coin] || {}).m5 || {}; let acc = null;
   if (m.acc) for (let i = m.acc.length - 1; i >= 0; i--) if (m.acc[i] != null) { acc = m.acc[i]; break; }
   if (acc == null && CROWD[coin]) acc = CROWD[coin].latest_lsr ?? null;
-  return { thr, acc, L, S, px, t: c5.t[n - 1] + 300 };
+  return { thr, acc, L, S, px, t: c5.t[n - 1] + 300, since, lastUp };
 }
 function renderRisk() {
   const box = document.getElementById("risk"); if (!box) return;
@@ -681,7 +693,10 @@ function renderRisk() {
     rows.push(`<tr><th scope="row">${name}</th><td>${R.thr == null ? "–" : `${R.thr.toFixed(1)}% or more in 6 hours<br><small style="color:var(--muted)">about ${usd(R.px * R.thr / 100)} at ${fmtP(R.px, c)}</small>`}</td>` +
       `<td>${R.acc == null ? "–" : R.acc.toFixed(2)}</td>` +
       `<td>${R.L + R.S <= 0 ? "–" : `<span class="sh">shorts above ${usd(R.S)}</span> · <span class="lg">longs below ${usd(R.L)}</span><br><small style="color:var(--muted)">${j == null ? "about even" : j ? "more short liquidations above" : "more long liquidations below"}</small>`}</td>` +
-      `<td>${cell ? `<b class="${cls(p)}">${p.toFixed(0)}% went up</b>, ${(100 - p).toFixed(0)}% down<br><small style="color:var(--muted)">${cell[0]} up of ${cell[1]} moves</small>` : "–"}</td></tr>`);
+      `<td>${cell ? `<b class="${cls(p)}">${p.toFixed(0)}% went up</b>, ${(100 - p).toFixed(0)}% down<br><small style="color:var(--muted)">${cell[0]} up of ${cell[1]} moves</small>` : "–"}</td>` +
+      (() => { if (R.since == null) return "<td>–</td>"; const d = R.since / 24, k = d <= 1 ? 0 : d <= 3 ? 1 : d <= 7 ? 2 : d <= 14 ? 3 : 4, p = RISK_WHEN[k];
+        const ago = R.since === Infinity ? "none for more than 14 days" : `last one (${R.lastUp ? "up" : "down"}) ended ${R.since < 48 ? R.since + " hour" + (R.since === 1 ? "" : "s") : Math.round(d) + " days"} ago`;
+        return `<td><b class="${p >= 20 ? "pn" : ""}">${p.toFixed(0)}%</b> <span style="color:var(--muted)">average day 13%</span><br><small style="color:var(--muted)">${ago}</small></td>`; })() + `</tr>`);
   }
   box.hidden = !rows.length; if (!rows.length) return;
   document.getElementById("risknow").innerHTML = rows.join("");

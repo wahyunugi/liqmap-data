@@ -191,6 +191,12 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   Daftar eksperimen berikutnya (satu per satu, hasil ditulis ke Principles setelah disetujui): 2 gerakan besar
   mengelompok, 3 premi futures tinggi, 4 jam dalam hari, 5 arus order satu sisi, 6 rentetan arus ETF, 7 arus saldo
   bursa, 8 perhatian publik, 9 hari setelah likuidasi besar.
+- **Prinsip 11, eksperimen 2 dari literatur** (16 Nov 2026): `research/exp2_clustering.py`. Gerakan besar mengelompok:
+  peluang gerakan besar mulai dalam 24 jam = 13,0% rata-rata, 28,7% bila gerakan besar terakhir selesai < 1 hari lalu
+  (29/30/28% di tiga periode, 22-34% di tiap koin), 14,0% (1-3 hari), 11,6% (3-7), 7,9% (7-14), 9,8% (> 14). Arah
+  lanjutan: setelah naik 61% naik lagi, setelah turun 52% turun lagi. Pasar tenang tidak diikuti gerakan besar lebih
+  sering (10% vs 24%). Kolom terakhir tabel "Big-move risk" memakai angka ini (`RISK_WHEN` di `site/app.js`; waktu sejak
+  gerakan besar terakhir dihitung di browser dari penutupan per jam, dicek sama dengan Python).
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
