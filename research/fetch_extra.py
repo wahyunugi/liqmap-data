@@ -117,8 +117,10 @@ def cex(top_n=14):
             for chain, cv in (j.get("chainTvls") or {}).items():
                 if "-" in chain or chain in ("borrowed", "staking", "pool2"):
                     continue
-                for e in cv.get("tokens") or []:
-                    date = dt.datetime.fromtimestamp(int(e["date"]), dt.timezone.utc).strftime("%Y-%m-%d")
+                perday = {}                                    # satu titik per hari per rantai: yang terakhir menang
+                for e in cv.get("tokens") or []:               # (hari berjalan muncul dua kali: 00:00 dan "sekarang")
+                    perday[dt.datetime.fromtimestamp(int(e["date"]), dt.timezone.utc).strftime("%Y-%m-%d")] = e
+                for date, e in perday.items():
                     r = rows.setdefault((date, p["slug"]), dict(usdt=0.0, usdc=0.0, stable_other=0.0, btc=0.0, eth=0.0))
                     for tok, amt in (e.get("tokens") or {}).items():
                         u = tok.upper()
