@@ -18,6 +18,8 @@ Cara kerja (tiap jalan, batas waktu BUDGET detik):
 Keluaran:
   data/hyperliquid/summary/<YYYY-MM>.csv  satu baris per koin per jam (lihat COLS)
   data/hyperliquid/profile/<KOIN>.json    snapshot terakhir: ukuran long/short per kotak harga masuk dan harga likuidasi
+  data/hyperliquid/whales/<KOIN>.json     snapshot terakhir: WH_TOP posisi terbesar (alamat, ukuran, harga masuk, harga likuidasi)
+  data/hyperliquid/whales/events_<YYYY-MM>.csv  perubahan posisi >= WH_EVENT dolar antara dua pengecekan (lihat whales())
 Status (holder, giliran, semesta) disimpan di .cache/hyperliquid (cache GitHub Actions, tidak masuk repo).
 
     python collector/hyperliquid.py
@@ -41,6 +43,9 @@ BIG = 1_000_000.0          # akun bernilai >= $1 juta = "akun besar"
 BUDGET = float(os.environ.get("HL_BUDGET", "420"))
 WORKERS, RATE = 6, 8.0     # batas API: 1.200 bobot/menit per IP, clearinghouseState berbobot 2 -> maks 10/detik
 PROFILE_RANGE = 0.5        # profil hanya kotak harga dalam +-50% dari harga sekarang
+WH_TOP = 60                # jumlah posisi terbesar per koin yang disimpan di snapshot "whales"
+WH_EVENT = 5_000_000.0     # perubahan posisi (dolar, pada harga sekarang) yang dicatat sebagai kejadian
+WH_COLS = ["t", "coin", "addr", "kind", "sz0", "sz1", "mark", "av"]
 COLS = ["t", "coin", "mark", "oi", "queried", "holders",
         "nL", "nS", "szL", "szS", "avgL", "avgS", "lossL", "lossS",
         "big_nL", "big_nS", "big_szL", "big_szS",
@@ -124,7 +129,9 @@ def query_many(addrs, deadline, lim, fetch=None):
                 q = p.get("position") or {}
                 if q.get("coin") in COINS and float(q.get("szi") or 0) != 0:
                     lq = q.get("liquidationPx")
-                    pos.append((q["coin"], float(q["szi"]), float(q["entryPx"]), None if lq in (None, "") else float(lq)))
+                    lev = (q.get("leverage") or {}).get("value")
+                    pos.append((q["coin"], float(q["szi"]), float(q["entryPx"]), None if lq in (None, "") else float(lq),
+                                None if lev in (None, "") else float(lev)))
             out[a] = (av, pos)
             return
 
@@ -137,7 +144,7 @@ def aggregate(coin, mark, res):
     """Ringkasan satu koin dari jawaban {alamat: (nilai_akun, posisi)}."""
     L = []; S = []
     for a, (av, pos) in res.items():
-        for c, sz, e, lq in pos:
+        for c, sz, e, lq, *_ in pos:
             if c == coin:
                 (L if sz > 0 else S).append((abs(sz), e, lq, av))
     szL = sum(x[0] for x in L); szS = sum(x[0] for x in S)
@@ -164,6 +171,63 @@ def profile(coin, mark, agg, step):
     return dict(coin=coin, step=step, mark=mark,
                 entryL=bucket(agg["_L"], 1), entryS=bucket(agg["_S"], 1),
                 liqL=bucket(agg["_L"], 2), liqS=bucket(agg["_S"], 2))
+
+
+def whales(coin, mark, res, st, t):
+    """Posisi terbesar + kejadian (perubahan besar) untuk satu koin.
+
+    st["wh_pos"][coin] = {alamat: ukuran bertanda} dari pengecekan terakhir tiap akun; st["wh_since"][coin] = {alamat: t}
+    saat sisi posisi itu pertama terlihat. Kejadian hanya dihitung untuk akun yang dijawab jam ini DAN sudah pernah
+    dicek sebelumnya (st["wh_seen"]), supaya akun yang baru ditemukan lewat giliran tidak tercatat sebagai "buka" palsu.
+    Jenis: open (0 -> ada), close (ada -> 0), flip (ganti sisi), add / reduce (sisi sama, ukuran berubah)."""
+    prev = st.setdefault("wh_pos", {}).setdefault(coin, {})
+    since = st.setdefault("wh_since", {}).setdefault(coin, {})
+    seen = set(st.get("wh_seen") or [])
+    first_run = not st.get("wh_started")
+    events = []; cur = {}
+    for a, (av, pos) in res.items():
+        p = next((x for x in pos if x[0] == coin), None)
+        s1 = p[1] if p else 0.0
+        s0 = float(prev.get(a, 0.0))
+        known = a in seen and not first_run
+        if s1 == 0 or (s0 != 0 and s0 * s1 < 0) or (s0 == 0 and s1 != 0):
+            if s1 == 0:
+                since.pop(a, None)
+            else:
+                since[a] = t if known else None          # None = sudah ada sebelum akun ini mulai dipantau
+        if known and abs(s1 - s0) * mark >= WH_EVENT:
+            kind = ("open" if s0 == 0 else "close" if s1 == 0 else "flip" if s0 * s1 < 0
+                    else "add" if abs(s1) > abs(s0) else "reduce")
+            events.append(dict(t=t, coin=coin, addr=a, kind=kind, sz0=s0, sz1=s1, mark=mark, av=av))
+        if s1 != 0:
+            prev[a] = s1
+            cur[a] = dict(a=a, sz=round(s1, 5), e=p[2], lq=p[3], lev=p[4] if len(p) > 4 else None, av=round(av), since=since.get(a))
+        else:
+            prev.pop(a, None)
+    top = sorted(cur.values(), key=lambda x: abs(x["sz"]), reverse=True)[:WH_TOP]
+    return top, events
+
+
+def write_whales(coin, mark, t, top, queried):
+    d = os.path.join(OUT, "whales"); os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, coin + ".json")
+    with open(path + ".tmp", "w") as f:
+        json.dump(dict(coin=coin, t=t, mark=mark, queried=queried, top=top), f, separators=(",", ":"))
+    os.replace(path + ".tmp", path)
+
+
+def write_events(events, now):
+    if not events:
+        return
+    d = os.path.join(OUT, "whales"); os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, "events_" + now.strftime("%Y-%m") + ".csv")
+    new = not os.path.exists(path)
+    with open(path, "a", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=WH_COLS)
+        if new:
+            w.writeheader()
+        for e in events:
+            w.writerow({k: (("%.6g" % e[k]) if isinstance(e[k], float) else e[k]) for k in WH_COLS})
 
 
 def write_summary(rows, now):
@@ -214,10 +278,9 @@ def run(now=None, fetch=None, lb_rows=None, ctx=None):
     new_holders = set(a for a in holders if a not in res)          # belum sempat ditanya: tetap holder
     new_holders |= {a for a, (_, pos) in res.items() if pos}
     st["holders"] = sorted(new_holders)
-    save_state(st)
 
     t = int(now.timestamp()) // 3600 * 3600
-    rows = []
+    rows = []; wh_events = []
     os.makedirs(os.path.join(OUT, "profile"), exist_ok=True)
     for coin, (sym, step) in COINS.items():
         mark, oi = mk[coin]
@@ -231,10 +294,17 @@ def run(now=None, fetch=None, lb_rows=None, ctx=None):
         with open(os.path.join(OUT, "profile", coin + ".json.tmp"), "w") as f:
             json.dump(pr, f, separators=(",", ":"))
         os.replace(os.path.join(OUT, "profile", coin + ".json.tmp"), os.path.join(OUT, "profile", coin + ".json"))
+        top, evs = whales(coin, mark, res, st, t)
+        write_whales(coin, mark, t, top, len(res)); wh_events += evs
+    st["wh_seen"] = sorted(set(st.get("wh_seen") or []) | set(res))    # akun yang sudah pernah dicek
+    st["wh_started"] = True
+    save_state(st)
+    write_events(wh_events, now)
     write_summary(rows, now)
     took = time.monotonic() - t0
     msg = (f"{len(res)} akun semesta ({len(holders)} holder, {len(rot)} giliran) + {len(sm)} akun kecil, {took:.0f} s; "
-           + "; ".join(f"{r['coin']} long {r['szL']:.0f}/short {r['szS']:.0f} dari OI {r['oi']:.0f}" for r in rows))
+           + "; ".join(f"{r['coin']} long {r['szL']:.0f}/short {r['szS']:.0f} dari OI {r['oi']:.0f}" for r in rows)
+           + f"; {len(wh_events)} kejadian whale")
     return msg
 
 
