@@ -155,6 +155,16 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   $15.500. Rasio kedua deret juga tidak tetap (3,33 kali di Nov 2026, 3,56 kali di Jan 2026), jadi tidak bisa
   disetarakan dengan satu faktor. Menampilkan deret yang tidak cocok dengan definisi yang dipakai umum akan menyesatkan.
   Jalan keluar bila diinginkan: hitung sendiri dari Coin Days Destroyed harian (butuh sumber data on-chain).
+- **Posisi rugi ("underwater"), prinsip 8 dan kolom "Longs in loss"** (16 Nov 2026): `research/underwater.py`. Tiap
+  kontrak punya satu long dan satu short dengan harga masuk yang sama, jadi porsi long yang rugi = porsi short yang
+  untung (satu angka, bukan empat kelompok). Perkiraan dari OI per jam: OI naik = posisi baru pada harga penutupan jam
+  itu, OI turun = semua kelompok harga masuk dikurangi proporsional; U = porsi kontrak dengan harga masuk di atas harga
+  sekarang. Hasil di 8 koin sejak 2020: di low dengan U > 95% menang 37% (91 kejadian) vs 49% lainnya, searah di tiga
+  periode, tetapi uji acak per blok minggu memberi p kira-kira 0,24 (belum kokoh); di high tidak ada beda (33% vs 40%,
+  p 0,47); arah gerakan besar: sama informasinya dengan rasio akun (korelasi 0,6) dan tidak menambah apa-apa di dalam
+  tiap zona rasio; dalamnya penurunan OI dari puncak 30 hari tidak berpengaruh. Perkiraan dicek kasar terhadap data
+  nyata Hyperliquid (bursa lain): BTC 94% vs 82% rata-rata selama 51 jam, korelasi per jam 0,75; ETH 97% vs 89%,
+  korelasi 0,15. Angka di website dihitung `pack_underwater` di `site/build.py` dengan aturan yang sama.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
@@ -281,16 +291,42 @@ Yang harus dijaga pemilik:
 - Akun GitHub dan akun Coinalyze tetap aktif; kunci API Coinalyze tidak dicabut (ganti di Settings → Secrets bila perlu).
 - Sesekali `git pull` di laptop (folder liqmap-replica) sebagai cadangan di luar GitHub.
 
-## Bila repo mendekati 1 GB (perkiraan ±tahun ke-4–5) atau setelah 5 tahun
-GitHub menyarankan repo < 1 GB (sangat disarankan < 5 GB); ukuran itu termasuk seluruh riwayat git, jadi mengompres atau
-memindahkan file di repo yang sama tidak mengecilkannya. Caranya: mulai repo baru dan jadikan repo lama arsip.
-1. Ganti nama repo ini menjadi `liqmap-data-<tahun mulai>-<tahun akhir>` (Settings → General → Repository name).
-2. Buat repo publik baru bernama `liqmap-data`, salin kode (`collector/`, `heatmap/`, `site/`, `research/`, `.github/`,
-   README, requirements.txt) dan data 90 hari terakhir (cukup untuk heatmap dan website).
-3. Di repo baru: isi secret `COINALYZE_API_KEY`, aktifkan Pages (Source: GitHub Actions), jalankan `collect` sekali.
-   Alamat website tetap `https://wahyunugi.github.io/liqmap-data/` karena namanya sama.
-4. Di repo lama: Settings → General → **Archive this repository** (hanya-baca; data tetap ada dan bisa dibaca).
-5. Bila butuh data lama untuk riset: salin dari repo arsip; tidak ada data yang dihapus.
+## Penyimpanan dan arsip (fondasi: website berjalan terus tanpa dirawat)
+Diukur 16 Nov 2026: ukuran repo menurut GitHub 15 MB (1 Nov) -> 175 MB (16 Nov), naik kira-kira 10 MB per hari
+(sebagian dari itu impor sekali jalan: data riset dan ringkasan historis). Dengan laju itu 1 GB tercapai sekitar
+Februari 2027, BUKAN tahun ke-4 atau ke-5 seperti perkiraan lama. Ukuran sebenarnya setelah dipadatkan (`git gc
+--aggressive` di salinan lokal) hanya 36 MB; angka GitHub lebih besar karena tiap pembaruan per jam disimpan sebagai
+paket terpisah, dan kapan GitHub memadatkannya tidak diketahui.
+
+Batas GitHub (docs.github.com, dicek 16 Nov 2026): repo "idealnya di bawah 1 GB, sangat disarankan di bawah 5 GB";
+ini anjuran, tidak ada pemutusan otomatis, tetapi GitHub bisa mengirim email meminta perbaikan. File tunggal > 100 MB
+ditolak. Website Pages: hasil terbit maksimal 1 GB (sekarang kira-kira 10 MB) dan 100 GB lalu lintas per bulan.
+Release: total ukuran dan lalu lintas TIDAK dibatasi.
+
+**Yang sudah otomatis (workflow `archive`, `.github/workflows/archive.yml`):** tiap tanggal 1, dan kapan pun ukuran repo
+>= 600 MB (paling sering sekali per 7 hari), seluruh isi repo diterbitkan sebagai Release `archive-<tanggal>`:
+`...-files.tar.gz` (semua file: data, kode, riset, README) dan `...-full-history.bundle` (seluruh riwayat git; pulihkan
+dengan `git clone <file>.bundle`). Ukuran file di Release dicocokkan dengan file lokal sebelum dianggap berhasil.
+Workflow ini tidak mengubah atau menghapus apa pun di repo. Daftar arsip tampil di website (bagian "Archive and
+foundation", diambil `pack_archives` di `site/build.py` dari API GitHub saat website dibangun).
+
+**Yang BELUM selesai:** arsip tidak mengecilkan repo, karena riwayat git tetap ada. Pilihan untuk benar-benar
+menghentikan pertumbuhan, belum dikerjakan:
+1. (disarankan) Simpan data per jam di luar riwayat git: tiap jalan `collect` mengunduh paket data dari sebuah Release,
+   menambah data baru, lalu mengunggah paket baru; branch `main` hanya berisi kode. Pertumbuhan repo menjadi hampir nol.
+   Mengubah cara semua workflow (collect, site, export, research) membaca data, jadi harus dimigrasi dengan uji jalan
+   paralel dan diawasi.
+2. Memampatkan riwayat `main` menjadi satu commit secara berkala (force-push). Dua hal belum pasti: token bawaan Actions
+   kemungkinan ditolak karena commit baru memuat file workflow, dan GitHub baru mengurangi angka ukuran setelah
+   pembersihan internalnya, yang waktunya tidak diketahui.
+3. Cara manual (selalu bisa): ganti nama repo ini menjadi `liqmap-data-<tahun>`, buat repo baru `liqmap-data` berisi
+   kode dan data 90 hari terakhir, isi secret `COINALYZE_API_KEY`, aktifkan Pages (Source: GitHub Actions), jalankan
+   `collect` sekali, lalu arsipkan repo lama (Settings -> Archive this repository). Alamat website tidak berubah.
+Cek kesehatan (`collector/health.py`) tetap mengirim email bila ukuran repo melewati 900 MB.
+
+**Yang tetap bisa menghentikan website, apa pun penyimpanannya:** GitHub mengubah layanan gratisnya; sumber data tutup
+atau berubah (arsip Binance, Coinalyze, Farside, DefiLlama, Hyperliquid); kunci Coinalyze kedaluwarsa; pemicu luar
+(cron-job.org) berhenti. Jadi "berjalan selamanya" adalah tujuan rancangan, bukan jaminan.
 
 ## Pemicu tiap jam dari luar (cron-job.org)
 Jadwal bawaan GitHub (`cron` di `collect.yml`) tidak dijamin tepat waktu: 29–30 Okt 2026 jadwal "tiap jam" hanya jalan

@@ -293,16 +293,91 @@ def pack_calendar(now):
     return sorted(out, key=lambda x: x["t"])[:6]
 
 
+REPO = os.environ.get("GITHUB_REPOSITORY", "wahyunugi/liqmap-data")
+
+
+def pack_archives():
+    """Daftar arsip (GitHub Release bertanda archive-*, dibuat workflow "archive") + ukuran repo menurut GitHub.
+    Gagal mengambil = daftar kosong (website tetap menampilkan tautan ke halaman Releases)."""
+    import urllib.request
+    def api(path):
+        req = urllib.request.Request("https://api.github.com/" + path, headers={"Accept": "application/vnd.github+json", "User-Agent": "liqmap-site"})
+        tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+        if tok:
+            req.add_header("Authorization", "Bearer " + tok)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    out = dict(repo=REPO, size_mb=None, list=[])
+    try:
+        out["size_mb"] = round(api(f"repos/{REPO}")["size"] / 1024)
+        for r in api(f"repos/{REPO}/releases?per_page=100"):
+            if not r["tag_name"].startswith("archive-") or r.get("draft"):
+                continue
+            out["list"].append(dict(tag=r["tag_name"], t=int(pd.Timestamp(r["created_at"]).timestamp()), url=r["html_url"],
+                                    files=[dict(name=a["name"], mb=round(a["size"] / 1e6, 1), url=a["browser_download_url"]) for a in r["assets"]]))
+        out["list"].sort(key=lambda x: -x["t"])
+    except Exception as e:
+        print(f"PERINGATAN: daftar arsip tidak terambil: {e!r}")
+    return out
+
+
+UW_BIN, UW_BURN = 0.0025, 24 * 90
+
+
+def pack_underwater(sym, c5):
+    """Perkiraan porsi kontrak terbuka Binance yang harga masuknya di atas harga sekarang (= long yang sedang rugi =
+    short yang sedang untung). Aturan SAMA dengan research/underwater.py (jaga agar tetap sama): per jam, kenaikan OI
+    dicatat sebagai posisi baru pada harga penutupan jam itu; penurunan OI mengurangi semua kelompok harga masuk
+    secara proporsional. Data: data/derived/hourly (sejak 2020) disambung jam-jam terbaru dari candle 5 menit."""
+    import numpy as np
+    files = sorted(glob.glob(os.path.join(ROOT, "data", "derived", "hourly", f"{sym}_20*.csv")))
+    if not files:
+        return None
+    h = pd.concat([pd.read_csv(f, usecols=["t", "low", "high", "close", "oi"]) for f in files]).drop_duplicates("t").sort_values("t")
+    last = c5[(c5.t + 300) % 3600 == 0]                         # candle 5 menit terakhir tiap jam -> penutupan jam
+    g = c5.assign(ht=c5.t // 3600 * 3600).groupby("ht").agg(low=("low", "min"), high=("high", "max")).reset_index()
+    new = last.assign(t=last.t // 3600 * 3600)[["t", "close", "oi"]].merge(g.rename(columns={"ht": "t"}), on="t")
+    h = pd.concat([h, new[new.t > h.t.max()]], ignore_index=True)
+    C = h.close.values; oi = h.oi.values; n = len(h)
+    lo = np.log(np.nanmin(h.low.values) * 0.9); nb = int((np.log(np.nanmax(h.high.values) * 1.1) - lo) / UW_BIN) + 2
+    mid = np.exp(lo + (np.arange(nb) + 0.5) * UW_BIN)
+    book = np.zeros(nb); prev = float("nan"); start = None; tot = 0.0
+    for i in range(n):
+        o = oi[i]
+        if o == o and o > 0:
+            b = int((np.log(C[i]) - lo) / UW_BIN)
+            if prev != prev:
+                book[b] += o; start = i
+            else:
+                d = o - prev
+                if d > 0:
+                    book[b] += d
+                elif d < 0:
+                    book *= max(0.0, 1 + d / max(book.sum(), 1e-12))
+            prev = o
+    tot = book.sum()
+    if start is None or n - start < UW_BURN or tot <= 0:
+        return None
+    b = int((np.log(C[-1]) - lo) / UW_BIN)
+    U = (book[b + 1:].sum() + 0.5 * book[b]) / tot
+    return dict(t=int(h.t.iat[-1]) + 3600, U=round(float(U), 4), avg=round(float((book * mid).sum() / tot), 2), px=float(C[-1]))
+
+
 def build():
     out = {"built": int(time.time()), "days": DAYS}
     out["stable"] = pack_stable()
     out["hl"] = pack_hl()
     out["cal"] = pack_calendar(out["built"])
+    out["arch"] = pack_archives()
     out["cftc"] = pack_cftc()
     out["etf"] = {sym: pack_etf(sym.replace("USDT", "")) for sym in PAIRS}
     for sym, nd in PAIRS.items():
         c5 = inputs.load(sym)
         t_end = int(c5.t.iat[-1]) + 300
+        try:
+            uw = pack_underwater(sym, c5)
+        except Exception as e:                                   # perkiraan tambahan: tidak boleh menggagalkan website
+            print(f"PERINGATAN {sym}: perkiraan posisi rugi gagal: {e!r}"); uw = None
         c5 = c5[c5.t >= t_end - (DAYS + WARMUP) * 86400].reset_index(drop=True)
         steps = c5.t.diff().dropna()
         if (steps != 300).any():
@@ -322,6 +397,7 @@ def build():
             prem=pack_premium(sym, int(c5.t.iat[0])),
             spot=pack_spot(sym, int(c5.t.iat[0])),
             mk=pack_markets(sym, int(c5.t.iat[0]), c5),
+            uw=uw,
         )
         print(f"{sym}: {len(c5)} candle 5m, {len(c1)} candle 1m, "
               f"{len(out[sym]['l5']['t'])} baris likuidasi 5m, data sampai {pd.to_datetime(t_end, unit='s')} UTC")

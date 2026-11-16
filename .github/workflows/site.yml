@@ -50,6 +50,8 @@ jobs:
           restore-keys: binance-
 
       - name: Bangun data website (_site/)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           pip install --quiet -r requirements.txt
           python site/build.py

@@ -1,0 +1,89 @@
+name: archive
+
+# Arsip lengkap repo (semua data, kode, catatan, dan seluruh riwayat git) sebagai GitHub Release, yang bisa diunduh dari
+# website (bagian "Archive"). Release tidak dihitung dalam ukuran repo dan GitHub tidak membatasi total ukurannya.
+# Jalan: tiap hari 02:41 UTC untuk MENGECEK; arsip benar-benar dibuat bila (a) tanggal 1, atau (b) ukuran repo menurut
+# GitHub >= LIMIT_MB dan arsip terakhir lebih tua dari 7 hari, atau (c) dijalankan manual dengan force.
+# Workflow ini TIDAK mengubah atau menghapus apa pun di repo. Lihat README, bagian "Penyimpanan dan arsip".
+on:
+  schedule:
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Buat arsip sekarang, apa pun tanggal dan ukurannya"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: write            # untuk menjalankan workflow "site" setelah arsip dibuat
+
+concurrency:
+  group: collect            # antre dengan pengumpulan data supaya isi arsip adalah keadaan yang utuh
+  cancel-in-progress: false
+
+env:
+  LIMIT_MB: "600"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Putuskan apakah arsip perlu dibuat
+        id: plan
+        run: |
+          size_mb=$(( $(gh api "repos/${{ github.repository }}" --jq .size) / 1024 ))
+          last=$(gh api "repos/${{ github.repository }}/releases?per_page=30" --jq '[.[] | select(.tag_name | startswith("archive-"))][0].created_at // ""')
+          age_days=9999
+          if [ -n "$last" ]; then age_days=$(( ( $(date -u +%s) - $(date -u -d "$last" +%s) ) / 86400 )); fi
+          go=false; why="tidak perlu"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then go=true; why="dijalankan manual"; fi
+          if [ "$(date -u +%d)" = "01" ] && [ "$age_days" -ge 1 ]; then go=true; why="arsip bulanan"; fi
+          if [ "$size_mb" -ge "$LIMIT_MB" ] && [ "$age_days" -ge 7 ]; then go=true; why="ukuran repo $size_mb MB >= $LIMIT_MB MB"; fi
+          echo "ukuran repo menurut GitHub: $size_mb MB; arsip terakhir: ${last:-belum ada} ($age_days hari lalu); keputusan: $go ($why)"
+          echo "go=$go" >> "$GITHUB_OUTPUT"; echo "why=$why" >> "$GITHUB_OUTPUT"; echo "size_mb=$size_mb" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.plan.outputs.go == 'true'
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Buat dan periksa arsip
+        if: steps.plan.outputs.go == 'true'
+        id: make
+        run: |
+          set -euo pipefail
+          day=$(date -u +%Y-%m-%d); tag="archive-$day"; n=1
+          while gh release view "$tag" >/dev/null 2>&1; do n=$((n+1)); tag="archive-$day-$n"; done
+          mkdir -p "$RUNNER_TEMP/out"; cd "$GITHUB_WORKSPACE"
+          bundle="$RUNNER_TEMP/out/liqmap-data-$day-full-history.bundle"
+          files="$RUNNER_TEMP/out/liqmap-data-$day-files.tar.gz"
+          git bundle create "$bundle" main
+          git bundle verify "$bundle"
+          git archive --format=tar.gz --prefix="liqmap-data-$day/" -o "$files" HEAD
+          tar -tzf "$files" | grep -q "liqmap-data-$day/README.md"
+          first=$(git log --reverse --format=%ad --date=short | head -1); commits=$(git rev-list --count HEAD)
+          {
+            echo "Complete archive of wahyunugi/liqmap-data on $day (reason: ${{ steps.plan.outputs.why }})."
+            echo
+            echo "- **liqmap-data-$day-files.tar.gz**: every file as it was on $day: all collected data (\`data/\`), the code, the research scripts and results, and the README with the full notes. Unpack with any archive tool."
+            echo "- **liqmap-data-$day-full-history.bundle**: the whole git history ($commits commits, $first to $day), including every earlier hourly state of the data. Restore with \`git clone liqmap-data-$day-full-history.bundle\`."
+            echo
+            echo "Repository size by GitHub's count on this day: ${{ steps.plan.outputs.size_mb }} MB. Commit: $(git rev-parse HEAD)."
+          } > "$RUNNER_TEMP/notes.md"
+          gh release create "$tag" "$bundle" "$files" --title "Archive $day" --notes-file "$RUNNER_TEMP/notes.md" --latest=false
+          # periksa: kedua file ada di Release dengan ukuran yang sama persis
+          for f in "$bundle" "$files"; do
+            want=$(stat -c %s "$f"); got=$(gh release view "$tag" --json assets --jq ".assets[] | select(.name==\"$(basename "$f")\") | .size")
+            [ "$want" = "$got" ] || { echo "::error::ukuran $(basename "$f") di Release ($got) tidak sama dengan lokal ($want)"; exit 1; }
+            echo "$(basename "$f"): $want byte, cocok"
+          done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Bangun ulang website supaya daftar arsip diperbarui
+        if: steps.plan.outputs.go == 'true'
+        run: gh workflow run site.yml --ref main || gh api -X POST "repos/${{ github.repository }}/actions/workflows/site.yml/dispatches" -f ref=main

@@ -151,14 +151,14 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
   <section class="cot" id="rules" aria-labelledby="rules-h">
     <div class="cothead">
       <h2 id="rules-h">Principles · what the data has shown so far</h2>
-      <span class="asof">Tested on Binance data for 8 coins, 2020 to Nov 2026 · last reviewed 16 Nov 2026 (big-move figures recalculated with a fixed, published rule)</span>
+      <span class="asof">Tested on Binance data for 8 coins, 2020 to Nov 2026 · last reviewed 16 Nov 2026 (positions in loss tested and added)</span>
     </div>
     <div class="rulecard" id="rulecard" hidden>
       <table>
-        <thead><tr><th scope="col" style="text-align:left">Conditions now</th><th scope="col">Accounts long per short</th><th scope="col">Top traders long per short</th><th scope="col">Lows in this zone that worked</th><th scope="col">Highs in this zone that were real tops</th></tr></thead>
+        <thead><tr><th scope="col" style="text-align:left">Conditions now</th><th scope="col">Accounts long per short</th><th scope="col">Top traders long per short</th><th scope="col" title="Estimated share of open Binance contracts whose long side is losing money at the current price">Longs in loss (estimate)</th><th scope="col">Lows in this zone that worked</th><th scope="col">Highs in this zone that were real tops</th></tr></thead>
         <tbody id="rulecardbody"></tbody>
       </table>
-      <div class="foot">Zones: accounts under 2, 2 to 3, above 3; top traders under 1.2, 1.2 to 1.9, above 1.9. Past results in each zone from 336 lows and 589 highs on 8 coins (Dec 2021 to Nov 2026); average over all zones: lows 49%, highs 35%. The two ratios together were checked by fitting on seven coins and testing on the eighth, in turn (score 0.65 for lows and 0.62 for highs, where 0.5 is useless and 1 is perfect), so this shifts the odds, it does not decide them. The top-trader figure comes from Binance's daily archive and can be a day old.</div>
+      <div class="foot">Zones: accounts under 2, 2 to 3, above 3; top traders under 1.2, 1.2 to 1.9, above 1.9. Past results in each zone from 336 lows and 589 highs on 8 coins (Dec 2021 to Nov 2026); average over all zones: lows 49%, highs 35%. The two ratios together were checked by fitting on seven coins and testing on the eighth, in turn (score 0.65 for lows and 0.62 for highs, where 0.5 is useless and 1 is perfect), so this shifts the odds, it does not decide them. The top-trader figure comes from Binance's daily archive and can be a day old. Longs in loss: the estimated share of open Binance contracts that were opened above the current price, worked out from hourly changes in open interest (see principle 8); when it was above 95%, lows worked less often (37% against 49%), but that gap is not statistically firm.</div>
     </div>
     <ol class="rules">
       <li><b>Watch who is already long, small accounts and big ones.</b> At 411 lows across 8 coins, the more Binance accounts were long, the less often the low worked: under 1.5 long accounts per short account 69% won, 1.5 to 2.0 56%, 2.0 to 2.5 49%, 2.5 to 3.0 45%, 3.0 to 4.0 41%, above 4.0 37%. The top-trader ratio (the largest accounts, by position size) is the stronger signal: lowest two fifths (ratio under about 1.2) won 62% to 69%, the highest fifth (above about 1.9) won 28%. For a long entry, wait for both to come down. <span class="rulenow" id="rulenow"></span></li>
@@ -167,6 +167,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       <li><b>Real money confirms, it does not lead.</b> Spot traders and ETFs were still selling at nearly every real bottom. ETF inflows came in the week after: 63% of reversals against 29% of failed lows. Do not wait for inflows before a bottom, but treat a low as suspect if they do not come after it.</li>
       <li><b>Big moves go away from the bigger untouched liquidation pile, most of all when the crowd is long.</b> Of 497 big moves in BTC and ETH since 2020, 42% went up when more short liquidations were stacked within 2% above price than long liquidations within 2% below, against 59% the other way round. With the account ratio also above 2.5, only 8 of 53 went up (15%). For ordinary moves the liquidation map shows nothing (50/50).</li>
       <li><b>Fed decisions and US inflation reports shake the hour, not the day, and the direction is not predictable.</b> In the hours of a Fed rate decision, a big hourly move in BTC was about 5 times more likely than in the same hours on other weekdays (11.6% against 2.2%). In the hours of the monthly US inflation report (CPI, the consumer price index) it was 3 times more likely (11.4% against 3.8%). The monthly jobs report barely mattered (5.3% against 4.1%). The full day was no more likely to be a big day (about 16% either way), and the following week was up no more often than usual. Tested on 56 Fed decisions, 82 inflation reports and 82 jobs reports since 2020.</li>
+      <li><b>Positions in loss ("underwater") are one number, and it adds little beyond the crowd ratio.</b> Every futures contract has a long and a short opened at the same price, so the share of longs in loss always equals the share of shorts in profit: there are not four separate groups, only one number plus the question of who is long (the ratios above). Binance does not publish entry prices, so the share is estimated from hourly changes in open interest since 2020. At lows where more than 95% of longs were in loss, the low worked 37% of the time (91 cases on 8 coins) against 49% otherwise, in the same direction in each of three periods. But those cases bunch into few weeks and a gap that size could be chance (about 1 in 4). At highs, the share of shorts in loss made no difference (33% against 40%). For the direction of big moves it carries the same information as the account ratio and adds nothing once that is known. How far open interest had already fallen from its 30-day peak ("the weak hands have given up") did not matter either. Real, not estimated, figures exist only on Hyperliquid: see "Share of size in loss" in its panel.</li>
       <li><b>The 4-year cycle keeps its timing but shrinks in size.</b> The last three tops came 526 to 548 days after the halving. Gains and crashes got smaller each cycle. Only 3 to 4 cycles exist, so this is weak evidence.</li>
     </ol>
     <p class="cotnote"><b>Stops and targets at lows (BTC and ETH, entries since 2020, before fees and funding):</b> with the account ratio under 2.5, a 10% stop with a 15% target won 58% for BTC (average +4.6% per trade, 49 trades) and 47% for ETH (+1.7%, 33 trades). With the ratio at 2.5 or more, every stop and target tested lost money on average. A tight 5% stop did worse than a 10% stop.</p>
@@ -309,6 +310,22 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
       </div>
     </div>
     <p class="cotnote">Net position (long minus short) of each group in Bitcoin or Ether futures on CME, the US exchange where most institutions trade crypto futures. The CFTC (the US futures regulator) collects these positions every Tuesday and publishes them on Friday. Hover the chart to see any week in the table. Big and micro contracts are added together and shown in coins; spread positions (a long and a short held together) are left out. Note: this is CME, not Binance, and it shows who holds positions, not their leverage or entry price. A hedge-fund short is often one leg of a basis trade (buying spot or an ETF while shorting futures to earn the price gap), not a bet on price falling. A sudden one-week jump in one group can also come from the CFTC moving a trader to another group, not only from trading.</p>
+  </section>
+
+  <section class="cot" id="archive" aria-labelledby="archive-h">
+    <div class="cothead">
+      <h2 id="archive-h">Archive and foundation</h2>
+      <span class="asof" id="archasof"></span>
+    </div>
+    <p class="crowdnow"><b>Foundation: this site is built to keep running for good, with nobody tending it.</b></p>
+    <p class="cotnote">Data collection, the site build, the health check and the archive all run on their own schedules. A complete archive is published automatically on the 1st of every month, and also whenever the working repository passes 600 MB: every file (all data, the code, the research and the notes) plus the whole change history. Archives are stored as GitHub releases, which GitHub does not limit in total size, so the archive itself cannot fill up. All archives: <a id="archall" href="https://github.com/wahyunugi/liqmap-data/releases" target="_blank" rel="noopener" style="color:var(--fg)">github.com/wahyunugi/liqmap-data/releases</a>.</p>
+    <div class="cottab crowdtab" id="archtab" hidden>
+      <table>
+        <thead><tr><th scope="col" style="text-align:left">Archive</th><th scope="col" style="text-align:left">Download</th></tr></thead>
+        <tbody id="archbody"></tbody>
+      </table>
+    </div>
+    <p class="cotnote"><b>What is not solved yet (16 Nov 2026):</b> archiving protects the data but does not make the working repository smaller, because every hourly update stays in its history. <span id="archsize"></span> GitHub recommends staying under 1 GB and strongly under 5 GB; these are recommendations, not an automatic shutdown. The lasting fix is to keep the hourly data outside the repository's history, which is planned but not done. <b>What can still stop the site, whatever the storage:</b> GitHub changing its free service, a data source closing or changing how it is read (Binance archive, Coinalyze, Farside, DefiLlama, Hyperliquid), or the Coinalyze access key expiring. The health check emails the owner when data stops arriving.</p>
   </section>
 
   <div class="notes">

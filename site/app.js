@@ -637,7 +637,8 @@ function renderRuleNow() {
       const i = acc < 2 ? 0 : acc <= 3 ? 1 : 2, j = top < 1.2 ? 0 : top <= 1.9 ? 1 : 2;
       const cell = (T, base, goodHigh) => { const [w, n] = T[i][j]; if (n < 15) return `<td>too few cases (${n})</td>`;
         const cls = Math.abs(w - base) < 8 ? "" : (w > base) === goodHigh ? "pp" : "pn"; return `<td><b class="${cls}">${w}%</b> of ${n}</td>`; };
-      rows.push(`<tr><th scope="row">${name}</th><td class="${z(acc, 2.0, 3.0)}">${acc.toFixed(2)}</td><td class="${z(top, 1.2, 1.9)}">${top.toFixed(2)}</td>${cell(RULE_LOWS, 49, true)}${cell(RULE_HIGHS, 35, false)}</tr>`);
+      const uw = DATA[c].uw, uwTd = uw ? `<td class="${uw.U > 0.95 ? "pn" : ""}">${(uw.U * 100).toFixed(0)}%<br><small style="color:var(--muted)">avg entry ${fmtP(uw.avg, c)}</small></td>` : "<td>–</td>";
+      rows.push(`<tr><th scope="row">${name}</th><td class="${z(acc, 2.0, 3.0)}">${acc.toFixed(2)}</td><td class="${z(top, 1.2, 1.9)}">${top.toFixed(2)}</td>${uwTd}${cell(RULE_LOWS, 49, true)}${cell(RULE_HIGHS, 35, false)}</tr>`);
     }
   }
   el.innerHTML = parts.length ? "Now (long per short): " + parts.join(" · ") + ` <span style="color:var(--muted)">green = low, yellow = in between, pink = heavily long; top-trader figure can lag by a day</span>` : "";
@@ -948,6 +949,19 @@ function setHl() {
 for (const b of document.querySelectorAll("#hlmode .btn")) b.onclick = () => { hlMode = b.dataset.m; setHl(); };
 { let hlRs = null; window.addEventListener("resize", () => { clearTimeout(hlRs); hlRs = setTimeout(() => { const H = HL[state.coin]; if (H && !hlBox.hidden) hlProfile(H); }, 200); }); }
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setHl);
+
+// ---------- Archive list (GitHub releases tagged archive-*, made by the "archive" workflow) ----------
+(function () {
+  const A = DATA.arch; if (!A) return;
+  const base = "https://github.com/" + A.repo + "/releases"; document.getElementById("archall").href = base;
+  document.getElementById("archall").textContent = base.replace("https://", "");
+  if (A.size_mb != null) document.getElementById("archsize").textContent = `By GitHub's count the repository is ${A.size_mb} MB now and has grown about 10 MB a day in November 2026.`;
+  const L = A.list || [];
+  document.getElementById("archasof").textContent = L.length ? `${L.length} archive${L.length === 1 ? "" : "s"} · latest ${fmtD(L[0].t)}` : "no archive listed yet";
+  document.getElementById("archtab").hidden = !L.length;
+  document.getElementById("archbody").innerHTML = L.slice(0, 24).map(r => `<tr><th scope="row"><a href="${r.url}" target="_blank" rel="noopener">${fmtD(r.t)}</a></th><td style="text-align:left;white-space:normal">` +
+    r.files.map(f => `<a href="${f.url}" rel="noopener">${/bundle$/.test(f.name) ? "full history" : "all files"}</a> (${f.mb >= 1000 ? (f.mb / 1000).toFixed(2) + " GB" : f.mb + " MB"})`).join(" · ") + `</td></tr>`).join("");
+})();
 
 setEtf();
 setStable();
