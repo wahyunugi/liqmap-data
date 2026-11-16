@@ -2,7 +2,13 @@ name: research-data
 
 # Mengunduh data riset tambahan (koin lain per jam dari arsip Binance + data makro FRED) ke research/data. Jalan manual.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      what:
+        description: "alts (koin lain + makro) atau extra (likuidasi, saldo bursa, perhatian publik)"
+        type: choice
+        options: [extra, alts]
+        default: extra
 
 permissions:
   contents: write
@@ -17,13 +23,15 @@ jobs:
         with:
           python-version: "3.12"
       - name: Unduh dan ringkas
+        env:
+          COINALYZE_API_KEY: ${{ secrets.COINALYZE_API_KEY }}
         run: |
           pip install --quiet -r requirements.txt
-          python research/fetch_alts.py
+          if [ "${{ inputs.what }}" = "alts" ]; then python research/fetch_alts.py; else python research/fetch_extra.py; fi
       - name: Simpan hasil
         run: |
           git config user.name "liqmap-bot"
           git config user.email "liqmap-bot@users.noreply.github.com"
           git add research/data
           if git diff --cached --quiet; then echo "tidak ada perubahan"; else
-            git commit -m "research: data koin lain per jam + makro $(date -u +%Y-%m-%d)"; git pull --rebase; git push; fi
+            git commit -m "research: data riset (${{ inputs.what }}) $(date -u +%Y-%m-%d)"; git pull --rebase; git push; fi
