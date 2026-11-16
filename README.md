@@ -92,6 +92,11 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   entri 24 jam setelah bertahan, menang = 2,25 ayunan searah sebelum 1,5 melawan dalam 60 hari. Hasil: rasio akun
   (skor 0,58, sama arah 2022-23 dan 2024-26, p blok-minggu 0,03) dan rasio top trader (0,65, p 0,006) bertahan; besar
   pantulan, kecepatan turunnya rasio, dan variabel makro tidak. Perbarui teks dan tanggal bila uji ulang mengubah angka.
+  Tabel "Conditions now" (16 Nov 2026): zona rasio akun (<2, 2-3, >3) x rasio top trader (<1,2, 1,2-1,9, >1,9) saat ini per
+  koin dan hasil masa lalu di zona itu (konstanta `RULE_LOWS` / `RULE_HIGHS` di `site/app.js`, dari
+  `research/turning_points.py`). Dua rasio bersama diuji dengan melatih di 7 koin dan menguji di koin ke-8 bergantian:
+  skor 0,65 (low) dan 0,62 (high). Arah gerakan besar 6 jam di 8 koin (1.407 gerakan): naik 67% saat rasio akun < 1,5,
+  39% saat > 4. Bila uji diulang, perbarui konstanta dan teks bersama-sama.
 - **Pane "RSI 14"** (tepat di bawah harga): RSI 14 candle (Wilder 1978, perataan Wilder) dari candle yang sedang
   ditampilkan, garis 70/50/30, dan divergensi reguler dengan aturan yang sama seperti indikator bawaan TradingView "RSI
   Divergence Indicator": titik balik RSI = lebih rendah/tinggi dari 5 candle di kiri dan kanan, dibandingkan dengan titik

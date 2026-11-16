@@ -100,6 +100,7 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
 .cotnote{color:var(--muted);font-size:.82rem;margin:0;max-width:110ch}
 .rules{margin:0;padding-left:1.4em;display:grid;gap:8px;font-size:.88rem;line-height:1.5;max-width:110ch}
 .rules b{color:var(--fg)} .rules li{color:#c3c8d2}
+.rulecard{margin:0 0 12px;max-width:110ch;overflow-x:auto}.rulecard table{width:100%;border-collapse:collapse;font:400 .82rem var(--font-num)}.rulecard th,.rulecard td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}.rulecard thead th{color:var(--muted);font-weight:400;white-space:normal}.rulecard tbody th{text-align:left;color:var(--fg)}.rulecard .foot{color:var(--muted);font-size:.76rem;margin-top:6px;line-height:1.45}
 .rulenow{display:block;margin-top:3px;font:400 .8rem var(--font-num);color:var(--fg)}
 @media (max-width:900px){.cotgrid{grid-template-columns:1fr}.cotchartbox{height:280px}.cotchartbox.tall{height:340px}}
 @media (max-width:640px){.chartbox{height:96vh;min-height:840px}.thr input{width:80px}.sep{display:none}}
@@ -142,11 +143,18 @@ h1{font-size:1.2rem;font-weight:600;margin:0;letter-spacing:.01em}
   <section class="cot" id="rules" aria-labelledby="rules-h">
     <div class="cothead">
       <h2 id="rules-h">Principles · what the data has shown so far</h2>
-      <span class="asof">Tested on Binance data for 8 coins, 2020 to Nov 2026 · last reviewed 16 Nov 2026</span>
+      <span class="asof">Tested on Binance data for 8 coins, 2020 to Nov 2026 · last reviewed 16 Nov 2026 (two-ratio table added)</span>
+    </div>
+    <div class="rulecard" id="rulecard" hidden>
+      <table>
+        <thead><tr><th scope="col" style="text-align:left">Conditions now</th><th scope="col">Accounts long per short</th><th scope="col">Top traders long per short</th><th scope="col">Lows in this zone that worked</th><th scope="col">Highs in this zone that were real tops</th></tr></thead>
+        <tbody id="rulecardbody"></tbody>
+      </table>
+      <div class="foot">Zones: accounts under 2, 2 to 3, above 3; top traders under 1.2, 1.2 to 1.9, above 1.9. Past results in each zone from 336 lows and 589 highs on 8 coins (Dec 2021 to Nov 2026); average over all zones: lows 49%, highs 35%. The two ratios together were checked by fitting on seven coins and testing on the eighth, in turn (score 0.65 for lows and 0.62 for highs, where 0.5 is useless and 1 is perfect), so this shifts the odds, it does not decide them. The top-trader figure comes from Binance's daily archive and can be a day old.</div>
     </div>
     <ol class="rules">
       <li><b>Watch who is already long, small accounts and big ones.</b> At 411 lows across 8 coins, the more Binance accounts were long, the less often the low worked: under 1.5 long accounts per short account 69% won, 1.5 to 2.0 56%, 2.0 to 2.5 49%, 2.5 to 3.0 45%, 3.0 to 4.0 41%, above 4.0 37%. The top-trader ratio (the largest accounts, by position size) is the stronger signal: lowest two fifths (ratio under about 1.2) won 62% to 69%, the highest fifth (above about 1.9) won 28%. For a long entry, wait for both to come down. <span class="rulenow" id="rulenow"></span></li>
-      <li><b>The same ratios warn at highs.</b> At 589 highs across 8 coins, a real top followed 51% of the time when the top-trader ratio was in its highest fifth (above about 2.45), against 23% in the lowest fifth. A heavily long crowd also means big moves (3 times normal size within 6 hours) go down about 74% of the time.</li>
+      <li><b>The same ratios warn at highs and set the direction of big moves.</b> At 589 highs across 8 coins, a real top followed 51% of the time when the top-trader ratio was in its highest fifth (above about 2.45), against 23% in the lowest fifth. Of 1,407 big moves (3 times normal size within 6 hours, 8 coins), 67% were up when the account ratio was under 1.5, 56% at 2.0 to 2.5, and 39% when it was above 4.0. Same direction in 2020 to 2023 and 2024 to 2026. BTC is the most extreme: with the ratio at 3 or more, only 18% of its big moves were up.</li>
       <li><b>ETH is BTC with extra downside.</b> Daily correlation is 0.82 (0.91 in 2026). On days BTC fell 5% or more, ETH fell more 71% of the time. On days BTC rose 5% or more, ETH rose more only 39% of the time. They bottom together (26 of 33 BTC bottoms had an ETH bottom within 3 days) and neither leads the other by an hour. Read BTC's signals even for an ETH trade.</li>
       <li><b>Real money confirms, it does not lead.</b> Spot traders and ETFs were still selling at nearly every real bottom. ETF inflows came in the week after: 63% of reversals against 29% of failed lows. Do not wait for inflows before a bottom, but treat a low as suspect if they do not come after it.</li>
       <li><b>Big moves go away from the bigger untouched liquidation pile.</b> With more short liquidations stacked above price than long liquidations below, big moves went up only 32% of the time. For ordinary moves the liquidation map shows nothing (50/50).</li>

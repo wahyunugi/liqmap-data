@@ -573,22 +573,34 @@ function renderCrowd() {
 }
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", renderCrowd);
 // Principles section: live Binance account ratio for both coins under principle 1
+// Past results by zone (research/turning_points.py, 8 coins, Dec 2021 to Nov 2026): [win share %, cases].
+// Rows: account ratio under 2, 2 to 3, above 3. Columns: top-trader ratio under 1.2, 1.2 to 1.9, above 1.9.
+const RULE_LOWS = [[[79, 29], [44, 25], [50, 6]], [[61, 51], [53, 78], [26, 39]], [[57, 44], [29, 34], [30, 30]]];
+const RULE_HIGHS = [[[21, 86], [26, 155], [54, 67]], [[29, 28], [34, 91], [40, 91]], [[25, 8], [65, 17], [57, 46]]];
 function renderRuleNow() {
-  const el = document.getElementById("rulenow"); if (!el) return;
+  const el = document.getElementById("rulenow"), card = document.getElementById("rulecard"); if (!el) return;
   const lastOf = arr => { if (arr) for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]; return null; };
-  const parts = [];
+  const z = (v, lo, hi) => v >= hi ? "pn" : v >= lo ? "cb" : "pp";
+  const parts = [], rows = [];
   for (const c of COINS) {
     const C = CROWD[c]; if (!C) continue;
     const m = C.m5 || {};
     const acc = lastOf(m.acc) ?? C.latest_lsr, top = lastOf(m.top) ?? C.latest_tpr;
     if (acc == null && top == null) continue;
-    const z = (v, lo, hi) => v >= hi ? "pn" : v >= lo ? "cb" : "pp";
-    let t = c.replace("USDT", "") + ": ";
+    const name = c.replace("USDT", "");
+    let t = name + ": ";
     if (acc != null) t += `accounts <b class="${z(acc, 2.0, 2.5)}">${acc.toFixed(2)}</b>`;
     if (top != null) t += `${acc != null ? ", " : ""}top traders <b class="${z(top, 1.2, 1.9)}">${top.toFixed(2)}</b>`;
     parts.push(t);
+    if (acc != null && top != null) {
+      const i = acc < 2 ? 0 : acc <= 3 ? 1 : 2, j = top < 1.2 ? 0 : top <= 1.9 ? 1 : 2;
+      const cell = (T, base, goodHigh) => { const [w, n] = T[i][j]; if (n < 15) return `<td>too few cases (${n})</td>`;
+        const cls = Math.abs(w - base) < 8 ? "" : (w > base) === goodHigh ? "pp" : "pn"; return `<td><b class="${cls}">${w}%</b> of ${n}</td>`; };
+      rows.push(`<tr><th scope="row">${name}</th><td class="${z(acc, 2.0, 3.0)}">${acc.toFixed(2)}</td><td class="${z(top, 1.2, 1.9)}">${top.toFixed(2)}</td>${cell(RULE_LOWS, 49, true)}${cell(RULE_HIGHS, 35, false)}</tr>`);
+    }
   }
   el.innerHTML = parts.length ? "Now (long per short): " + parts.join(" · ") + ` <span style="color:var(--muted)">green = low, yellow = in between, pink = heavily long; top-trader figure can lag by a day</span>` : "";
+  if (card) { card.hidden = !rows.length; document.getElementById("rulecardbody").innerHTML = rows.join(""); }
 }
 Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))
   .then(() => { renderCrowd(); renderRuleNow(); if (bars.length) setData(true); });
