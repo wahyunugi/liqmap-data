@@ -165,6 +165,15 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   tiap zona rasio; dalamnya penurunan OI dari puncak 30 hari tidak berpengaruh. Perkiraan dicek kasar terhadap data
   nyata Hyperliquid (bursa lain): BTC 94% vs 82% rata-rata selama 51 jam, korelasi per jam 0,75; ETH 97% vs 89%,
   korelasi 0,15. Angka di website dihitung `pack_underwater` di `site/build.py` dengan aturan yang sama.
+- **Fondasi website** (tertulis di bagian "Archive and foundation"): (1) apa pun yang layak diingat masuk ke
+  "Principles": tiap gagasan diuji dulu dengan aturan tetap, lalu ditulis beserta angka dan tanggalnya, berhasil atau
+  tidak; yang gagal tetap dicatat supaya tidak diuji ulang; skrip uji disimpan di `research/`. (2) Website dirancang
+  berjalan terus tanpa dirawat (lihat "Penyimpanan dan arsip").
+- **Prinsip 9, bahan bakar short squeeze** (16 Nov 2026): `research/squeeze_setup.py`, BTC + ETH, satu baris per hari
+  sejak 2020, hasil = naik 1 ayunan mingguan normal sebelum turun 1 dalam 14 hari (rata-rata 52%). Rasio akun < 1,5: 58%
+  (356 minggu); > 2,5: 41%. Funding rata-rata 3 hari < -0,005%: 46% (50 minggu, hampir semua 2020-2022). OI 7 hari > +5%
+  saat harga 7 hari <= 0: 53% (66% di 2023-24, 41% di 2025-26). Funding negatif + OI naik: 16 minggu saja, terlalu
+  sedikit. Kesimpulan: hanya rasio akun yang bertahan.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
