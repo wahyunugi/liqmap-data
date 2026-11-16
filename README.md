@@ -97,6 +97,9 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   `research/turning_points.py`). Dua rasio bersama diuji dengan melatih di 7 koin dan menguji di koin ke-8 bergantian:
   skor 0,65 (low) dan 0,62 (high). Arah gerakan besar 6 jam di 8 koin (1.407 gerakan): naik 67% saat rasio akun < 1,5,
   39% saat > 4. Bila uji diulang, perbarui konstanta dan teks bersama-sama.
+  Hari rilis (16 Nov 2026): tanggal laporan inflasi (CPI) dan tenaga kerja AS diambil dari daftar "vintage" ALFRED
+  (alfred.stlouisfed.org, seri CPIAUCSL dan PAYEMS; vintage revisi tahunan Februari dan koreksi 11 Mei 2020 dibuang),
+  tanggal keputusan Fed diketik manual dan dicocokkan dengan perubahan DFEDTARU: `research/data/events.csv`.
 - **Pane "RSI 14"** (tepat di bawah harga): RSI 14 candle (Wilder 1978, perataan Wilder) dari candle yang sedang
   ditampilkan, garis 70/50/30, dan divergensi reguler dengan aturan yang sama seperti indikator bawaan TradingView "RSI
   Divergence Indicator": titik balik RSI = lebih rendah/tinggi dari 5 candle di kiri dan kanan, dibandingkan dengan titik
