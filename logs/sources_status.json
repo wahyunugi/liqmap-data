@@ -2,39 +2,39 @@
  "etf_BTC": {
   "detail": "714 hari, terakhir 2026-11-13 total -185.4 juta USD",
   "last_error": "2026-10-30T17:00Z",
-  "last_ok": "2026-11-16T10:00Z",
-  "last_run": "2026-11-16T10:00Z",
+  "last_ok": "2026-11-16T11:00Z",
+  "last_run": "2026-11-16T11:00Z",
   "ok": true
  },
  "etf_ETH": {
   "detail": "582 hari, terakhir 2026-11-13 total 2.3 juta USD",
-  "last_ok": "2026-11-16T10:00Z",
-  "last_run": "2026-11-16T10:00Z",
+  "last_ok": "2026-11-16T11:00Z",
+  "last_run": "2026-11-16T11:00Z",
   "ok": true
  },
  "hyperliquid": {
-  "detail": "2556 akun semesta (1207 holder, 1349 giliran) + 300 akun kecil, 358 s; BTC long 11261/short 13102 dari OI 36742; ETH long 230838/short 252793 dari OI 609227",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "detail": "2556 akun semesta (1190 holder, 1366 giliran) + 300 akun kecil, 362 s; BTC long 11137/short 13054 dari OI 36566; ETH long 230326/short 252761 dari OI 607442",
+  "last_ok": "2026-11-16T11:06Z",
+  "last_run": "2026-11-16T11:06Z",
   "ok": true
  },
  "long_short_ratio": {
   "detail": "kolom dari Coinalyze: ['l', 'r', 's', 't']; baris baru [12, 12]",
-  "last_ok": "2026-11-16T10:00Z",
-  "last_run": "2026-11-16T10:00Z",
+  "last_ok": "2026-11-16T11:00Z",
+  "last_run": "2026-11-16T11:00Z",
   "ok": true
  },
  "markets_cme": {
   "detail": "hari lengkap {'BTCUSDT': 32, 'ETHUSDT': 32}",
   "last_error": "2026-11-06T17:02Z",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "markets_funding_1hour": {
   "detail": "baris baru {'BTCUSDT_binance': 1, 'BTCUSDT_bybit': 1, 'BTCUSDT_okx': 1, 'ETHUSDT_binance': 1, 'ETHUSDT_bybit': 1, 'ETHUSDT_okx': 1}",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "markets_funding_daily": {
@@ -45,8 +45,8 @@
  },
  "markets_fut_5min": {
   "detail": "baris baru {'BTCUSDT_bybit': 12, 'BTCUSDT_okx': 12, 'ETHUSDT_bybit': 12, 'ETHUSDT_okx': 12}",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "markets_fut_daily": {
@@ -56,15 +56,15 @@
   "ok": true
  },
  "markets_fut_liq_5min": {
-  "detail": "baris baru {'BTCUSDT_bybit': 5, 'BTCUSDT_okx': 3, 'ETHUSDT_bybit': 6, 'ETHUSDT_okx': 6}",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "detail": "baris baru {'BTCUSDT_bybit': 4, 'BTCUSDT_okx': 5, 'ETHUSDT_bybit': 5, 'ETHUSDT_okx': 3}",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "markets_fut_oi_5min": {
   "detail": "baris baru {'BTCUSDT_bybit': 12, 'BTCUSDT_okx': 12, 'ETHUSDT_bybit': 12, 'ETHUSDT_okx': 12}",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "markets_fut_oi_daily": {
@@ -80,9 +80,9 @@
   "ok": false
  },
  "markets_spot_5min": {
-  "detail": "baris baru {'BTCUSDT_coinbase': 12, 'BTCUSDT_kraken': 12, 'BTCUSDT_gemini': 12, 'BTCUSDT_binance': 12, 'BTCUSDT_bybit': 12, 'BTCUSDT_bithumb': 12, 'ETHUSDT_coinbase': 12, 'ETHUSDT_kraken': 12, 'ETHUSDT_gemini': 11, 'ETHUSDT_binance': 12, 'ETHUSDT_bybit': 12, 'ETHUSDT_bithumb': 12}",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "detail": "baris baru {'BTCUSDT_coinbase': 12, 'BTCUSDT_kraken': 12, 'BTCUSDT_gemini': 12, 'BTCUSDT_binance': 12, 'BTCUSDT_bybit': 12, 'BTCUSDT_bithumb': 12, 'ETHUSDT_coinbase': 12, 'ETHUSDT_kraken': 12, 'ETHUSDT_gemini': 12, 'ETHUSDT_binance': 12, 'ETHUSDT_bybit': 12, 'ETHUSDT_bithumb': 12}",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "markets_spot_daily": {
@@ -92,93 +92,93 @@
   "ok": true
  },
  "premium_1h_BTCUSDT": {
-  "detail": "1h BTCUSDT: +1 baris, terakhir 2026-11-16 09:00 UTC premium 0.0140% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "detail": "1h BTCUSDT: +1 baris, terakhir 2026-11-16 10:00 UTC premium 0.0026% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-16T11:06Z",
+  "last_run": "2026-11-16T11:06Z",
   "ok": true
  },
  "premium_1h_ETHUSDT": {
-  "detail": "1h ETHUSDT: +1 baris, terakhir 2026-11-16 09:00 UTC premium 0.0153% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "detail": "1h ETHUSDT: +1 baris, terakhir 2026-11-16 10:00 UTC premium -0.0075% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-16T11:06Z",
+  "last_run": "2026-11-16T11:06Z",
   "ok": true
  },
  "premium_5min_BTCUSDT": {
-  "detail": "5min BTCUSDT: +12 baris, terakhir 2026-11-16 10:00 UTC premium 0.0106% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "detail": "5min BTCUSDT: +12 baris, terakhir 2026-11-16 11:00 UTC premium 0.0037% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-16T11:06Z",
+  "last_run": "2026-11-16T11:06Z",
   "ok": true
  },
  "premium_5min_ETHUSDT": {
-  "detail": "5min ETHUSDT: +12 baris, terakhir 2026-11-16 10:00 UTC premium -0.0010% | Binance via https://data-api.binance.vision",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "detail": "5min ETHUSDT: +12 baris, terakhir 2026-11-16 11:00 UTC premium 0.0025% | Binance via https://data-api.binance.vision",
+  "last_ok": "2026-11-16T11:06Z",
+  "last_run": "2026-11-16T11:06Z",
   "ok": true
  },
  "probe_okx": {
-  "detail": "HTTP 200: b'{\"code\":\"0\",\"data\":[{\"instId\":\"BTC-USDT\",\"tradeId\":\"1084854267\",\"px\":\"64329.2\",\"sz\":\"0.00024641\",\"side\":\"buy\",\"ts\":\"1794'",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "detail": "HTTP 200: b'{\"code\":\"0\",\"data\":[{\"instId\":\"BTC-USDT\",\"tradeId\":\"1084870767\",\"px\":\"64636.4\",\"sz\":\"0.0000102\",\"side\":\"sell\",\"ts\":\"1794'",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "probe_upbit": {
-  "detail": "HTTP 200: b'[{\"market\":\"KRW-BTC\",\"trade_date_utc\":\"2026-11-16\",\"trade_time_utc\":\"10:07:35\",\"timestamp\":1794823655875,\"trade_price\":8'",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "detail": "HTTP 200: b'[{\"market\":\"KRW-BTC\",\"trade_date_utc\":\"2026-11-16\",\"trade_time_utc\":\"11:07:39\",\"timestamp\":1794827259866,\"trade_price\":8'",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_binance_BTCUSDT": {
   "detail": "+12 candle 5 menit via https://data-api.binance.vision",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "last_ok": "2026-11-16T11:06Z",
+  "last_run": "2026-11-16T11:06Z",
   "ok": true
  },
  "spot_binance_ETHUSDT": {
   "detail": "+12 candle 5 menit via https://data-api.binance.vision",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_coinbase_BTCUSDT": {
-  "detail": "+12 candle 5 menit, 51 halaman transaksi",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "detail": "+12 candle 5 menit, 45 halaman transaksi",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_coinbase_ETHUSDT": {
-  "detail": "+12 candle 5 menit, 11 halaman transaksi",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "detail": "+12 candle 5 menit, 10 halaman transaksi",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_okx_BTCUSDT": {
   "detail": "+12 candle 5 menit",
-  "last_ok": "2026-11-16T10:06Z",
-  "last_run": "2026-11-16T10:06Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_okx_ETHUSDT": {
   "detail": "+12 candle 5 menit",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_upbit_BTCUSDT": {
-  "detail": "+12 candle 5 menit, 19 halaman transaksi",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "detail": "+12 candle 5 menit, 12 halaman transaksi",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "spot_upbit_ETHUSDT": {
   "detail": "+12 candle 5 menit, 5 halaman transaksi",
-  "last_ok": "2026-11-16T10:07Z",
-  "last_run": "2026-11-16T10:07Z",
+  "last_ok": "2026-11-16T11:07Z",
+  "last_run": "2026-11-16T11:07Z",
   "ok": true
  },
  "stablecoins": {
   "detail": "3275 hari, 2017-11-29 s/d 2026-11-16, total $287.1B",
-  "last_ok": "2026-11-16T10:00Z",
-  "last_run": "2026-11-16T10:00Z",
+  "last_ok": "2026-11-16T11:00Z",
+  "last_run": "2026-11-16T11:00Z",
   "ok": true
  }
 }
