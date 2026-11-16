@@ -197,6 +197,11 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   lanjutan: setelah naik 61% naik lagi, setelah turun 52% turun lagi. Pasar tenang tidak diikuti gerakan besar lebih
   sering (10% vs 24%). Kolom terakhir tabel "Big-move risk" memakai angka ini (`RISK_WHEN` di `site/app.js`; waktu sejak
   gerakan besar terakhir dihitung di browser dari penutupan per jam, dicek sama dengan Python).
+- **Prinsip 12, eksperimen 3 dari literatur** (16 Nov 2026): `research/exp3_carry.py`, BTC + ETH harian sejak 2020.
+  Kejatuhan = turun >= 2 ayunan mingguan normal dalam 30 hari (rata-rata 28%). Funding 0,015-0,03%: 30% (40% di
+  2020-21, 12% di 2024-26); > 0,03%: 33%. Premi futures vs spot 10% teratas (> +0,079%): 40% (37% dan 36%); 10%
+  terbawah (< -0,050%): 18% (0% dan 17%; 24% vs 29% di 2022-23). Funding tinggi saat harga 30 hari turun: 71% dari 86
+  hari, tetapi 78 hari di 2020-21 dan hanya kira-kira 5 episode, jadi bukan aturan teruji. Funding -0,005..0: 16%.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
