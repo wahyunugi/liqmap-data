@@ -293,6 +293,40 @@ def pack_calendar(now):
     return sorted(out, key=lambda x: x["t"])[:6]
 
 
+# bursa yang datanya ada sejak Des 2022, supaya jumlahnya tidak melonjak hanya karena bursa baru masuk daftar
+RES_SET = ["binance-cex", "okx", "bybit", "bitfinex", "bitget", "gate", "htx", "deribit", "kucoin", "crypto-com"]
+RES_FROM = "2022-12-22"
+
+
+def pack_extras():
+    """Data harian tambahan (collector/extras.py): saldo bursa, pembaca Wikipedia, likuidasi harian."""
+    out = {}
+    ts = lambda d: int(pd.Timestamp(d, tz="UTC").timestamp())
+    p = os.path.join(ROOT, "data", "exchanges", "reserves.csv")
+    if os.path.exists(p):
+        r = pd.read_csv(p); r = r[r.exchange.isin(RES_SET) & (r.date >= RES_FROM)]
+        r["stable"] = r.usdt + r.usdc + r.stable_other
+        days = sorted(r.date.unique())
+        piv = lambda col: r.pivot(index="date", columns="exchange", values=col).reindex(days).ffill()
+        st, bt, et = piv("stable"), piv("btc"), piv("eth")
+        full = st.notna().all(axis=1)                              # hanya hari saat semua bursa di daftar punya data
+        out["res"] = dict(t=[ts(d) for d in st.index[full]], stable=[round(v / 1e9, 3) for v in st[full].sum(axis=1)],
+                          BTCUSDT=[round(v) for v in bt[full].sum(axis=1)], ETHUSDT=[round(v) for v in et[full].sum(axis=1)],
+                          n=len(RES_SET), binance=[round(v / 1e9, 3) for v in st[full]["binance-cex"]])
+    p = os.path.join(ROOT, "data", "attention", "wikipedia.csv")
+    if os.path.exists(p):
+        a = pd.read_csv(p)
+        nn = lambda s: [None if pd.isna(v) else int(v) for v in s]
+        out["att"] = dict(t=[ts(d) for d in a.date], BTCUSDT=nn(a.Bitcoin), ETHUSDT=nn(a.Ethereum))
+    out["liqd"] = {}
+    for sym in PAIRS:
+        p = os.path.join(ROOT, "data", "liquidations", "daily", sym + ".csv")
+        if os.path.exists(p):
+            l = pd.read_csv(p).sort_values("t")
+            out["liqd"][sym] = dict(t=[int(x) for x in l.t], l=[round(v / 1e6, 2) for v in l.l], s=[round(v / 1e6, 2) for v in l.s])
+    return out
+
+
 REPO = os.environ.get("GITHUB_REPOSITORY", "wahyunugi/liqmap-data")
 
 
@@ -369,6 +403,10 @@ def build():
     out["hl"] = pack_hl()
     out["cal"] = pack_calendar(out["built"])
     out["arch"] = pack_archives()
+    try:
+        out["extra"] = pack_extras()
+    except Exception as e:
+        print(f"PERINGATAN: data tambahan gagal dikemas: {e!r}"); out["extra"] = {}
     out["cftc"] = pack_cftc()
     out["etf"] = {sym: pack_etf(sym.replace("USDT", "")) for sym in PAIRS}
     for sym, nd in PAIRS.items():

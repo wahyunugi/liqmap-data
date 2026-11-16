@@ -950,6 +950,75 @@ for (const b of document.querySelectorAll("#hlmode .btn")) b.onclick = () => { h
 { let hlRs = null; window.addEventListener("resize", () => { clearTimeout(hlRs); hlRs = setTimeout(() => { const H = HL[state.coin]; if (H && !hlBox.hidden) hlProfile(H); }, 200); }); }
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setHl);
 
+// ---------- Exchange balances, Wikipedia readers, daily liquidations (collector/extras.py, once a day) ----------
+const EX = DATA.extra || {};
+const flowsBox = document.getElementById("flows");
+const flowsChart = LC.createChart(document.getElementById("flowschart"), {
+  autoSize: true,
+  layout: { background: { type: "solid", color: css("--panel") }, textColor: css("--muted"), fontFamily: css("--font-ui"), fontSize: 11, panes: { separatorColor: css("--line") } },
+  grid: { vertLines: { color: "rgba(255,255,255,0.035)" }, horzLines: { color: "rgba(255,255,255,0.035)" } },
+  crosshair: { mode: LC.CrosshairMode.Magnet, vertLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" }, horzLine: { color: "#6b7385", labelBackgroundColor: "#2b3240" } },
+  rightPriceScale: { borderColor: css("--line") }, leftPriceScale: { visible: true, borderColor: css("--line") },
+  timeScale: { borderColor: css("--line"), timeVisible: false, rightOffset: 2 },
+  localization: { timeFormatter: t => fmtD(t) },
+});
+const fxStable = flowsChart.addSeries(LC.LineSeries, { color: css("--fg"), lineWidth: 2, priceScaleId: "left", lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3, priceFormat: { type: "custom", formatter: fmtB, minMove: 0.01 } }, 0);
+const fxCoin = flowsChart.addSeries(LC.LineSeries, { color: css("--c2"), lineWidth: 2, priceScaleId: "right", lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3, priceFormat: { type: "custom", formatter: qty, minMove: 1 } }, 0);
+const fxAtt = flowsChart.addSeries(LC.LineSeries, { color: css("--c4"), lineWidth: 1.5, lastValueVisible: true, priceLineVisible: false, crosshairMarkerRadius: 3, priceFormat: { type: "custom", formatter: qty, minMove: 1 } }, 1);
+const fxLs = flowsChart.addSeries(LC.HistogramSeries, { color: css("--short"), priceFormat: { type: "custom", formatter: v => "$" + Math.abs(v).toFixed(0) + "M", minMove: 0.01 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 2);
+const fxLl = flowsChart.addSeries(LC.HistogramSeries, { color: css("--long"), priceFormat: { type: "custom", formatter: v => "$" + Math.abs(v).toFixed(0) + "M", minMove: 0.01 }, lastValueVisible: false, priceLineVisible: false, base: 0 }, 2);
+{ const p = flowsChart.panes(); [1.5, 1, 1].forEach((f, i) => p[i] && p[i].setStretchFactor(f)); }
+fxAtt.priceScale().applyOptions({ mode: 1 });   // log scale: readers range from 2 thousand to 340 thousand a day
+let flowsRange = 365, flowsT = [];
+const at = (S, key, t) => { if (!S) return null; const i = S.t.indexOf(t); return i < 0 ? null : S[key][i]; };
+const back = (S, key, t, days) => { const a = at(S, key, t), b = at(S, key, t - days * 86400); return a == null || b == null ? null : a - b; };
+function flowsTable(t) {
+  const c = state.coin, coin = c.replace("USDT", ""), R = EX.res, A = EX.att, L = (EX.liqd || {})[c];
+  if (t == null || !flowsT.includes(t)) t = R && R.t.length ? R.t[R.t.length - 1] : flowsT[flowsT.length - 1];
+  document.getElementById("flowswk").textContent = `On ${fmtD(t)} · ${coin}`;
+  const dB = v => v == null ? "–" : `<span class="${v > 0 ? "pp" : v < 0 ? "pn" : ""}">${fmtBd(v)}</span>`;
+  const dQ = (v, good) => v == null ? "–" : `<span class="${v === 0 ? "" : (v > 0) === good ? "pp" : "pn"}">${v > 0 ? "+" : v < 0 ? "−" : ""}${qty(v)}</span>`;
+  const row = (name, a, b, d) => `<tr><th scope="row">${name}</th><td class="strong">${a}</td><td>${b}</td><td>${d}</td></tr>`;
+  const sumL = (key, days) => { if (!L) return null; let s = 0, n = 0; for (let k = 0; k < days; k++) { const v = at(L, key, t - k * 86400); if (v != null) { s += v; n++; } } return n ? s : null; };
+  const m = v => v == null ? "–" : "$" + (v >= 1000 ? (v / 1000).toFixed(2) + "B" : v.toFixed(0) + "M");
+  const avg = (days) => { if (!A) return null; let s = 0, n = 0; for (let k = 0; k < days; k++) { const v = at(A, c, t - k * 86400); if (v != null) { s += v; n++; } } return n ? s / n : null; };
+  const a1 = at(A, c, t), a7 = avg(7), a30 = avg(30);
+  document.getElementById("flowsbody").innerHTML =
+    row(`<span class="sw" style="background:var(--fg)"></span>Stablecoins on exchanges<small>balance, then change</small>`, at(R, "stable", t) == null ? "–" : fmtB(at(R, "stable", t)), dB(back(R, "stable", t, 7)), dB(back(R, "stable", t, 30))) +
+    row(`<span class="sw" style="background:var(--c2)"></span>${coin} on exchanges<small>balance, then change (green = coins leaving)</small>`, at(R, c, t) == null ? "–" : qty(at(R, c, t)), dQ(back(R, c, t, 7), false), dQ(back(R, c, t, 30), false)) +
+    row(`<span class="sw" style="background:var(--c4)"></span>Wikipedia readers<small>that day, then daily average</small>`, a1 == null ? "–" : qty(a1), a7 == null ? "–" : qty(a7), a30 == null ? "–" : qty(a30)) +
+    row(`<span class="sw" style="background:var(--long)"></span>Longs liquidated<small>that day, then total</small>`, m(at(L, "l", t)), m(sumL("l", 7)), m(sumL("l", 30))) +
+    row(`<span class="sw" style="background:var(--short)"></span>Shorts liquidated`, m(at(L, "s", t)), m(sumL("s", 7)), m(sumL("s", 30)));
+  document.getElementById("flowsfoot").textContent = R ? `Exchange balances: ${R.n} exchanges; Binance alone held ${fmtB(at(R, "binance", t) ?? R.binance[R.binance.length - 1])} of the stablecoins.` : "";
+}
+function flowsApplyRange() {
+  if (!flowsT.length) return;
+  const n = flowsT.length, last = flowsT[n - 1]; let from = 0;
+  if (flowsRange) while (from < n - 1 && flowsT[from] < last - flowsRange * 86400) from++;
+  requestAnimationFrame(() => flowsChart.timeScale().setVisibleLogicalRange({ from: from - 0.5, to: n - 1 + 2 }));
+  for (const b of document.querySelectorAll("#flowsranges .btn")) b.setAttribute("aria-pressed", +b.dataset.d === flowsRange);
+}
+function setFlows() {
+  const c = state.coin, R = EX.res, A = EX.att, L = (EX.liqd || {})[c];
+  flowsBox.hidden = !(R || A || L); if (flowsBox.hidden) return;
+  // one shared daily time axis (union of the three sources) so the panes line up
+  flowsT = Array.from(new Set([].concat(R ? R.t : [], A ? A.t : [], L ? L.t : []))).sort((x, y) => x - y);
+  const idx = S => { const m = new Map(); if (S) S.t.forEach((t, i) => m.set(t, i)); return m; };
+  const mR = idx(R), mA = idx(A), mL = idx(L);
+  const line = (S, m, key) => flowsT.map(t => { const i = m.get(t); return i != null && S[key][i] != null ? { time: t, value: S[key][i] } : { time: t }; });
+  fxStable.setData(line(R, mR, "stable")); fxCoin.setData(line(R, mR, c));
+  const att = flowsT.map(t => { let s = 0, n = 0; for (let k = 0; k < 7; k++) { const i = mA.get(t - k * 86400); if (i != null && A[c][i] != null) { s += A[c][i]; n++; } } return n >= 4 ? { time: t, value: s / n } : { time: t }; });
+  fxAtt.setData(att);
+  fxLs.setData(flowsT.map(t => { const i = mL.get(t); return i != null ? { time: t, value: L.s[i] } : { time: t }; }));
+  fxLl.setData(flowsT.map(t => { const i = mL.get(t); return i != null ? { time: t, value: -L.l[i] } : { time: t }; }));
+  document.getElementById("flowsasof").textContent = `Daily (UTC) · latest full day: ${fmtD(flowsT[flowsT.length - 1])} · updated once a day`;
+  flowsApplyRange(); flowsTable();
+}
+for (const b of document.querySelectorAll("#flowsranges .btn")) b.onclick = () => { flowsRange = +b.dataset.d; flowsApplyRange(); };
+flowsChart.subscribeCrosshairMove(p => { if (flowsT.length) flowsTable(p && p.time != null ? p.time : null); });
+for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setFlows);
+setFlows();
+
 // ---------- Archive list (GitHub releases tagged archive-*, made by the "archive" workflow) ----------
 (function () {
   const A = DATA.arch; if (!A) return;

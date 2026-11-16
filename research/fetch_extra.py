@@ -14,6 +14,11 @@ Data riset tambahan tahap 2 (workflow "research-data"): pengganti gratis untuk d
   4. PERHATIAN PUBLIK (pengganti Google Trends): jumlah pembaca harian artikel Wikipedia bahasa Inggris
      (API resmi Wikimedia, sejak Juli 2015) -> research/data/attention.csv   kolom: date, Bitcoin, Ethereum, Cryptocurrency
 
+Catatan 16 Nov 2026: bagian 3 dan 4 serta likuidasi harian sekarang dikumpulkan tiap hari oleh collector/extras.py ke
+data/exchanges, data/attention, data/liquidations/daily (itulah yang dipakai website dan eksperimen). Arsip Binance tidak
+lagi memuat "liquidationSnapshot" (dicek 16 Nov 2026), jadi bagian 1 tidak menghasilkan apa-apa. Skrip ini disimpan sebagai
+catatan cara data awal diambil; yang masih berguna: likuidasi per jam Coinalyze (kira-kira 85 hari terakhir).
+
     python research/fetch_extra.py [liq] [coinalyze] [cex] [attention]      # tanpa argumen = semua
 """
 import concurrent.futures as cf, datetime as dt, io, json, os, re, sys, time, urllib.parse, urllib.request

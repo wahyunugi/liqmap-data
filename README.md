@@ -26,7 +26,7 @@ Heatmap bisa dihitung untuk **waktu mana pun sejak 29 Sep 2026** (24 jam setelah
 ## Isi repository
 | Folder | Isi |
 |---|---|
-| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `stablecoins.py` pasokan stablecoin; `hyperliquid.py` posisi long/short Hyperliquid; `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
+| `collector/` | `coinalyze.py` pengumpul data; `cftc.py` laporan mingguan CFTC; `etf.py` arus ETF spot; `stablecoins.py` pasokan stablecoin; `hyperliquid.py` posisi long/short Hyperliquid; `extras.py` data harian tambahan (saldo bursa, pembaca Wikipedia, likuidasi harian); `premium.py` Coinbase premium; `status.py` status sumber (`logs/sources_status.json`); `check_sides.py` cek arti kolom likuidasi |
 | `heatmap/` | `model.py` aturan model (PARAMS_V6 dipakai); `inputs.py` penggabung sumber data; `snapshot.py` penghitung heatmap |
 | `data/binance_archive/` | arsip Binance asli dari laptop, 28 Sep – 29 Okt 2026, dibekukan (tidak ditambah lagi) |
 | `data/ohlcv/`, `data/open_interest/` | harga & open interest dari Coinalyze, 1 dan 5 menit, terus bertambah |
@@ -174,6 +174,23 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   (356 minggu); > 2,5: 41%. Funding rata-rata 3 hari < -0,005%: 46% (50 minggu, hampir semua 2020-2022). OI 7 hari > +5%
   saat harga 7 hari <= 0: 53% (66% di 2023-24, 41% di 2025-26). Funding negatif + OI naik: 16 minggu saja, terlalu
   sedikit. Kesimpulan: hanya rasio akun yang bertahan.
+- **Panel "Exchange balances, public attention and daily liquidations"** (16 Nov 2026; `collector/extras.py`, sekali
+  sehari jam 01 UTC, atau manual: Actions -> collect -> Run workflow dengan "extras" dicentang): pengganti gratis untuk
+  data berbayar. (1) `data/exchanges/reserves.csv`: saldo dompet 14 bursa per hari dari DefiLlama (kategori CEX), sejak
+  Nov 2022; website menjumlahkan 10 bursa yang datanya lengkap sejak 22 Des 2022 (`RES_SET` di `site/build.py`) supaya
+  jumlah tidak melonjak karena bursa baru masuk. Perubahan saldo = arus bersih; lonjakan sehari bisa juga karena bursa
+  menambah dompet ke daftar terbukanya. (2) `data/attention/wikipedia.csv`: pembaca harian artikel Wikipedia Bitcoin,
+  Ethereum, Cryptocurrency sejak Juli 2015 (API Wikimedia). (3) `data/liquidations/daily/<SIMBOL>.csv`: likuidasi
+  Binance per hari dari Coinalyze sejak Okt 2022 (Coinalyze menyimpan kira-kira 1.500 hari; yang lebih lama tetap di
+  file). Riwayat likuidasi per 5 menit sebelum 29 Okt 2026 TIDAK bisa diganti: set "liquidationSnapshot" sudah tidak ada
+  di arsip publik Binance (dicek 16 Nov 2026). Data awal diambil lewat `research/fetch_extra.py`.
+- **Prinsip 10, eksperimen 1 dari literatur** (16 Nov 2026): `research/exp1_strength.py`. Entri long pada jam pertama
+  harga menembus tertinggi 20 hari vs terendah 20 hari vs acak (jarak >= 72 jam), 8 koin sejak 2020. Menang 1 ayunan
+  mingguan naik sebelum 1 turun dalam 30 hari: 56% (991) vs 46% (795) vs 51%; uji acak per blok minggu p = 0,016; searah
+  di 8 koin; per periode 65/51 (2020-21), 49/51 (2022-23), 53/41 (2024-26). Dengan ukuran 2,25:1,5: 48% vs 37% vs 46%.
+  Daftar eksperimen berikutnya (satu per satu, hasil ditulis ke Principles setelah disetujui): 2 gerakan besar
+  mengelompok, 3 premi futures tinggi, 4 jam dalam hari, 5 arus order satu sisi, 6 rentetan arus ETF, 7 arus saldo
+  bursa, 8 perhatian publik, 9 hari setelah likuidasi besar.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
