@@ -68,7 +68,7 @@ jobs:
           tar -tzf "$files" > "$RUNNER_TEMP/list.txt"
           grep -q "^liqmap-data-$day/README.md$" "$RUNNER_TEMP/list.txt"
           echo "arsip file: $(wc -l < "$RUNNER_TEMP/list.txt") entri"
-          first=$(git log --reverse --format=%ad --date=short | head -1); commits=$(git rev-list --count HEAD)
+          first=$(git log -1 --format=%ad --date=short "$(git rev-list --max-parents=0 HEAD | tail -n 1)"); commits=$(git rev-list --count HEAD)
           {
             echo "Complete archive of wahyunugi/liqmap-data on $day (reason: ${{ steps.plan.outputs.why }})."
             echo
