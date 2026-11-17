@@ -229,6 +229,12 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   (Bitcoin, Ethereum) vs harga harian Bitstamp/Binance (`research/data/daily_bitstamp.csv`, diambil
   `research/fetch_extra.py bitstamp` lewat workflow research-data). Korelasi mingguan tingkat perhatian (7 hari vs median
   setahun) dengan harga 30 hari: BTC +0,25 / +0,21 / +0,09, ETH +0,29 / +0,24 / -0,06 (2015-19, 2020-22, 2023-26).
+- **Prinsip 18, eksperimen 9, hari likuidasi besar** (17 Nov 2026): `research/exp9_liquidations.py`. Likuidasi long
+  >= 4x median 90 hari + harga turun > 1,5 ayunan harian: 7 hari naik 58% (69 hari, 35 episode) vs 43%; tetapi 79% di
+  2022-24 dan 32% di 2025-26. Per jam (68 hari): setelah 2% jam likuidasi teratas, jam berikut naik 44% (BTC) / 38% (ETH).
+  **Kesembilan eksperimen dari tinjauan literatur selesai 17 Nov 2026** (prinsip 10 sampai 18). Yang bisa diulang nanti:
+  uji per jam likuidasi (data per jam terkumpul sejak 29 Okt 2026), Hyperliquid vs Binance (5 Des 2026), tumpukan
+  likuidasi nyata Hyperliquid (Des 2026 - Jan 2027).
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
