@@ -221,7 +221,7 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
 - **Penomoran prinsip:** nomor di teks dan README mengikuti urutan daftar di website (1 = "Watch who is already long",
   7 = siklus 4 tahun, 8 = posisi rugi, ... 15 = arus ETF). Prinsip baru SELALU ditambahkan di akhir daftar supaya
   rujukan nomor ("principle 14") tetap benar.
-- **Eksperimen 7, saldo bursa** (17 Nov 2026): `research/exp7_reserves.py`. Lonjakan harian satu bursa > 15% dinolkan
+- **Prinsip 16, eksperimen 7, saldo bursa** (17 Nov 2026): `research/exp7_reserves.py`. Lonjakan harian satu bursa > 15% dinolkan
   (perubahan daftar dompet). Korelasi arus 7 hari dengan harga 7 hari sesudahnya: semua |r| <= 0,10 dan tandanya tidak
   stabil antar paruh sampel. Panel website memakai aturan pembersihan yang sama (`clean` di `pack_extras`), contoh: OKX
   +558 ribu ETH pada 16 Nov 2026 dibuang.
