@@ -202,6 +202,11 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   2020-21, 12% di 2024-26); > 0,03%: 33%. Premi futures vs spot 10% teratas (> +0,079%): 40% (37% dan 36%); 10%
   terbawah (< -0,050%): 18% (0% dan 17%; 24% vs 29% di 2022-23). Funding tinggi saat harga 30 hari turun: 71% dari 86
   hari, tetapi 78 hari di 2020-21 dan hanya kira-kira 5 episode, jadi bukan aturan teruji. Funding -0,005..0: 16%.
+- **Prinsip 13, eksperimen 4 dari literatur** (17 Nov 2026): `research/exp4_timeofday.py`, 8 koin per jam sejak 2020,
+  tiga periode, statistik dihitung dari rata-rata lintas koin per hari. Jendela penelitian 21-23 UTC (04-06 WIB), BTC:
+  +11,5 bp per hari (t 3,0) di 2020 - Feb 2022, +3,2 bp (t 1,0) di Mar 2022 - 2023, +6,1 bp (t 3,0) di 2024 - 2026; sisa
+  22 jam +20,0 / +0,3 / +1,0 bp. Pola 24 jam antar periode tidak berkorelasi (-0,36, -0,22, +0,16). Jam mulai gerakan
+  besar 2024-26: 0,6-1,0% (01-07 UTC) vs 3,3-3,6% (11-13 UTC); hari kerja 2,01% vs akhir pekan 1,36%.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
