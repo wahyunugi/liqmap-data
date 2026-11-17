@@ -218,6 +218,13 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   diketahui d+1 06:00 UTC. Korelasi arus dengan harga 5 hari sebelum: BTC +0,56, ETH +0,45; 5 hari sesudah: +0,03,
   +0,01. Rentetan keluar 5 hari: BTC 7 hari naik 29% (17), 7 hari berturut: 80% (10); 30 hari 59% / 60% vs 54%. Arus
   masuk pertama setelah rentetan keluar >= 5: BTC 9 dari 16 naik 30 hari, ETH 6 dari 12.
+- **Penomoran prinsip:** nomor di teks dan README mengikuti urutan daftar di website (1 = "Watch who is already long",
+  7 = siklus 4 tahun, 8 = posisi rugi, ... 15 = arus ETF). Prinsip baru SELALU ditambahkan di akhir daftar supaya
+  rujukan nomor ("principle 14") tetap benar.
+- **Eksperimen 7, saldo bursa** (17 Nov 2026): `research/exp7_reserves.py`. Lonjakan harian satu bursa > 15% dinolkan
+  (perubahan daftar dompet). Korelasi arus 7 hari dengan harga 7 hari sesudahnya: semua |r| <= 0,10 dan tandanya tidak
+  stabil antar paruh sampel. Panel website memakai aturan pembersihan yang sama (`clean` di `pack_extras`), contoh: OKX
+  +558 ribu ETH pada 16 Nov 2026 dibuang.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama

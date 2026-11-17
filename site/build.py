@@ -310,8 +310,15 @@ def pack_extras():
         piv = lambda col: r.pivot(index="date", columns="exchange", values=col).reindex(days).ffill()
         st, bt, et = piv("stable"), piv("btc"), piv("eth")
         full = st.notna().all(axis=1)                              # hanya hari saat semua bursa di daftar punya data
-        out["res"] = dict(t=[ts(d) for d in st.index[full]], stable=[round(v / 1e9, 3) for v in st[full].sum(axis=1)],
-                          BTCUSDT=[round(v) for v in bt[full].sum(axis=1)], ETHUSDT=[round(v) for v in et[full].sum(axis=1)],
+        def clean(p):
+            """Lonjakan harian satu bursa > 15% dianggap perubahan daftar dompet, bukan arus (aturan research/exp7_reserves.py):
+            garis = saldo nyata terakhir dikurangi jumlah perubahan bersih sesudahnya, jadi nilai terakhir tetap saldo nyata."""
+            p = p[full]; d = p.diff(); d[p.pct_change().abs() > 0.15] = 0.0
+            net = d.sum(axis=1).fillna(0.0); tot = p.sum(axis=1)
+            return tot.iat[-1] - net[::-1].cumsum()[::-1].shift(-1, fill_value=0.0)
+        st_c, bt_c, et_c = clean(st), clean(bt), clean(et)
+        out["res"] = dict(t=[ts(d) for d in st.index[full]], stable=[round(v / 1e9, 3) for v in st_c],
+                          BTCUSDT=[round(v) for v in bt_c], ETHUSDT=[round(v) for v in et_c],
                           n=len(RES_SET), binance=[round(v / 1e9, 3) for v in st[full]["binance-cex"]])
     p = os.path.join(ROOT, "data", "attention", "wikipedia.csv")
     if os.path.exists(p):
