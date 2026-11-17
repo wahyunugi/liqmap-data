@@ -170,7 +170,7 @@ def bitstamp(pairs=(("btcusd", 1325376000), ("ethusd", 1501545600))):
                 rows.append(dict(date=dt.datetime.fromtimestamp(int(r["timestamp"]), dt.timezone.utc).strftime("%Y-%m-%d"), pair=pair,
                                  open=float(r["open"]), high=float(r["high"]), low=float(r["low"]), close=float(r["close"]), volume=float(r["volume"])))
             last = int(got[-1]["timestamp"])
-            if last <= t or len(got) < 1000:
+            if last <= t:
                 break
             t = last + 86400; time.sleep(0.5)
     d = pd.DataFrame(rows).drop_duplicates(["pair", "date"]).sort_values(["pair", "date"])
