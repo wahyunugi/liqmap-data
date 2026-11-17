@@ -214,6 +214,10 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   dengan model dilatih 2020-23: volume 0,662, semua 0,668). Arah: harga 24 jam turun + jual agresif > 1 poin -> 43% naik
   (850). Panel "Big-move risk" sekarang memakai volume (`RISK_VOL_CUT`, `RISK_VOL` di `site/app.js`), dihitung di
   browser dari volume 5 menit Binance futures.
+- **Prinsip 15, eksperimen 6 dari literatur** (17 Nov 2026): `research/exp6_etf.py`. Arus ETF tanggal d dianggap
+  diketahui d+1 06:00 UTC. Korelasi arus dengan harga 5 hari sebelum: BTC +0,56, ETH +0,45; 5 hari sesudah: +0,03,
+  +0,01. Rentetan keluar 5 hari: BTC 7 hari naik 29% (17), 7 hari berturut: 80% (10); 30 hari 59% / 60% vs 54%. Arus
+  masuk pertama setelah rentetan keluar >= 5: BTC 9 dari 16 naik 30 hari, ETH 6 dari 12.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
