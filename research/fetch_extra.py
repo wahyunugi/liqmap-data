@@ -19,7 +19,8 @@ data/exchanges, data/attention, data/liquidations/daily (itulah yang dipakai web
 lagi memuat "liquidationSnapshot" (dicek 16 Nov 2026), jadi bagian 1 tidak menghasilkan apa-apa. Skrip ini disimpan sebagai
 catatan cara data awal diambil; yang masih berguna: likuidasi per jam Coinalyze (kira-kira 85 hari terakhir).
 
-    python research/fetch_extra.py [liq] [coinalyze] [cex] [attention]      # tanpa argumen = semua
+    python research/fetch_extra.py [liq] [coinalyze] [cex] [attention] [bitstamp]   # tanpa argumen = coinalyze + bitstamp
+  5. HARGA HARIAN PANJANG Bitstamp (BTC sejak 2012, ETH sejak 2017) -> research/data/daily_bitstamp.csv
 """
 import concurrent.futures as cf, datetime as dt, io, json, os, re, sys, time, urllib.parse, urllib.request
 import numpy as np, pandas as pd
@@ -154,10 +155,34 @@ def attention(articles=("Bitcoin", "Ethereum", "Cryptocurrency")):
     pd.DataFrame(cols).sort_index().to_csv(os.path.join(OUT, "attention.csv"), index_label="date")
 
 
+def bitstamp(pairs=(("btcusd", 1325376000), ("ethusd", 1501545600))):
+    """Harga harian panjang dari Bitstamp (BTC sejak 2012, ETH sejak Agustus 2017) -> research/data/daily_bitstamp.csv
+    kolom: date, pair, open, high, low, close, volume. Dipakai eksperimen yang butuh riwayat sebelum data Binance (2020)."""
+    rows = []
+    for pair, start in pairs:
+        t = start
+        while True:
+            j = json.loads(fetch(f"https://www.bitstamp.net/api/v2/ohlc/{pair}/?step=86400&limit=1000&start={t}"))
+            got = j["data"]["ohlc"]
+            if not got:
+                break
+            for r in got:
+                rows.append(dict(date=dt.datetime.fromtimestamp(int(r["timestamp"]), dt.timezone.utc).strftime("%Y-%m-%d"), pair=pair,
+                                 open=float(r["open"]), high=float(r["high"]), low=float(r["low"]), close=float(r["close"]), volume=float(r["volume"])))
+            last = int(got[-1]["timestamp"])
+            if last <= t or len(got) < 1000:
+                break
+            t = last + 86400; time.sleep(0.5)
+    d = pd.DataFrame(rows).drop_duplicates(["pair", "date"]).sort_values(["pair", "date"])
+    today = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d"); d = d[d.date < today]
+    d.to_csv(os.path.join(OUT, "daily_bitstamp.csv"), index=False, float_format="%.8g")
+    print("BITSTAMP:", d.groupby("pair").date.agg(["min", "max", "size"]).to_string(), flush=True)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    want = sys.argv[1:] or ["liq", "coinalyze", "cex", "attention"]
-    for name, fn in (("liq", liquidations), ("coinalyze", coinalyze), ("cex", cex), ("attention", attention)):
+    want = sys.argv[1:] or ["coinalyze", "bitstamp"]
+    for name, fn in (("liq", liquidations), ("coinalyze", coinalyze), ("cex", cex), ("attention", attention), ("bitstamp", bitstamp)):
         if name in want:
             try:
                 fn()
