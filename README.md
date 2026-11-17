@@ -207,6 +207,13 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   +11,5 bp per hari (t 3,0) di 2020 - Feb 2022, +3,2 bp (t 1,0) di Mar 2022 - 2023, +6,1 bp (t 3,0) di 2024 - 2026; sisa
   22 jam +20,0 / +0,3 / +1,0 bp. Pola 24 jam antar periode tidak berkorelasi (-0,36, -0,22, +0,16). Jam mulai gerakan
   besar 2024-26: 0,6-1,0% (01-07 UTC) vs 3,3-3,6% (11-13 UTC); hari kerja 2,01% vs akhir pekan 1,36%.
+- **Prinsip 14, eksperimen 5 dari literatur** (17 Nov 2026): `research/exp5_flow.py`, 8 koin per hari sejak 2020.
+  Peluang gerakan besar 24 jam menurut volume futures 24 jam / median 24 jam selama 720 jam: < 0,6x 6,0%; 0,6-0,8
+  7,7%; 0,8-1,0 10,0%; 1,0-1,3 12,1%; 1,3-1,8 17,5%; > 1,8x 30,2% (28/29/33% di tiga periode). Kestabilan arus (sinyal
+  makalah arXiv 2607.27070) dan "gerakan besar < 1 hari lalu" tidak menambah apa-apa setelah volume diketahui (AUC 2024+
+  dengan model dilatih 2020-23: volume 0,662, semua 0,668). Arah: harga 24 jam turun + jual agresif > 1 poin -> 43% naik
+  (850). Panel "Big-move risk" sekarang memakai volume (`RISK_VOL_CUT`, `RISK_VOL` di `site/app.js`), dihitung di
+  browser dari volume 5 menit Binance futures.
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama

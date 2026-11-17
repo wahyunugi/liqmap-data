@@ -655,6 +655,10 @@ const RISK_ROWS = ["Accounts long per short under 1.5", "1.5 to 2.5", "Above 2.5
 // Share of days with a big move starting in the next 24 hours, by time since the last big move ended: under 1 day, 1 to 3,
 // 3 to 7, 7 to 14, over 14 days (research/exp2_clustering.py, 8 coins since 2020; average day 13.0%).
 const RISK_WHEN = [28.7, 14.0, 11.6, 7.9, 9.8];
+// Share of days with a big move starting in the next 24 hours, by futures volume of the last 24 hours against its
+// 30-day norm (median of the rolling 24-hour sum over 720 hours): under 0.6x, 0.6-0.8, 0.8-1.0, 1.0-1.3, 1.3-1.8, over 1.8x
+// (research/exp5_flow.py, 8 coins since 2020; principle 14). Better-tested than RISK_WHEN, which it replaces on screen.
+const RISK_VOL_CUT = [0.6, 0.8, 1.0, 1.3, 1.8], RISK_VOL = [6.0, 7.7, 10.0, 12.1, 17.5, 30.2];
 function riskNow(coin) { // -> { thr, acc, L, S } for the latest closed 5-minute candle
   const c5 = DATA[coin].c5, n = c5.t.length, px = c5.c[n - 1];
   const hc = []; for (let i = n - 1; i >= 0 && hc.length < 721; i--) if ((c5.t[i] + 300) % 3600 === 0) hc.push(c5.c[i]);
@@ -671,13 +675,21 @@ function riskNow(coin) { // -> { thr, acc, L, S } for the latest closed 5-minute
       if (i >= 720) sd[i] = Math.sqrt(Math.max(0, (s2 - s1 * s1 / 720) / 719)); }
     for (let i = m - 7; i >= 720; i--) { const mv = H[i + 6] / H[i] - 1; if (Math.abs(mv) >= 3 * sd[i] * Math.sqrt(6)) { since = m - 1 - (i + 6); lastUp = mv > 0; break; } }
     if (since == null && m > 720 + 24 * 14) since = Infinity; }           // none in the data on hand (over 14 days)
+  // volume of the last 24 completed hours against the median 24-hour volume of the last 720 hours (research/exp5_flow.py)
+  let volr = null;
+  { const hv = []; let acc = 0;
+    for (let i = 0; i < n; i++) { acc += c5.v[i] || 0; if ((c5.t[i] + 300) % 3600 === 0) { hv.push(acc); acc = 0; } }
+    const m = hv.length;
+    if (m >= 24 + 360) { const s24 = []; let w = 0; for (let i = 0; i < m; i++) { w += hv[i]; if (i >= 24) w -= hv[i - 24]; if (i >= 23) s24.push(w); }
+      const win = s24.slice(-720).slice().sort((a, b) => a - b), med = win[Math.floor((win.length - 1) / 2)] / 2 + win[Math.ceil((win.length - 1) / 2)] / 2;
+      volr = med > 0 ? s24[s24.length - 1] / med : null; } }
   const st = getStore(coin), s = st.n - 1, B = st.B; let L = 0, S = 0;
   for (let q = st.start[s]; q < st.start[s + 1]; q++) { const d = (B.off - B.dx + (st.bins[q] + 0.5) * B.w) / px - 1;
     if (d < 0 && d >= -0.02) L += st.lv[q]; else if (d > 0 && d <= 0.02) S += st.sv[q]; }
   const m = (CROWD[coin] || {}).m5 || {}; let acc = null;
   if (m.acc) for (let i = m.acc.length - 1; i >= 0; i--) if (m.acc[i] != null) { acc = m.acc[i]; break; }
   if (acc == null && CROWD[coin]) acc = CROWD[coin].latest_lsr ?? null;
-  return { thr, acc, L, S, px, t: c5.t[n - 1] + 300, since, lastUp };
+  return { thr, acc, L, S, px, t: c5.t[n - 1] + 300, since, lastUp, volr };
 }
 function renderRisk() {
   const box = document.getElementById("risk"); if (!box) return;
@@ -694,9 +706,9 @@ function renderRisk() {
       `<td>${R.acc == null ? "–" : R.acc.toFixed(2)}</td>` +
       `<td>${R.L + R.S <= 0 ? "–" : `<span class="sh">shorts above ${usd(R.S)}</span> · <span class="lg">longs below ${usd(R.L)}</span><br><small style="color:var(--muted)">${j == null ? "about even" : j ? "more short liquidations above" : "more long liquidations below"}</small>`}</td>` +
       `<td>${cell ? `<b class="${cls(p)}">${p.toFixed(0)}% went up</b>, ${(100 - p).toFixed(0)}% down<br><small style="color:var(--muted)">${cell[0]} up of ${cell[1]} moves</small>` : "–"}</td>` +
-      (() => { if (R.since == null) return "<td>–</td>"; const d = R.since / 24, k = d <= 1 ? 0 : d <= 3 ? 1 : d <= 7 ? 2 : d <= 14 ? 3 : 4, p = RISK_WHEN[k];
-        const ago = R.since === Infinity ? "none for more than 14 days" : `last one (${R.lastUp ? "up" : "down"}) ended ${R.since < 48 ? R.since + " hour" + (R.since === 1 ? "" : "s") : Math.round(d) + " days"} ago`;
-        return `<td><b class="${p >= 20 ? "pn" : ""}">${p.toFixed(0)}%</b> <span style="color:var(--muted)">average day 13%</span><br><small style="color:var(--muted)">${ago}</small></td>`; })() + `</tr>`);
+      (() => { if (R.volr == null) return "<td>–</td>"; let k = 0; while (k < RISK_VOL_CUT.length && R.volr >= RISK_VOL_CUT[k]) k++; const p = RISK_VOL[k];
+        const ago = R.since == null ? "" : R.since === Infinity ? "; no big move for over 14 days" : `; last big move (${R.lastUp ? "up" : "down"}) ended ${R.since < 48 ? R.since + " hour" + (R.since === 1 ? "" : "s") : Math.round(R.since / 24) + " days"} ago`;
+        return `<td><b class="${p >= 17 ? "pn" : ""}">${p.toFixed(0)}%</b> <span style="color:var(--muted)">average day 13%</span><br><small style="color:var(--muted)">volume ${R.volr.toFixed(1)}x its 30-day norm${ago}</small></td>`; })() + `</tr>`);
   }
   box.hidden = !rows.length; if (!rows.length) return;
   document.getElementById("risknow").innerHTML = rows.join("");
