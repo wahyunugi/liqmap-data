@@ -225,6 +225,10 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   (perubahan daftar dompet). Korelasi arus 7 hari dengan harga 7 hari sesudahnya: semua |r| <= 0,10 dan tandanya tidak
   stabil antar paruh sampel. Panel website memakai aturan pembersihan yang sama (`clean` di `pack_extras`), contoh: OKX
   +558 ribu ETH pada 16 Nov 2026 dibuang.
+- **Prinsip 17, eksperimen 8, perhatian publik** (17 Nov 2026): `research/exp8_attention.py`. Pembaca Wikipedia
+  (Bitcoin, Ethereum) vs harga harian Bitstamp/Binance (`research/data/daily_bitstamp.csv`, diambil
+  `research/fetch_extra.py bitstamp` lewat workflow research-data). Korelasi mingguan tingkat perhatian (7 hari vs median
+  setahun) dengan harga 30 hari: BTC +0,25 / +0,21 / +0,09, ETH +0,29 / +0,24 / -0,06 (2015-19, 2020-22, 2023-26).
 - **Panel "Stablecoin supply":** pasokan semua stablecoin berpatok dolar AS, USDT, dan USDC (miliar USD, garis) dan
   perubahan pasokan total 30 hari (batang; naik = dolar baru masuk ke kripto, turun = dolar keluar), plus tabel perubahan
   7 hari, 30 hari, 1 tahun untuk hari yang ditunjuk kursor. Sama untuk BTC dan ETH. Sumber: DefiLlama
