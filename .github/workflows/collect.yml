@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main            # versi terbaru saat jalan mulai, bukan saat dipicu (jalan yang antre bisa tertinggal)
 
       - uses: actions/setup-python@v5
         with:
@@ -119,17 +121,7 @@ jobs:
 
       - name: Simpan ke repository
         if: always()
-        run: |
-          git config user.name "liqmap-bot"
-          git config user.email "liqmap-bot@users.noreply.github.com"
-          git add data logs
-          if git diff --cached --quiet; then
-            echo "tidak ada data baru"
-          else
-            git commit -m "data: $(date -u +%Y-%m-%dT%H:%MZ)"
-            git pull --rebase
-            git push
-          fi
+        run: bash collector/save_push.sh "data: $(date -u +%Y-%m-%dT%H:%MZ)" data logs
 
       - name: Laporkan hasil cek kesehatan
         if: always() && steps.health.outcome == 'failure'

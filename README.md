@@ -218,6 +218,13 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
   diketahui d+1 06:00 UTC. Korelasi arus dengan harga 5 hari sebelum: BTC +0,56, ETH +0,45; 5 hari sesudah: +0,03,
   +0,01. Rentetan keluar 5 hari: BTC 7 hari naik 29% (17), 7 hari berturut: 80% (10); 30 hari 59% / 60% vs 54%. Arus
   masuk pertama setelah rentetan keluar >= 5: BTC 9 dari 16 naik 30 hari, ETH 6 dari 12.
+- **Menyimpan data tanpa bentrok** (18 Nov 2026): 2 dari 30 jalan `collect` gagal di langkah "Simpan ke repository"
+  karena jalan terjadwal GitHub (sering terlambat sampai menit ke-59) dan pemicu luar menit ke-00 antre berurutan,
+  tetapi jalan kedua memakai versi repo SAAT DIPICU, bukan saat mulai, lalu bentrok di file snapshot Hyperliquid.
+  Perbaikan: semua workflow yang menyimpan (collect, export, research, research-data) checkout `ref: main`, dan
+  menyimpan lewat `collector/save_push.sh` (commit, rebase; bila bentrok diulang dengan `-X theirs` sehingga versi jalan
+  yang lebih baru dipakai untuk bagian yang bentrok; push diulang sampai 4 kali). Diuji dengan dua salinan repo yang
+  mulai dari commit lama yang sama dan menulis file yang sama.
 - **Penomoran prinsip:** nomor di teks dan README mengikuti urutan daftar di website (1 = "Watch who is already long",
   7 = siklus 4 tahun, 8 = posisi rugi, ... 15 = arus ETF). Prinsip baru SELALU ditambahkan di akhir daftar supaya
   rujukan nomor ("principle 14") tetap benar.
