@@ -28,7 +28,7 @@ jobs:
         with:
           ref: main            # versi terbaru saat jalan mulai, bukan saat dipicu (jalan yang antre bisa tertinggal)
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
