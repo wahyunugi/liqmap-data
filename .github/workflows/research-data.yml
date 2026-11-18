@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main            # versi terbaru saat jalan mulai, bukan saat dipicu (jalan yang antre bisa tertinggal)
       - uses: actions/setup-python@v5
