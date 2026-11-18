@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main            # versi terbaru saat jalan mulai, bukan saat dipicu (jalan yang antre bisa tertinggal)
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -30,8 +32,4 @@ jobs:
           if [ "${{ inputs.what }}" = "alts" ]; then python research/fetch_alts.py; else python research/fetch_extra.py; fi
       - name: Simpan hasil
         run: |
-          git config user.name "liqmap-bot"
-          git config user.email "liqmap-bot@users.noreply.github.com"
-          git add research/data
-          if git diff --cached --quiet; then echo "tidak ada perubahan"; else
-            git commit -m "research: data riset (${{ inputs.what }}) $(date -u +%Y-%m-%d)"; git pull --rebase; git push; fi
+          bash collector/save_push.sh "research: data riset (${{ inputs.what }}) $(date -u +%Y-%m-%d)" research/data

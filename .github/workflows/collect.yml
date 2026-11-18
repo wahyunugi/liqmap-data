@@ -121,7 +121,8 @@ jobs:
 
       - name: Simpan ke repository
         if: always()
-        run: bash collector/save_push.sh "data: $(date -u +%Y-%m-%dT%H:%MZ)" data logs
+        run: |
+          bash collector/save_push.sh "data: $(date -u +%Y-%m-%dT%H:%MZ)" data logs
 
       - name: Laporkan hasil cek kesehatan
         if: always() && steps.health.outcome == 'failure'

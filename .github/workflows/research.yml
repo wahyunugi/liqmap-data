@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main            # versi terbaru saat jalan mulai, bukan saat dipicu (jalan yang antre bisa tertinggal)
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -33,8 +35,4 @@ jobs:
           python research/magnet_test.py
       - name: Simpan hasil
         run: |
-          git config user.name "liqmap-bot"
-          git config user.email "liqmap-bot@users.noreply.github.com"
-          git add research/results
-          if git diff --cached --quiet; then echo "tidak ada perubahan"; else
-            git commit -m "research: hasil uji peta likuidasi $(date -u +%Y-%m-%d)"; git pull --rebase; git push; fi
+          bash collector/save_push.sh "research: hasil uji peta likuidasi $(date -u +%Y-%m-%d)" research/results
