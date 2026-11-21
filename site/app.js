@@ -658,7 +658,8 @@ const RISK_WHEN = [28.7, 14.0, 11.6, 7.9, 9.8];
 // Share of days with a big move starting in the next 24 hours, by futures volume of the last 24 hours against its
 // 30-day norm (median of the rolling 24-hour sum over 720 hours): under 0.6x, 0.6-0.8, 0.8-1.0, 1.0-1.3, 1.3-1.8, over 1.8x
 // (research/exp5_flow.py, 8 coins since 2020; principle 14). Better-tested than RISK_WHEN, which it replaces on screen.
-const RISK_VOL_CUT = [0.6, 0.8, 1.0, 1.3, 1.8], RISK_VOL = [6.0, 7.7, 10.0, 12.1, 17.5, 30.2];
+// Top band split on 21 Nov 2026 (research/volume_extremes.py, principle 21): 1.8-2.6x 25.4%, 2.6-4x 31.7%, over 4x 47.0%.
+const RISK_VOL_CUT = [0.6, 0.8, 1.0, 1.3, 1.8, 2.6, 4.0], RISK_VOL = [6.0, 7.7, 10.0, 12.1, 17.5, 25.4, 31.7, 47.0];
 function riskNow(coin) { // -> { thr, acc, L, S } for the latest closed 5-minute candle
   const c5 = DATA[coin].c5, n = c5.t.length, px = c5.c[n - 1];
   const hc = []; for (let i = n - 1; i >= 0 && hc.length < 721; i--) if ((c5.t[i] + 300) % 3600 === 0) hc.push(c5.c[i]);
