@@ -214,7 +214,9 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, 
         nonlocal cash
         p = pos.pop(key); g = p["q"] * p["d"] * (px - p["e"]) - FEE * p["q"] * px
         cash += g; trades.append(dict(m=key[0], coin=PS[key[1]]["sym"][:3], d=p["d"], t_in=int(t[p["k"]]), t_out=int(t[k]),
-                                      rank=p["rank"], pnl=g + p["fpaid"], fund=p["fpaid"], R=(g + p["fpaid"]) / p["risk"] if p["risk"] else 0, why=why))
+                                      rank=p["rank"], pnl=g + p["fpaid"], fund=p["fpaid"], R=(g + p["fpaid"]) / p["risk"] if p["risk"] else 0, why=why,
+                                      t_entry=int(t[p["k0"]]), entry=p["e"], exit=px, stop=p["stop"], tgt=p["tgt"], qty=p["q"],
+                                      notional=p["q"] * p["e"], risk_usd=p["risk"], fees_funding=p["fpaid"] - FEE * p["q"] * px, cash_after=cash))
 
     def open_(m, c, d, k, e, stop, tgt, maxh):
         nonlocal cash
@@ -231,7 +233,7 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, 
         notional = min(notional, max(0.0, CAP * E - used))
         if notional <= 0: return
         q = notional / e; cash -= FEE * notional
-        pos[(m, c)] = dict(c=c, d=d, e=e, q=q, stop=stop, tgt=tgt, k=k, maxh=maxh, rank=rk, risk=q * abs(e - stop), fpaid=-FEE * notional)
+        pos[(m, c)] = dict(c=c, d=d, e=e, q=q, stop=stop, tgt=tgt, k=k, k0=k, maxh=maxh, rank=rk, risk=q * abs(e - stop), fpaid=-FEE * notional)
 
     k0 = int(np.searchsorted(t, t0)); k1 = int(np.searchsorted(t, t1))
     for k in range(max(k0, 1), min(k1, n)):
