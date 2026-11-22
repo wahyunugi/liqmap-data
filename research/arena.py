@@ -190,7 +190,7 @@ def hourly_signals(P):
     return out
 
 
-def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None):
+def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, bonus=None, gate=None):
     n = len(PS[0]["C"]); eq = 100.0; cash = 100.0; pos = {}; curve = []; trades = []
     for P in PS:
         if "HS" not in P: P["HS"] = hourly_signals(P)
@@ -212,7 +212,9 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None):
         P = PS[c]; dist = abs(e - stop) / e
         if dist <= 0: return
         rk = rank_of(P, k, d) if ranked else 3
+        if bonus is not None: rk = min(5, rk + bonus(d, int(t[k])))
         if rk < min_rank: return
+        if gate is not None and not gate(d, rk, int(t[k])): return
         E = mtm(k); risk = (step or RISK_STEP) * rk * E; notional = risk / dist
         used = sum(p["q"] * PS[p["c"]]["C"][k] for p in pos.values())
         notional = min(notional, max(0.0, CAP * E - used))
