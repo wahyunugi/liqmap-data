@@ -23,7 +23,7 @@ if __name__ == "__main__":
     PS = [arena.prepare(s) for s in arena.COINS]; tend = int(PS[0]["t"][-1]) + 3600
     SYS = {"v1": dict(min_rank=3, filt=ch.f2), "$688": dict(min_rank=3, bonus=ac.bonus)}
     for nm, a, b in (("2024-2026 (penentu)", arena.OOS, tend), ("2020-2023", pd.Timestamp("2020-01-01").timestamp(), arena.OOS)):
-        print(f"\\n=== {nm} ===")
+        print(f"\n=== {nm} ===")
         for s, kw in SYS.items():
             for dl in (False, True):
                 r = arena.simulate(PS, arena.METHODS, a, b, daily=dl, **kw); st = ch.stats(r); T = r["trades"]
