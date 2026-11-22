@@ -190,7 +190,7 @@ def hourly_signals(P):
     return out
 
 
-def simulate(PS, methods, t0, t1, ranked=True, log=None):
+def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None):
     n = len(PS[0]["C"]); eq = 100.0; cash = 100.0; pos = {}; curve = []; trades = []
     for P in PS:
         if "HS" not in P: P["HS"] = hourly_signals(P)
@@ -212,7 +212,8 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None):
         P = PS[c]; dist = abs(e - stop) / e
         if dist <= 0: return
         rk = rank_of(P, k, d) if ranked else 3
-        E = mtm(k); risk = RISK_STEP * rk * E; notional = risk / dist
+        if rk < min_rank: return
+        E = mtm(k); risk = (step or RISK_STEP) * rk * E; notional = risk / dist
         used = sum(p["q"] * PS[p["c"]]["C"][k] for p in pos.values())
         notional = min(notional, max(0.0, CAP * E - used))
         if notional <= 0: return
@@ -256,8 +257,8 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None):
             curve.append((int(t[k]), mtm(k)))
     for key in list(pos):
         close(key, PS[pos[key]["c"]]["C"][min(k1, n) - 1], min(k1, n) - 1, "end")
-    cv = pd.DataFrame(curve, columns=["t", "eq"]); cv.loc[len(cv)] = [int(t[min(k1, n) - 1]), cash]
-    dd = (cv.eq / cv.eq.cummax() - 1).min() * 100
+    cv = pd.DataFrame(curve, columns=["t", "equity"]); cv.loc[len(cv)] = [int(t[min(k1, n) - 1]), cash]
+    dd = (cv.equity / cv.equity.cummax() - 1).min() * 100
     return dict(final=cash, dd=dd, trades=pd.DataFrame(trades), curve=cv)
 
 
