@@ -36,8 +36,9 @@ COINS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "DOGEUSDT", "ADA
 FEE = 0.001; MAXH = 720
 
 
-def trade(H, L, C, k0, side, legs, stop, tgt, unit):
-    """legs: [(fraksi, harga limit atau None = isi di C[k0])]. side +1 long, -1 short. Hasil: % modal."""
+def trade(H, L, C, k0, side, legs, stop, tgt, unit, first=0):
+    """legs: [(fraksi, harga limit atau None = isi di C[k0])]. side +1 long, -1 short. Hasil: % modal.
+    first: jam yang targetnya tidak dihitung (jam pengisian limit pertama, urutan di dalam jam tidak diketahui)."""
     filled = []; pending = []
     for f, px in legs:
         (filled if px is None else pending).append((f, C[k0] if px is None else px))
@@ -49,7 +50,7 @@ def trade(H, L, C, k0, side, legs, stop, tgt, unit):
         hit_stop = (L[q] <= stop) if side > 0 else (H[q] >= stop)
         if hit_stop:
             return pnl(filled, stop, side, unit)
-        if (side > 0 and H[q] >= tgt) or (side < 0 and L[q] <= tgt):
+        if q > first and ((side > 0 and H[q] >= tgt) or (side < 0 and L[q] <= tgt)):
             return pnl(filled, tgt, side, unit)
     return pnl(filled, C[end], side, unit)
 
@@ -84,12 +85,12 @@ def long_setups(sym):
                 Cm = C.copy(); Cm[k0] = e50   # isi "pasar" pada E50
                 a = acc[k]; m3 = 1.0 if a == a and a < 2 else 0.5
                 out.append(dict(sym=sym[:-4], yr=pd.to_datetime(t[k], unit="s").year,
-                    L0=trade(H, L, Cm, k0, 1, [(1, None)], stop, pk, unit),
-                    L1=trade(H, L, Cm, k0, 1, [(.5, None), (.5, e75)], stop, pk, unit),
-                    L2=trade(H, L, Cm, k0, 1, [(1/3, None), (1/3, e75), (1/3, e90)], stop, pk, unit),
-                    L3=trade(H, L, Cm, k0, 1, [(m3, None)], stop, pk, unit),
-                    L4=trade(H, L, Cm, k0, 1, [(1, None)], stop, t2r, unit),
-                    L5=trade(H, L, Cm, k0, 1, [(.5, None), (.5, e75)], stop, t2r, unit)))
+                    L0=trade(H, L, Cm, k0, 1, [(1, None)], stop, pk, unit, k),
+                    L1=trade(H, L, Cm, k0, 1, [(.5, None), (.5, e75)], stop, pk, unit, k),
+                    L2=trade(H, L, Cm, k0, 1, [(1/3, None), (1/3, e75), (1/3, e90)], stop, pk, unit, k),
+                    L3=trade(H, L, Cm, k0, 1, [(m3, None)], stop, pk, unit, k),
+                    L4=trade(H, L, Cm, k0, 1, [(1, None)], stop, t2r, unit, k),
+                    L5=trade(H, L, Cm, k0, 1, [(.5, None), (.5, e75)], stop, t2r, unit, k)))
                 break
             pk = max(pk, H[k])
     return out
