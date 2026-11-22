@@ -52,7 +52,49 @@ import os, sys, warnings, json
 import numpy as np, pandas as pd
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from turning_points import load  # noqa: E402
+import glob  # noqa: E402
+
+
+def load(sym):
+    """Sama dengan research/turning_points.load (tanpa sklearn, supaya bisa dipakai saat membangun website)."""
+    if sym in ("BTCUSDT", "ETHUSDT"):
+        h = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(os.path.join(ROOT, f"data/derived/hourly/{sym}_20*.csv")))])
+    else:
+        h = pd.read_csv(os.path.join(ROOT, f"research/data/hourly/{sym}.csv.gz"))
+    return h.drop_duplicates("t").sort_values("t").reset_index(drop=True)
+
+
+def five(kind, sym):
+    fs = sorted(glob.glob(os.path.join(ROOT, f"data/{kind}/5min/{sym}_*.csv")))
+    return pd.concat([pd.read_csv(f) for f in fs]).drop_duplicates("t").sort_values("t") if fs else None
+
+
+def load_live(sym):
+    """Data per jam sampai jam lengkap terakhir: data/derived/hourly (diperbarui mingguan) ditambah jam-jam sesudahnya dari
+    data 5 menit yang dikumpulkan tiap jam (harga, volume, rasio akun, open interest). Rasio akun yang kosong di ujung data
+    per jam diisi dari data 5 menit. Hanya jam yang 12 candle 5 menitnya lengkap."""
+    h = load(sym)
+    o = five("ohlcv", sym)
+    if o is None:
+        return h
+    o["th"] = o.t // 3600 * 3600
+    g = o.groupby("th").agg(open=("o", "first"), high=("h", "max"), low=("l", "min"), close=("c", "last"), vol=("v", "sum"),
+                            n=("t", "size")).reset_index().rename(columns={"th": "t"})
+    g = g[g.n == 12].drop(columns="n")
+    r = five("long_short_ratio", sym)
+    if r is not None:
+        r["th"] = r.t // 3600 * 3600; acc = r.groupby("th").r.last()
+        g["acc_lsr"] = g.t.map(acc)
+        miss = h.acc_lsr.isna() & h.t.isin(acc.index); h.loc[miss, "acc_lsr"] = h.loc[miss, "t"].map(acc)
+    oi = five("open_interest", sym)
+    if oi is not None:
+        oi["th"] = oi.t // 3600 * 3600; g["oi"] = g.t.map(oi.groupby("th").c.last())
+    g = g[g.t > h.t.max()]
+    h = pd.concat([h, g], ignore_index=True).sort_values("t").reset_index(drop=True)
+    gaps = int((h.t.diff().dropna() != 3600).sum())
+    if gaps:
+        print(f"PERINGATAN {sym}: {gaps} lubang di data per jam")
+    return h
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COINS = ["BTCUSDT", "ETHUSDT"]
@@ -75,8 +117,8 @@ def rsi(x, n=14):
     return (100 - 100 / (1 + up / dn.replace(0, np.nan))).values
 
 
-def prepare(sym):
-    h = load(sym).reset_index(drop=True)
+def prepare(sym, live=False):
+    h = (load_live(sym) if live else load(sym)).reset_index(drop=True)
     H, L, C, t = h.high.values, h.low.values, h.close.values, h.t.values
     sw = pd.Series(C).pct_change().rolling(720).std().values * np.sqrt(168)
     fd = funding_daily(sym); day = (t // 86400) * 86400
@@ -308,11 +350,17 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, 
                     e = P["C"][k]; open_(m, c, d, k, e, e * (1 - d * dist), tgt, maxh)
         if k in dayend[0]:
             curve.append((int(t[k]), mtm(k)))
+    ke = min(k1, n) - 1
+    open_now = [dict(m=key[0], coin=PS[p["c"]]["sym"][:3], d=p["d"], t_entry=int(t[p["k0"]]), t_ext=int(t[p["k"]]), entry=p["e"],
+                     stop=p["stop"], tgt=p["tgt"], qty=p["q"], risk_usd=p["risk"], rank=p["rank"], maxh=p["maxh"],
+                     px=PS[p["c"]]["C"][ke], upnl=p["q"] * p["d"] * (PS[p["c"]]["C"][ke] - p["e"]) + p["fpaid"])
+                for key, p in pos.items()]
+    equity_now = mtm(ke)
     for key in list(pos):
-        close(key, PS[pos[key]["c"]]["C"][min(k1, n) - 1], min(k1, n) - 1, "end")
+        close(key, PS[pos[key]["c"]]["C"][ke], ke, "end")
     cv = pd.DataFrame(curve, columns=["t", "equity"]); cv.loc[len(cv)] = [int(t[min(k1, n) - 1]), cash]
     dd = (cv.equity / cv.equity.cummax() - 1).min() * 100
-    return dict(final=cash, dd=dd, trades=pd.DataFrame(trades), curve=cv)
+    return dict(final=cash, dd=dd, trades=pd.DataFrame(trades), curve=cv, open=open_now, equity_now=equity_now)
 
 
 if __name__ == "__main__":

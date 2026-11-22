@@ -277,6 +277,26 @@ Grafik interaktif ala TradingView: candle BTC/ETH dengan heatmap replika di bela
 - **Status sumber tambahan:** `logs/sources_status.json` (berhasil/gagal terakhir per sumber, tanpa perlu membuka log GitHub).
 - **Alamat:** `https://wahyunugi.github.io/liqmap-data/`
 
+## Papan sinyal dan akun kertas (System v1)
+
+Bagian "Signal board" di website menunjukkan apa yang dilakukan System v1 pada pemeriksaan pagi terakhir, dibangun
+setiap kali website dibangun (tiap jam) oleh `research/board.py` lewat `pack_board()` di `site/build.py`.
+
+- **Sistem:** 10 metode di `research/arena.py`, hanya peringkat 3-5, sinyal tren dilewati saat pasar berombak
+  (efficiency ratio 20 hari < 0,3), dieksekusi sekali sehari (Principles 30, 33, 35).
+- **Pemeriksaan pagi:** sesudah penutupan hari UTC (07:00 WIB); masuk di harga penutupan jam 07:00-08:00 WIB.
+  Stop dan target dipasang sebagai order di bursa. Order yang menunggu sampai pagi berikutnya: jual bersyarat di
+  terendah 20 hari (breakdown short) dan limit beli di separuh pantulan (bounce pullback).
+- **Isi papan:** trade baru pagi itu (diambil atau dilewati dan alasannya), order yang menunggu, trade terbuka di akun
+  kertas, trade yang sudah ditutup.
+- **Akun kertas:** mulai $100 pada 22 Nov 2026, diputar ulang dari data setiap pembangunan (deterministik, bukan
+  order sungguhan). Aturan dibekukan (`PAPER_RULES` di `research/board.py`); mengubah aturan berarti mengubah riwayat
+  akun kertas, jadi perubahan apa pun harus dicatat di Principles lebih dulu.
+- **Data:** `arena.prepare(sym, live=True)` memakai `data/derived/hourly` (mingguan) ditambah jam-jam sesudahnya dari
+  data 5 menit (harga, volume, rasio akun, open interest), hanya jam yang lengkap; funding dari
+  `data/markets/funding/daily`.
+- Bila papan gagal dibangun, website tetap terbit tanpa bagian ini (pesan PERINGATAN di log workflow "site").
+
 ## Indikator TradingView (`tradingview/liqmap.pine`)
 Model v6 yang sama, dihitung langsung di grafik TradingView dari data TradingView sendiri (candle 5 menit + open
 interest, simbol bawaan `<grafik>_OI`, misalnya `BINANCE:BTCUSDT.P_OI`). Tidak membaca data dari repo ini.

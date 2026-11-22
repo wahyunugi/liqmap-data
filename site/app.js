@@ -1047,6 +1047,36 @@ flowsChart.subscribeCrosshairMove(p => { if (flowsT.length) flowsTable(p && p.ti
 for (const k of COINS) document.getElementById("coin-" + k).addEventListener("click", setFlows);
 setFlows();
 
+// ---------- Signal board and paper account (research/board.py, built into data.json by site/build.py) ----------
+(function () {
+  const B = DATA.board, box = document.getElementById("board"); if (!B || !box) return;
+  const px = (v, coin) => v == null ? "–" : fmtP(v, coin + "USDT");
+  const money = v => v == null ? "–" : (v < 0 ? "−$" : "$") + Math.abs(v).toFixed(2);
+  const pm = v => v == null ? "–" : `<b class="${v > 0 ? "pp" : v < 0 ? "pn" : ""}">${v > 0 ? "+" : v < 0 ? "−" : ""}$${Math.abs(v).toFixed(2)}</b>`;
+  const empty = (n, txt) => `<tr><td colspan="${n}" style="text-align:left;color:var(--muted)">${txt}</td></tr>`;
+  const ret = 100 * (B.equity / 100 - 1);
+  document.getElementById("boardasof").textContent = `morning check ${B.check} WIB · data to ${B.data_to} WIB`;
+  document.getElementById("boardsum").innerHTML = `Paper account (started with $100 on ${B.start.slice(0, 10)}): <b>${money(B.equity)}</b> ` +
+    `(<span class="${ret > 0 ? "pp" : ret < 0 ? "pn" : ""}">${ret >= 0 ? "+" : "−"}${Math.abs(ret).toFixed(1)}%</span>, open trades valued at the latest price) · ` +
+    `${B.open.length} open · ${B.closed_n} closed${B.closed_n ? `, ${B.wins} of them winners` : ""} · rules: ${B.rules}`;
+  document.getElementById("boardtoday").innerHTML = B.today.length ? B.today.map(r => `<tr><th scope="row">${r.signal}</th><td>${r.coin}</td><td>${r.side}</td><td>${r.score}</td>` +
+    `<td>${px(r.price, r.coin)}</td><td>${px(r.stop, r.coin)}</td><td>${r.target != null ? "target " + px(r.target, r.coin) + ", or " : ""}${r.exit}</td>` +
+    `<td>${money(r.risk)} / ${money(r.position)}</td><td style="text-align:left">${r.taken ? "<b class=\"pp\">Taken</b>" : "Skipped: " + r.why}</td></tr>`).join("")
+    : empty(9, "No signal at this morning’s check.");
+  document.getElementById("boardorders").innerHTML = B.orders.length ? B.orders.map(r => `<tr><th scope="row">${r.signal}</th><td>${r.coin}</td>` +
+    `<td>${r.kind} ${px(r.level, r.coin)}</td><td>${px(r.stop, r.coin)}</td><td>${px(r.target, r.coin)}</td><td>${r.score}</td><td>${money(r.risk)} / ${money(r.position)}</td>` +
+    `<td style="text-align:left">${r.filled ? "<b class=\"pp\">Filled</b>" : r.active ? "<b>Place it</b>" : "Not placed: " + r.why}</td></tr>`).join("")
+    : empty(8, "No waiting orders today.");
+  document.getElementById("boardopen").innerHTML = B.open.length ? B.open.map(r => `<tr><th scope="row">${r.signal}</th><td>${r.coin}</td><td>${r.side}</td><td>${r.entered}</td>` +
+    `<td>${px(r.entry, r.coin)}</td><td>${px(r.stop, r.coin)}</td><td>${px(r.target, r.coin)}</td><td>${r.close_by}</td><td>${px(r.now, r.coin)}</td><td>${pm(r.pnl)}</td></tr>`).join("")
+    : empty(10, "No open trades.");
+  const WHY = { stop: "stop", target: "target", time: "time limit", signal: "exit signal", reverse: "opposite signal" };
+  document.getElementById("boardclosed").innerHTML = B.closed.length ? B.closed.slice(0, 50).map(r => `<tr><th scope="row">${r.signal}</th><td>${r.coin}</td><td>${r.side}</td><td>${r.entered}</td><td>${r.closed}</td>` +
+    `<td>${px(r.entry, r.coin)}</td><td>${px(r.exit, r.coin)}</td><td>${pm(r.pnl)}</td><td>${r.R.toFixed(2)}</td><td>${WHY[r.why] || r.why}</td></tr>`).join("")
+    : empty(10, "No closed trades yet.");
+  box.hidden = false;
+})();
+
 // ---------- Archive list (GitHub releases tagged archive-*, made by the "archive" workflow) ----------
 (function () {
   const A = DATA.arch; if (!A) return;

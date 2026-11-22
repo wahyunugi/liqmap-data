@@ -404,8 +404,19 @@ def pack_underwater(sym, c5):
     return dict(t=int(h.t.iat[-1]) + 3600, U=round(float(U), 4), avg=round(float((book * mid).sum() / tot), 2), px=float(C[-1]))
 
 
+def pack_board():
+    """Papan sinyal System v1 dan akun kertas $100 (research/board.py)."""
+    sys.path.insert(0, os.path.join(ROOT, "research"))
+    import board  # noqa: E402
+    return board.board()
+
+
 def build():
     out = {"built": int(time.time()), "days": DAYS}
+    try:
+        out["board"] = pack_board()
+    except Exception as e:                                       # tambahan: tidak boleh menggagalkan website
+        print(f"PERINGATAN: papan sinyal gagal dibangun: {e!r}"); out["board"] = None
     out["stable"] = pack_stable()
     out["hl"] = pack_hl()
     out["cal"] = pack_calendar(out["built"])
