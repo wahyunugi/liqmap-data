@@ -199,11 +199,45 @@ def hourly_signals(P):
     return out
 
 
-def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, bonus=None, gate=None, filt=None):
+def hourly_signals_daily(P):
+    """Versi sekali sehari untuk M9 dan M10: order dipasang tiap pagi (jam sesudah penutupan hari UTC = 07:00 WIB) dan
+    menunggu di bursa sampai pagi berikutnya. {jam terisi: [(metode, arah, stop, target, maks jam, harga isi, jam pasang)]}"""
+    H, L, C, t, sw, volr = P["H"], P["L"], P["C"], P["t"], P["sw"], P["volr"]; n = len(C)
+    pl = pd.Series(L).rolling(480).min().shift(1).values; ma = P["ma200h"]; out = {}
+    morn = [i + 1 for i in P["D"].i.values if i + 1 < n]; mset = set(morn)
+    last = -10**9                                          # M10: stop-sell di terendah 20 hari pagi itu
+    for h in morn:
+        if h < 1200 or not sw[h] == sw[h] or not pl[h] == pl[h]: continue
+        lvl = pl[h]; s = sw[h]
+        for k in range(h, min(h + 24, n)):
+            if k - last >= 72 and L[k] < lvl:
+                out.setdefault(k, []).append(("M10", -1, lvl * (1 + s), lvl * (1 - s), 720, lvl, h)); last = k; break
+    last = -10**9                                          # M9: limit beli di separuh pantulan, dipasang tiap pagi
+    for i in range(1200, n):
+        if not (L[i] < pl[i] and volr[i] >= 2 and sw[i] == sw[i]) or i - last < 168:
+            continue
+        last = i
+        if not C[i] < ma[i]:
+            continue
+        s = sw[i]; lo = L[i]; pk = H[i]; order = None
+        for k in range(i + 1, min(n, i + 961)):
+            if k in mset:
+                order = (lo + .5 * (pk - lo), lo * .99, k) if pk / lo - 1 >= s else None
+            if order is not None and L[k] <= order[0]:
+                e50, stop, hk = order
+                out.setdefault(k, []).append(("M9", 1, stop, e50 + 2 * (e50 - stop), 720, e50, hk)); break
+            if L[k] < lo:
+                lo = L[k]; pk = H[k]; continue
+            pk = max(pk, H[k])
+    return out
+
+
+def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, bonus=None, gate=None, filt=None, daily=False):
     n = len(PS[0]["C"]); eq = 100.0; cash = 100.0; pos = {}; curve = []; trades = []
+    hk_ = "HSD" if daily else "HS"
     for P in PS:
-        if "HS" not in P: P["HS"] = hourly_signals(P)
-    HS = [P["HS"] for P in PS]
+        if hk_ not in P: P[hk_] = hourly_signals_daily(P) if daily else hourly_signals(P)
+    HS = [P[hk_] for P in PS]
     dayend = [set(P["D"].i.values) for P in PS]; jmap = [dict(zip(P["D"].i.values, range(len(P["D"])))) for P in PS]
     t = PS[0]["t"]
 
@@ -218,11 +252,11 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, 
                                       t_entry=int(t[p["k0"]]), entry=p["e"], exit=px, stop=p["stop"], tgt=p["tgt"], qty=p["q"],
                                       notional=p["q"] * p["e"], risk_usd=p["risk"], fees_funding=p["fpaid"] - FEE * p["q"] * px, cash_after=cash))
 
-    def open_(m, c, d, k, e, stop, tgt, maxh):
+    def open_(m, c, d, k, e, stop, tgt, maxh, rk_k=None):
         nonlocal cash
         P = PS[c]; dist = abs(e - stop) / e
         if dist <= 0: return
-        rk = rank_of(P, k, d) if ranked else 3
+        rk = rank_of(P, k if rk_k is None else rk_k, d) if ranked else 3
         if bonus is not None: rk = min(5, rk + bonus(d, int(t[k])))
         if rk < min_rank: return
         if gate is not None and not gate(d, rk, int(t[k])): return
@@ -244,18 +278,22 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, 
             if hit_stop: close(key, p["stop"], k, "stop"); continue
             if p["tgt"] is not None and ((p["d"] > 0 and P["H"][k] >= p["tgt"]) or (p["d"] < 0 and P["L"][k] <= p["tgt"])):
                 close(key, p["tgt"], k, "target"); continue
-            if k - p["k"] >= p["maxh"]: close(key, P["C"][k], k, "time")
+            if k - p["k"] >= p["maxh"] and (not daily or (k - 1) in dayend[p["c"]]): close(key, P["C"][k], k, "time")
         for c, P in enumerate(PS):
             for sig in HS[c].get(k, []):
                 m = sig[0]
                 if m not in methods or (m, c) in pos: continue
-                if m == "M9":
+                if len(sig) == 7:                                                       # sekali sehari: order yang menunggu
+                    _, d, stop, tgt, maxh, e, hk = sig; open_(m, c, d, k, e, stop, tgt, maxh, rk_k=hk)
+                    if (m, c) in pos and ((d > 0 and P["L"][k] <= stop) or (d < 0 and P["H"][k] >= stop)): close((m, c), stop, k, "stop")
+                elif m == "M9":
                     _, d, stop, tgt, maxh, e = sig; open_(m, c, d, k, e, stop, tgt, maxh)
                     if (m, c) in pos and P["L"][k] <= stop: close((m, c), stop, k, "stop")   # terisi lalu stop di jam yang sama
                 else:
                     _, d, stop, tgt, maxh = sig; open_(m, c, d, k, P["C"][k], stop, tgt, maxh)
-            if k in dayend[c]:
-                j = jmap[c][k]
+            dk = k - 1 if daily else k                                 # sekali sehari: dibaca pagi, satu jam sesudah penutupan
+            if dk in dayend[c]:
+                j = jmap[c][dk]
                 for m in methods:
                     if m in ("M9", "M10"): continue
                     key = (m, c)
