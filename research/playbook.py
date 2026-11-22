@@ -84,7 +84,7 @@ def long_setups(sym):
                 k0 = k - 1  # supaya trade() memeriksa jam k untuk pengisian dan stop
                 Cm = C.copy(); Cm[k0] = e50   # isi "pasar" pada E50
                 a = acc[k]; m3 = 1.0 if a == a and a < 2 else 0.5
-                out.append(dict(sym=sym[:-4], yr=pd.to_datetime(t[k], unit="s").year,
+                out.append(dict(sym=sym[:-4], t=int(t[k]), yr=pd.to_datetime(t[k], unit="s").year,
                     L0=trade(H, L, Cm, k0, 1, [(1, None)], stop, pk, unit, k),
                     L1=trade(H, L, Cm, k0, 1, [(.5, None), (.5, e75)], stop, pk, unit, k),
                     L2=trade(H, L, Cm, k0, 1, [(1/3, None), (1/3, e75), (1/3, e90)], stop, pk, unit, k),
@@ -106,7 +106,7 @@ def short_setups(sym):
             continue
         last = i; s = sw[i]; c = C[i]; unit = 0.01 / (c * s); a = acc[i]
         m1 = np.nan if a != a else (1.0 if a >= 3 else .5 if a >= 2.5 else 0.0)
-        out.append(dict(sym=sym[:-4], yr=pd.to_datetime(t[i], unit="s").year, acc=a,
+        out.append(dict(sym=sym[:-4], t=int(t[i]), yr=pd.to_datetime(t[i], unit="s").year, acc=a,
             S0=trade(H, L, C, i, -1, [(1, None)], c * (1 + s), c * (1 - s), unit),
             S1=np.nan if m1 != m1 else trade(H, L, C, i, -1, [(m1, None)], c * (1 + s), c * (1 - s), unit),
             S2=trade(H, L, C, i, -1, [(.5, None), (.5, c * (1 + .5 * s))], c * (1 + s), c * (1 - s), unit),
@@ -130,3 +130,13 @@ if __name__ == "__main__":
     Sh = pd.DataFrame([r for s in COINS for r in short_setups(s)])
     report(Lg, ["L0", "L1", "L2", "L3", "L4", "L5"], "LONG pantulan (% modal per setup, risiko 1%)")
     report(Sh, ["S0", "S1", "S2", "S3"], "SHORT breakdown (% modal per setup, risiko 1%)")
+    # Urutan waktu: rugi beruntun terpanjang dan penurunan modal terdalam (trade berurutan, tanpa tumpang tindih)
+    print("\nurutan waktu (jumlah % modal, risiko 1% per trade):")
+    for D, c, nm in ((Lg, "L0", "LONG L0"), (Lg, "L4", "LONG L4"), (Sh, "S1", "SHORT S1"), (Sh, "S3", "SHORT S3")):
+        for cn, q in (("8 koin", D), ("BTC+ETH", D[D.sym.isin(["BTC", "ETH"])])):
+            x = q.sort_values("t")[c].dropna(); x = x[x != 0]; eq = x.cumsum(); dd = (eq - eq.cummax()).min()
+            st = mx = 0
+            for v in x: st = st + 1 if v < 0 else 0; mx = max(mx, st)
+            yrs = (q.t.max() - q.t.min()) / 31557600
+            print(f"  {nm} {cn}: {len(x)} trade dalam {yrs:.1f} tahun ({len(x)/yrs:.0f}/tahun), total {x.sum():+.1f}%, per tahun {x.sum()/yrs:+.1f}%, "
+                  f"penurunan terdalam {dd:.1f}%, rugi beruntun terpanjang {mx}")
