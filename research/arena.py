@@ -96,6 +96,15 @@ def prepare(sym):
     D["fp10"] = pd.Series(D.f3).rolling(365, min_periods=180).quantile(.1).shift(1)
     v24 = h.vol.rolling(24).sum(); volr = (v24 / v24.rolling(720, min_periods=360).median()).values
     D["volr"] = volr[ends]; D["sw"] = sw[ends]; D["dow"] = pd.to_datetime(D.t, unit="s").dt.dayofweek
+    # ukuran pasar berombak (dipakai research/arena_chop.py)
+    D["er20"] = (D.c - D.c.shift(20)).abs() / D.c.diff().abs().rolling(20).sum()          # Kaufman efficiency ratio
+    tr = pd.concat([D.hi - D.lo, (D.hi - D.c.shift()).abs(), (D.lo - D.c.shift()).abs()], axis=1).max(axis=1)
+    D["ci14"] = 100 * np.log10(tr.rolling(14).sum() / (D.hi.rolling(14).max() - D.lo.rolling(14).min())) / np.log10(14)
+    up = D.hi.diff(); dn = -D.lo.diff()
+    pdm = pd.Series(np.where((up > dn) & (up > 0), up, 0.0)); ndm = pd.Series(np.where((dn > up) & (dn > 0), dn, 0.0))
+    atr = tr.ewm(alpha=1 / 14, adjust=False).mean()
+    pdi = 100 * pdm.ewm(alpha=1 / 14, adjust=False).mean() / atr; ndi = 100 * ndm.ewm(alpha=1 / 14, adjust=False).mean() / atr
+    D["adx14"] = (100 * (pdi - ndi).abs() / (pdi + ndi)).ewm(alpha=1 / 14, adjust=False).mean()
     D = D.reset_index(drop=True)
     from types import SimpleNamespace
     rec = [SimpleNamespace(**r) for r in D.to_dict("records")]
@@ -190,7 +199,7 @@ def hourly_signals(P):
     return out
 
 
-def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, bonus=None, gate=None):
+def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, bonus=None, gate=None, filt=None):
     n = len(PS[0]["C"]); eq = 100.0; cash = 100.0; pos = {}; curve = []; trades = []
     for P in PS:
         if "HS" not in P: P["HS"] = hourly_signals(P)
@@ -215,7 +224,9 @@ def simulate(PS, methods, t0, t1, ranked=True, log=None, min_rank=1, step=None, 
         if bonus is not None: rk = min(5, rk + bonus(d, int(t[k])))
         if rk < min_rank: return
         if gate is not None and not gate(d, rk, int(t[k])): return
-        E = mtm(k); risk = (step or RISK_STEP) * rk * E; notional = risk / dist
+        fm = filt(m, P, k, d, rk) if filt is not None else 1.0
+        if fm <= 0: return
+        E = mtm(k); risk = (step or RISK_STEP) * rk * E * fm; notional = risk / dist
         used = sum(p["q"] * PS[p["c"]]["C"][k] for p in pos.values())
         notional = min(notional, max(0.0, CAP * E - used))
         if notional <= 0: return
