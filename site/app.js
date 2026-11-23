@@ -724,6 +724,11 @@ function renderRisk() {
     const when = d.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) + " " + String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0") + " WIB";
     parts.push(`${nm[e.k]}: <b>${when}</b> (${hrs < 0 ? "now" : hrs < 48 ? "in " + Math.max(1, Math.round(hrs)) + " hours" : "in " + Math.round(hrs / 24) + " days"})`); }
   el.hidden = !parts.length; el.innerHTML = "Next hours when a big hourly move is more likely: " + parts.join(" · ");
+  const AL = DATA.alerts || [], ea = document.getElementById("riskalerts");
+  if (ea && AL.length) { const KIND = { alert: "volume alert", strong: "very high volume", flip: "crowd lean flipped" }, LEAN = { 1: "slight up lean", "-1": "slight down lean", 0: "no lean" };
+    ea.innerHTML = "Recent big-move alerts (sent to the phone by the hourly collection; principle 36: they say when, not which way): " + AL.slice(0, 5).map(a => {
+      const c = a.coin + "USDT"; return `<b>${a.coin}</b> ${fmtT(a.t + WIB)} WIB, ${KIND[a.kind] || a.kind} ${a.volr.toFixed(1)}x, price ${fmtP(a.price, c)}, up level ${fmtP(a.up, c)} / down level ${fmtP(a.down, c)}, ${LEAN[a.lean]}`; }).join(" · ");
+    ea.hidden = false; }
 }
 Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))
   .then(() => { renderCrowd(); renderRuleNow(); if (bars.length) setData(true); setTimeout(renderRisk, 50); });

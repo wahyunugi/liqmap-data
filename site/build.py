@@ -404,6 +404,17 @@ def pack_underwater(sym, c5):
     return dict(t=int(h.t.iat[-1]) + 3600, U=round(float(U), 4), avg=round(float((book * mid).sum() / tot), 2), px=float(C[-1]))
 
 
+def pack_alerts():
+    """Peringatan big move terakhir (collector/alerts.py, data/alerts/log.csv)."""
+    path = os.path.join(ROOT, "data", "alerts", "log.csv")
+    if not os.path.exists(path):
+        return []
+    d = pd.read_csv(path).sort_values("t", ascending=False).head(10)
+    return [dict(t=int(r.t), coin=r.coin, kind=r.kind, volr=float(r.volr), price=float(r.price), bm=float(r.bm_pct),
+                 up=float(r.up), down=float(r.down), acc=None if r.acc != r.acc else float(r.acc), lean=int(r.lean))
+            for r in d.itertuples()]
+
+
 def pack_board():
     """Papan sinyal System v1 dan akun kertas $100 (research/board.py)."""
     sys.path.insert(0, os.path.join(ROOT, "research"))
@@ -413,6 +424,10 @@ def pack_board():
 
 def build():
     out = {"built": int(time.time()), "days": DAYS}
+    try:
+        out["alerts"] = pack_alerts()
+    except Exception as e:
+        print(f"PERINGATAN: daftar peringatan gagal: {e!r}"); out["alerts"] = []
     try:
         out["board"] = pack_board()
     except Exception as e:                                       # tambahan: tidak boleh menggagalkan website

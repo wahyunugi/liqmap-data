@@ -297,6 +297,23 @@ setiap kali website dibangun (tiap jam) oleh `research/board.py` lewat `pack_boa
   `data/markets/funding/daily`.
 - Bila papan gagal dibangun, website tetap terbit tanpa bagian ini (pesan PERINGATAN di log workflow "site").
 
+## Peringatan big move ke ponsel (ntfy)
+
+`collector/alerts.py` jalan tiap jam di workflow "collect" (langkah "Peringatan big move ke ponsel lewat ntfy").
+
+- **Kapan:** jam pertama volume futures 24 jam >= 2,6x median 30 hari (sekali per episode; episode selesai sesudah 24 jam
+  di bawah 2,6x), lagi bila volume >= 4x, dan bila condong kerumunan berbalik di dalam episode (Principles 14 dan 36).
+- **Isi pesan:** volume, harga, ukuran gerakan besar (3x ayunan 6 jam normal), level naik dan turun (harga +/- 1 ukuran),
+  angka sejarah (salah satu level tersentuh dalam 24 jam 66%; naik dulu 36%, turun dulu 29%), dan condong kerumunan yang
+  lemah. Peringatan memberi tahu kapan, bukan ke mana.
+- **Penerima:** aplikasi ntfy di ponsel, berlangganan ke satu nama topik. Nama topik disimpan sebagai rahasia repo
+  `NTFY_TOPIC` (Settings > Secrets and variables > Actions); siapa pun yang tahu nama itu bisa membaca pesannya, jadi
+  pakai nama acak. Tanpa rahasia itu peringatan hanya dicatat.
+- **Uji:** Actions > collect > Run workflow, centang "test_alert".
+- **Catatan:** `data/alerts/log.csv` (semua peringatan, kolom `sent` = yes / no topic / replay / late, not sent / failed),
+  `data/alerts/state.json` (status episode dan jam terakhir yang diproses). Lima peringatan terakhir tampil di bawah panel
+  Big-move risk di website.
+
 ## Indikator TradingView (`tradingview/liqmap.pine`)
 Model v6 yang sama, dihitung langsung di grafik TradingView dari data TradingView sendiri (candle 5 menit + open
 interest, simbol bawaan `<grafik>_OI`, misalnya `BINANCE:BTCUSDT.P_OI`). Tidak membaca data dari repo ini.

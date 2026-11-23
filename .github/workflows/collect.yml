@@ -11,6 +11,10 @@ on:
         description: "Jalankan juga data harian tambahan sekarang (biasanya hanya jam 01 UTC)"
         type: boolean
         default: false
+      test_alert:
+        description: "Kirim pesan uji ke ponsel (ntfy) untuk memastikan peringatan big move sampai"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -104,6 +108,13 @@ jobs:
         run: |
           pip install --quiet -r requirements.txt
           python heatmap/snapshot.py --save-history
+
+      - name: Peringatan big move ke ponsel lewat ntfy (gagal tidak menghentikan pengumpulan)
+        if: always()
+        continue-on-error: true
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python collector/alerts.py ${{ inputs.test_alert && '--test' || '' }}
 
       - name: Cek arti kolom l/s (tidak mengubah data)
         if: always()
