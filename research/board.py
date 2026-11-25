@@ -20,7 +20,7 @@ PAPER_START = pd.Timestamp("2026-11-22").timestamp()
 PAPER_RULES = "v1: 10 signals, score 3 to 5, choppy filter, once a day (Principles 30, 33, 35). Frozen 22 Nov 2026."
 NAMES = {"M1": "Momentum 28d", "M2": "20-day breakout", "M3": "50-day average", "M4": "Overreaction", "M5": "RSI extremes",
          "M6": "Funding extremes", "M7": "Crowd ratio", "M8": "Capitulation day", "M9": "Bounce pullback", "M10": "Breakdown short"}
-EXIT = {"M1": "after 7 days", "M2": "close beyond the opposite 10-day extreme", "M3": "close back across the 50-day average",
+EXIT = {"M1": "checked at each Monday close (07:00 WIB Tuesday): held another week while the 28-day change keeps its sign", "M2": "close beyond the opposite 10-day extreme", "M3": "close back across the 50-day average",
         "M4": "after 3 days", "M5": "RSI crosses 50, or after 10 days", "M6": "after 7 days", "M7": "after 7 days",
         "M8": "target, stop, or after 7 days", "M9": "target 2R, stop, or after 30 days", "M10": "target, stop, or after 30 days"}
 WIB = 7 * 3600
@@ -114,7 +114,7 @@ def board(PS=None):
     orders = [o for c, P in enumerate(PS) for o in waiting_orders(P, c, h, eq, paper)]
     opn = [dict(signal=NAMES[o["m"]], coin=o["coin"], side="Long" if o["d"] > 0 else "Short", score=int(o["rank"]),
                 entered=wib(o["t_entry"] + 3600), entry=r2(o["entry"]), stop=r2(o["stop"]), target=r2(o["tgt"]),
-                close_by=wib(o["t_ext"] + 3600 + o["maxh"] * 3600) if o["maxh"] < 10**8 else "on the exit signal",
+                close_by=("next check " if o["m"] == "M1" else "") + wib(o["t_ext"] + 3600 + o["maxh"] * 3600) if o["maxh"] < 10**8 else "on the exit signal",
                 now=r2(o["px"]), pnl=r2(o["upnl"]), exit=EXIT[o["m"]]) for o in paper["open"]]
     T = paper["trades"]; T = T[T.why != "end"] if not T.empty else T
     closed = [] if T.empty else [dict(signal=NAMES[x.m], coin=x.coin, side="Long" if x.d > 0 else "Short", score=int(x["rank"]),
