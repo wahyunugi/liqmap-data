@@ -1,15 +1,15 @@
 {
  "BTC": {
-  "last_t": 1795712400,
+  "last_t": 1795716000,
   "inep": false,
-  "below": 119,
+  "below": 120,
   "strong": false,
   "lean": -1
  },
  "ETH": {
-  "last_t": 1795712400,
+  "last_t": 1795716000,
   "inep": false,
-  "below": 122,
+  "below": 123,
   "strong": false,
   "lean": 0
  }
