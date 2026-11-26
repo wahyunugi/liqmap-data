@@ -4,3 +4,7 @@ called_wib,coin,side,grade,entry,invalidation,take_profit,close_by_wib,basis
 2026-11-25 08:50,BTC,short,possible,59300.4,70504.27,,2026-12-01 08:00,"Momentum 28d short still open, score 4"
 2026-11-25 08:50,BTC,short,possible,55126.7,59333.28,50920.12,,"Breakdown short conditional sell, score 4, only if the 20-day low breaks"
 2026-11-25 08:50,ETH,short,possible,1536.1,1681.39,1390.81,,"Breakdown short conditional sell, score 3, only if the 20-day low breaks"
+2026-11-26 08:35,BTC,short,possible,60496.0,70504.27,,2026-12-01 08:00,"Momentum 28d short still open, score 4"
+2026-11-26 08:35,BTC,short,possible,55126.7,59383.22,50870.18,,"Breakdown short conditional sell, score 4"
+2026-11-26 08:35,ETH,short,possible,1696.63,2031.64,,2026-12-01 08:00,"Momentum 28d short still open, score 3"
+2026-11-26 08:35,ETH,short,possible,1536.1,1682.45,1389.75,,"Breakdown short conditional sell, score 3"
