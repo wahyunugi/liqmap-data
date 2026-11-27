@@ -726,8 +726,10 @@ function renderRisk() {
   el.hidden = !parts.length; el.innerHTML = "Next hours when a big hourly move is more likely: " + parts.join(" · ");
   const AL = DATA.alerts || [], ea = document.getElementById("riskalerts");
   if (ea && AL.length) { const KIND = { alert: "volume alert", strong: "very high volume", flip: "crowd lean flipped" }, LEAN = { 1: "slight up lean", "-1": "slight down lean", 0: "no lean" };
-    ea.innerHTML = "Recent big-move alerts (sent to the phone by the hourly collection; principle 36: they say when, not which way): " + AL.slice(0, 5).map(a => {
-      const c = a.coin + "USDT"; return `<b>${a.coin}</b> ${fmtT(a.t + WIB)} WIB, ${KIND[a.kind] || a.kind} ${a.volr.toFixed(1)}x, price ${fmtP(a.price, c)}, up level ${fmtP(a.up, c)} / down level ${fmtP(a.down, c)}, ${LEAN[a.lean]}`; }).join(" · ");
+    ea.innerHTML = "Recent alerts (sent to the phone by the hourly collection; volume alerts say when, not which way, principle 36; fast-move alerts come after most of the move, principle 38): " + AL.slice(0, 5).map(a => {
+      const c = a.coin + "USDT";
+      if (a.kind === "fast") return `<b>${a.coin}</b> ${fmtT(a.t + WIB)} WIB, fast move ${a.lean > 0 ? "up" : "down"} in one hour, price ${fmtP(a.price, c)}, continue level ${fmtP(a.lean > 0 ? a.up : a.down, c)} / reverse level ${fmtP(a.lean > 0 ? a.down : a.up, c)}`;
+      return `<b>${a.coin}</b> ${fmtT(a.t + WIB)} WIB, ${KIND[a.kind] || a.kind} ${a.volr.toFixed(1)}x, price ${fmtP(a.price, c)}, up level ${fmtP(a.up, c)} / down level ${fmtP(a.down, c)}, ${LEAN[a.lean]}`; }).join(" · ");
     ea.hidden = false; }
 }
 Promise.all(COINS.map(c => fetch(`hist/${c}_crowd.json`, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j) CROWD[c] = j; }).catch(() => {})))

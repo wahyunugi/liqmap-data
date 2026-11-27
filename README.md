@@ -303,6 +303,9 @@ setiap kali website dibangun (tiap jam) oleh `research/board.py` lewat `pack_boa
 
 - **Kapan:** jam pertama volume futures 24 jam >= 2,6x median 30 hari (sekali per episode; episode selesai sesudah 24 jam
   di bawah 2,6x), lagi bila volume >= 4x, dan bila condong kerumunan berbalik di dalam episode (Principles 14 dan 36).
+- **Gerakan cepat (Principle 38):** jam lengkap yang bergerak >= setengah ukuran gerakan besar, maks sekali per 12 jam per
+  koin, tanpa syarat volume. Pesan: arah dan besar gerakan 1 jam, level lanjut dan balik (harga +/- 0,5 ukuran), angka
+  sejarah BTC dan ETH 2024 sampai 2026 (lanjut dulu 56%, balik dulu 34%). Biasanya tiba sesudah gerakan hampir selesai.
 - **Isi pesan:** volume, harga, ukuran gerakan besar (3x ayunan 6 jam normal), level naik dan turun (harga +/- 1 ukuran),
   angka sejarah (salah satu level tersentuh dalam 24 jam 66%; naik dulu 36%, turun dulu 29%), dan condong kerumunan yang
   lemah. Peringatan memberi tahu kapan, bukan ke mana.
