@@ -46,7 +46,7 @@ jobs:
           echo "ukuran repo menurut GitHub: $size_mb MB; arsip terakhir: ${last:-belum ada} ($age_days hari lalu); keputusan: $go ($why)"
           echo "go=$go" >> "$GITHUB_OUTPUT"; echo "why=$why" >> "$GITHUB_OUTPUT"; echo "size_mb=$size_mb" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.plan.outputs.go == 'true'
         with:
           ref: main
