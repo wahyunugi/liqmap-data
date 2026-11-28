@@ -306,6 +306,11 @@ setiap kali website dibangun (tiap jam) oleh `research/board.py` lewat `pack_boa
 - **Gerakan cepat (Principle 38):** jam lengkap yang bergerak >= setengah ukuran gerakan besar, maks sekali per 12 jam per
   koin, tanpa syarat volume. Pesan: arah dan besar gerakan 1 jam, level lanjut dan balik (harga +/- 0,5 ukuran), angka
   sejarah BTC dan ETH 2024 sampai 2026 (lanjut dulu 56%, balik dulu 34%). Biasanya tiba sesudah gerakan hampir selesai.
+- **Sinyal papan (`collector/board_alert.py`):** pada jalan pertama sesudah penutupan hari (07:00 WIB) setiap sinyal
+  System v1 yang diambil (skor 3 sampai 5) dikirim dengan harga 07:00, stop, target dan aturan keluar; masuk di penutupan
+  07:00 sampai 08:00 WIB. GREAT (prioritas tinggi) = skor 5 atau dua sinyal teruji searah di koin yang sama, termasuk
+  posisi yang sudah terbuka. Heads-up sekali per hari bila kerumunan > 3 sementara ada short terbuka (crowd-ratio short
+  akan menjadi Great bila masih > 3 saat penutupan 07:00 WIB). Catatan: `data/alerts/board_log.csv`, `board_state.json`.
 - **Isi pesan:** volume, harga, ukuran gerakan besar (3x ayunan 6 jam normal), level naik dan turun (harga +/- 1 ukuran),
   angka sejarah (salah satu level tersentuh dalam 24 jam 66%; naik dulu 36%, turun dulu 29%), dan condong kerumunan yang
   lemah. Peringatan memberi tahu kapan, bukan ke mana.

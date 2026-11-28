@@ -116,6 +116,13 @@ jobs:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python collector/alerts.py ${{ inputs.test_alert && '--test' || '' }}
 
+      - name: Sinyal papan (morning check, Great setup, heads-up) ke ponsel lewat ntfy
+        if: always()
+        continue-on-error: true
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python collector/board_alert.py
+
       - name: Cek arti kolom l/s (tidak mengubah data)
         if: always()
         run: python collector/check_sides.py || true
